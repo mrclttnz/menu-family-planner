@@ -1,0 +1,96 @@
+from datetime import datetime
+from typing import Optional, List
+from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+
+class DishSourceInfo(BaseModel):
+    source_type_id: Optional[int] = None
+    source_type_name: Optional[str] = None
+    source_type_icon: Optional[str] = None
+    source_reference: Optional[str] = None
+    source_url: Optional[str] = None
+
+
+class CourseSummary(BaseModel):
+    id: int
+    name: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class StatusSummary(BaseModel):
+    id: int
+    code: str
+    name: str
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class MemberPreferenceSummary(BaseModel):
+    member_id: int
+    member_name: str
+    avatar_color: Optional[str]
+    rating: str  # 'favorite' | 'neutral' | 'dislike'
+
+
+class DishCreate(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200, description="Dish title")
+    description: Optional[str] = Field(None, max_length=2000)
+    notes: Optional[str] = Field(None, max_length=2000)
+    status_id: int = Field(..., description="Foreign key to dish_statuses")
+    course_ids: List[int] = Field(..., min_length=1, description="One or more course types (Primo, Secondo, etc.)")
+    source_type_id: Optional[int] = None
+    source_reference: Optional[str] = Field(None, max_length=255)
+    source_url: Optional[str] = Field(None, max_length=1000)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("source_url")
+    @classmethod
+    def validate_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            v_clean = v.strip()
+            if not (v_clean.startswith("http://") or v_clean.startswith("https://")):
+                raise ValueError("source_url must start with http:// or https://")
+            return v_clean
+        return None
+
+
+class DishUpdate(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    description: Optional[str] = None
+    notes: Optional[str] = None
+    status_id: Optional[int] = None
+    course_ids: Optional[List[int]] = None
+    source_type_id: Optional[int] = None
+    source_reference: Optional[str] = None
+    source_url: Optional[str] = None
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("source_url")
+    @classmethod
+    def validate_url(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            v_clean = v.strip()
+            if not (v_clean.startswith("http://") or v_clean.startswith("https://")):
+                raise ValueError("source_url must start with http:// or https://")
+            return v_clean
+        return None
+
+
+class DishResponse(BaseModel):
+    id: int
+    household_id: int
+    title: str
+    description: Optional[str]
+    notes: Optional[str]
+    status: StatusSummary
+    courses: List[CourseSummary]
+    source: DishSourceInfo
+    preferences: List[MemberPreferenceSummary]
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)

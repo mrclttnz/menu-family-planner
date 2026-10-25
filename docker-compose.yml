@@ -1,0 +1,36 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: menu-design-app
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:-menu-design-production-secret-key-must-be-changed-in-prod-min-32-chars!}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+    volumes:
+      - app_data:/app/data
+
+  # Optional PostgreSQL database (enable with: docker compose --profile postgres up)
+  postgres:
+    image: postgres:16-alpine
+    container_name: menu-design-postgres
+    restart: unless-stopped
+    profiles:
+      - postgres
+    environment:
+      POSTGRES_DB: menu_design
+      POSTGRES_USER: ${POSTGRES_USER:-menu_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-menu_secure_pass_123!}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  app_data:
+  postgres_data:
