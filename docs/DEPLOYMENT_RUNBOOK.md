@@ -2,82 +2,124 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Verified & Ready for Operations  
+> **Deployment Target**: Self-Hosted Local Stack (PostgreSQL 16 + FastAPI/React) + Cloudflare Tunnel (Remote HTTPS)  
 > **Author**: Bottega DevOps & SRE Specialist (`devops-sre`)
 
 ---
 
-## 1. Quick Start & Local Execution
+## 1. Architettura della Soluzione
 
-### Option A: Local Unified Process (Fastest Local Testing)
-1. **Activate Virtualenv and Install Dependencies**:
-   ```bash
-   source backend/.venv/bin/activate
-   pip install -r backend/requirements.txt
-   ```
-2. **Build Frontend Static Bundle**:
-   ```bash
-   cd frontend && npm install && npm run build && cd ..
-   ```
-3. **Run Unified Server**:
-   ```bash
-   source backend/.venv/bin/activate
-   cd backend && python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
-   ```
-4. **Open Browser**:
-   Navigate to `http://localhost:8000` (FastAPI serves both the React application and the `/api/v1` endpoints).
+- **Backend & Frontend**: Container unificato `menu-design-app` (FastAPI serve sia le API `/api/v1` sia il bundle statico React compilato).
+- **Database**: PostgreSQL 16 Alpine gestito in locale con volume persistente `postgres_data`.
+  - **Accesso LAN**: Porta `5432` esposta sulla macchina server per consentire connessioni dirette dalla rete domestica (es. DBeaver, DataGrip, pgAdmin).
+  - **Sicurezza**: La porta `5432` non viene mai esposta su Internet dal router.
+- **Accesso Remoto Sicuro**: Cloudflare Tunnel (opzionale/on-demand) per consentire l'accesso sicuro via HTTPS da smartphone all'esterno, senza aprire porte sul firewall o router domestico.
 
 ---
 
-### Option B: Dual Development Mode (Live Hot-Reloading)
-For active development with hot-reloading on both frontend and backend:
-- **Terminal 1 (Backend API)**:
-  ```bash
-  source backend/.venv/bin/activate
-  cd backend && uvicorn app.main:app --reload --port 8000
-  ```
-- **Terminal 2 (Frontend React Vite Dev Server)**:
-  ```bash
-  cd frontend && npm run dev
-  ```
-  Open `http://localhost:5173`. Vite automatically proxies all `/api/*` requests to port 8000.
+## 2. Configurazione Rapida (.env)
 
----
+Crea il tuo file `.env` a partire da `.env.example`:
 
-### Option C: Docker & Docker Compose
-To run Menu Design in an isolated, non-root, production container:
 ```bash
-# Build and run the containerized app (with SQLite)
-docker compose up -d --build
+cp .env.example .env
+```
 
-# Check logs
-docker compose logs -f
+Genera una chiave segreta sicura e impostala nel file `.env`:
+```bash
+# Genera SECRET_KEY a 32 byte
+openssl rand -hex 32
+```
 
-# Check health
-curl -f http://localhost:8000/health
+Nel file `.env` imposta anche una password robusta per `POSTGRES_PASSWORD`:
+```env
+ENVIRONMENT=production
+SECRET_KEY=<chiave_generata_con_openssl>
+POSTGRES_DB=menu_design
+POSTGRES_USER=menu_user
+POSTGRES_PASSWORD=<tua_password_sicura>
+CORS_ORIGINS=http://localhost:8000,http://<IP_LOCALE_SERVER>:8000,https://menu.tuodominio.it
+TUNNEL_TOKEN=<token_cloudflare_opzionale>
 ```
 
 ---
 
-## 2. Production PostgreSQL Deployment
+## 3. Avvio dell'Applicazione con Docker Compose
 
-To switch from SQLite to PostgreSQL:
-1. Start PostgreSQL via Docker Compose profile:
-   ```bash
-   docker compose --profile postgres up -d
-   ```
-2. Update the `DATABASE_URL` environment variable:
-   ```env
-   DATABASE_URL=postgresql://menu_user:menu_secure_pass_123!@localhost:5432/menu_design
-   ```
-3. SQLAlchemy and Alembic automatically manage tables on startup.
+### Solo App + Database Locale (Accesso da rete locale)
+```bash
+# Avvia Postgres e l'applicazione in background
+docker compose up -d --build
+
+# Visualizza lo stato dei container e dell'healthcheck
+docker compose ps
+
+# Visualizza i log in tempo reale
+docker compose logs -f app
+```
+
+L'applicazione sarà accessibile all'indirizzo:
+- Dal server stesso: `http://localhost:8000`
+- Da qualsiasi dispositivo connesso alla Wi-Fi di casa: `http://<IP_SERVER_LAN>:8000` (es. `http://192.168.1.50:8000`)
+
+### Con Cloudflare Tunnel (Accesso Remoto sicuro da smartphone/internet)
+Quando hai creato il tunnel sulla dashboard Cloudflare Zero Trust e inserito `TUNNEL_TOKEN` nel file `.env`:
+```bash
+# Avvia App, Postgres e Cloudflare Tunnel
+docker compose --profile tunnel up -d
+```
+L'app sarà immediatamente raggiungibile al tuo dominio pubblico (es. `https://menu.tuodominio.it`) con certificato SSL valido.
 
 ---
 
-## 3. Operations & Health Checks
+## 4. Accesso a PostgreSQL dalla Rete Domestica (LAN)
 
-- **Health Endpoint**: `GET /health` (returns `{"status": "ok", "app": "Menu Design API", "version": "1.0.0"}`)
-- **API Documentation**: Interactive Swagger docs available at `http://localhost:8000/docs`
-- **Data Backups**:
-  - SQLite: Copy `backend/app.db` (safe during WAL mode via `.backup` or file copy).
-  - PostgreSQL: `docker exec -t menu-design-postgres pg_dump -U menu_user menu_design > backup.sql`.
+Puoi connetterti al database direttamente dal tuo PC o laptop (es. tramite DBeaver, pgAdmin, DataGrip o CLI):
+
+- **Host / Indirizzo**: IP locale del server (es. `192.168.1.50` oppure `localhost` se sei sulla stessa macchina)
+- **Porta**: `5432`
+- **Database**: `menu_design` (o il valore di `POSTGRES_DB`)
+- **Username**: `menu_user` (o il valore di `POSTGRES_USER`)
+- **Password**: quella configurata in `POSTGRES_PASSWORD`
+
+### Connessione rapida da terminale (psql):
+```bash
+psql -h <IP_SERVER_LAN> -p 5432 -U menu_user -d menu_design
+```
+
+### Accesso diretto tramite il container:
+```bash
+docker exec -it menu-design-postgres psql -U menu_user -d menu_design
+```
+
+---
+
+## 5. Manutenzione e Backup di PostgreSQL
+
+### Eseguire un backup manuale istantaneo
+```bash
+# Salva un dump compresso con timestamp
+docker exec -t menu-design-postgres pg_dump -U menu_user menu_design | gzip > backup_menu_design_$(date +%Y%m%d_%H%M%S).sql.gz
+```
+
+### Ripristinare un backup
+```bash
+gunzip < backup_menu_design_YYYYMMDD_HHMMSS.sql.gz | docker exec -i menu-design-postgres psql -U menu_user -d menu_design
+```
+
+### Backup automatico giornaliero (Cron job sul server)
+Puoi aggiungere un cron job con `crontab -e`:
+```bash
+0 3 * * * docker exec -t menu-design-postgres pg_dump -U menu_user menu_design | gzip > /home/marco/backups/menu_db_$(date +\%Y\%m\%d).sql.gz
+```
+
+---
+
+## 6. Health Checks & Monitoraggio
+
+- **Healthcheck App**: `GET /health` (restituisce `{"status": "ok", "app": "Menu Design API", "version": "1.0.0"}`)
+- **Verifica salute Postgres**:
+  ```bash
+  docker inspect --format='{{json .State.Health.Status}}' menu-design-postgres
+  # Output: "healthy"
+  ```

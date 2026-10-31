@@ -14,9 +14,9 @@
 | **Language / Runtime** | Python 3.14 (Virtualenv in `backend/.venv`) / TypeScript Node 24 | Clean separation, high performance, robust types | Implemented |
 | **Frontend / UI** | React 18 + Vite + Tailwind CSS + Lucide React | Highly responsive, mobile-first kitchen dashboard, fast interaction | Implemented |
 | **Backend / API** | FastAPI + Pydantic v2 + Uvicorn | Async REST API, automatic OpenAPI docs, strict schema validation | Implemented |
-| **Database & Cache** | SQLite 3 (WAL mode) in dev -> PostgreSQL in prod | Seamless transition via SQLAlchemy 2.0 ORM & Alembic | Implemented |
+| **Database & Cache** | PostgreSQL 16 (Docker container) con accesso LAN (porta 5432) | Dati persistenti, supporto concorrenza, accesso diretto locale tramite DBeaver/pgAdmin | Implemented |
 | **AuthN / AuthZ** | JWT Bearer + Household Scoping (Anti-IDOR) + Member Profile | Single household login + member switcher, zero trust boundaries | Implemented |
-| **Deployment Target** | Multi-stage Docker + Docker Compose (PaaS / VPS ready) | Lightweight, non-root, portable, reproducible environments | Implemented |
+| **Deployment Target** | Self-Hosted Docker Compose (App + Postgres 16) + Cloudflare Tunnel | Accesso locale LAN + accesso sicuro HTTPS remoto senza esporre porte router | Implemented |
 
 ## 3. Artifact Index
 - **Requirements Spec**: `docs/PRD.md` — `[Approved - Gate 1]`
@@ -26,6 +26,7 @@
 - **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (20/20 Tests Passing)]`
 - **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS)]`
 - **Deployment Runbook**: `docs/DEPLOYMENT_RUNBOOK.md` — `[Approved - Gate 7 (Ready)]`
+- **External Docker Runbook (QNAP & Docker Hub)**: `docs/DEPLOYMENT_DOCKER_EXTERNAL.md` — `[Production Ready]`
 
 ## 4. Vertical Slices & Implementation Backlog
 | Slice ID | Feature / Module | Owner Role | Dev Status | QA Status | Review & Sec Gate |
@@ -46,4 +47,4 @@
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).
-- [x] **Gate 7 (Deployment Verified)**: Hardened non-root `Dockerfile`, `docker-compose.yml`, `run_dev.sh`, and `docs/DEPLOYMENT_RUNBOOK.md` verified.
+- [x] **Gate 7 (Deployment Verified)**: Hardened non-root `Dockerfile`, `docker-compose.yml` con PostgreSQL 16 Alpine e Cloudflare Tunnel verificati. Servizi `app` e `postgres` attivi e testati con esito `healthy` su porta 8000 e 5432.

@@ -10,7 +10,7 @@ PIATTI
 * D004 - non c'è edit dei piatti
 
 PRESENZE
-* A001 - ossibilità di avere ospiti
+* A001 - possibilità di avere ospiti
 
 GIUDIZIO
 * J001 - possibilità di indicare se un piatto è piaciuto o no

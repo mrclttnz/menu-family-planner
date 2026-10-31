@@ -12,10 +12,20 @@ build/
 
 # Secrets & Local Config
 .env
+.env.production
 .env.local
 .env.*.local
 *.pem
 *.key
+
+# Production Configuration Files
+*.prod.yml
+*.prod.yaml
+*prod*.yml
+*prod*.yaml
+*.prod.json
+*.prod.conf
+*.prod.toml
 
 # SQLite Databases
 *.db
