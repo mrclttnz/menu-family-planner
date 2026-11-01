@@ -1,0 +1,55 @@
+name: "🛠️ Tech Debt, Refactoring or Security Hardening"
+description: "Track non-blocking Code Review findings, architectural refactoring, or security improvements"
+title: "[TECH] "
+labels: ["type:refactor", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 💡 **Tip**: Use this form to track `backlog` findings from Bottega's **Code Reviewer** or **Security Engineer**, architectural improvements, or documentation alignment tasks. Full Markdown, images, and `mermaid` diagrams are supported.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: "Category"
+      options:
+        - "Code Refactoring / Tech Debt (type:refactor)"
+        - "Security Hardening (type:security)"
+        - "Documentation Alignment (type:docs)"
+        - "DevOps / CI / Docker Maintenance (type:chore)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Priority"
+      options:
+        - "Low (priority:low)"
+        - "Medium (priority:medium)"
+        - "High (priority:high)"
+    validations:
+      required: true
+
+  - type: input
+    id: affected_files
+    attributes:
+      label: "Affected Files / Modules"
+      description: "Exact file:line references or architectural components"
+      placeholder: "e.g., src/services/menu.ts:42-68"
+    validations:
+      required: false
+
+  - type: textarea
+    id: details
+    attributes:
+      label: "Context, Risk & Proposed Remediation"
+      description: "Describe the technical debt or security recommendation and the target state."
+      placeholder: |
+        ### Finding / Current State
+        Describe the current limitation or review finding...
+
+        ### Proposed Improvement
+        Describe the clean refactoring or security control to implement...
+    validations:
+      required: true

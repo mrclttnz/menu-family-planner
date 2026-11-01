@@ -1,0 +1,75 @@
+name: "✨ Feature or Enhancement Request"
+description: "Propose a new feature, user story, or functional/UI improvement"
+title: "[FEAT] "
+labels: ["type:enhancement", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 💡 **Tip**: All text areas below support full **GitHub Flavored Markdown**, including **drag-and-drop images/screenshots**, tables, code blocks, and **`mermaid` diagrams**.
+
+  - type: dropdown
+    id: item_type
+    attributes:
+      label: "Request Type"
+      description: "Is this a brand-new capability or an improvement to an existing feature?"
+      options:
+        - "New Feature (type:feature)"
+        - "Enhancement / UX Improvement (type:enhancement)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Suggested Priority"
+      options:
+        - "Medium (priority:medium)"
+        - "High (priority:high)"
+        - "Low (priority:low)"
+        - "Critical (priority:critical)"
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: "Affected Module / Component (Optional)"
+      description: "Which part or module of the application is affected? (e.g., Auth, UI, API, Database)"
+      placeholder: "e.g., Auth / UI / API"
+    validations:
+      required: false
+
+  - type: textarea
+    id: description
+    attributes:
+      label: "Problem / Goal & Detailed Description"
+      description: "Describe the need, expected behavior, or idea. You can paste screenshots or draw Mermaid diagrams (` ```mermaid `) here."
+      placeholder: |
+        ### Context / Need
+        Describe why this feature or improvement is needed...
+
+        ### Proposed Solution
+        Describe how it should work from the user's perspective...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance_criteria
+    attributes:
+      label: "Acceptance Criteria (Given / When / Then or Checklist)"
+      description: "How will we verify that this feature is complete?"
+      placeholder: |
+        - [ ] Criterion 1
+        - [ ] Criterion 2
+    validations:
+      required: false
+
+  - type: textarea
+    id: technical_notes
+    attributes:
+      label: "Technical Notes & Documentation Impact (Optional)"
+      description: "Impacted files, API endpoints, database tables, or Bottega docs (`PRD.md`, `ARCHITECTURE.md`, `DB_SCHEMA.md`)."
+      placeholder: "Optional notes on implementation or impacted components..."
+    validations:
+      required: false

@@ -1,0 +1,58 @@
+name: "🐛 Bug Report"
+description: "Report a defect, crash, unexpected behavior, or UI anomaly"
+title: "[BUG] "
+labels: ["type:bug", "status:triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > 💡 **Tip**: You can drag-and-drop **screenshots, screen recordings, or logs** and use **Markdown / Mermaid diagrams** in any text field below.
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "Severity / Priority"
+      options:
+        - "Medium — Non-blocking defect or workaround exists (priority:medium)"
+        - "High — Core feature broken (priority:high)"
+        - "Critical — Data loss, crash, or security flaw (priority:critical)"
+        - "Low — Cosmetic / minor UI glitch (priority:low)"
+    validations:
+      required: true
+
+  - type: input
+    id: component
+    attributes:
+      label: "Affected Module / Screen (Optional)"
+      description: "Where does the issue occur?"
+      placeholder: "e.g., Login page, API endpoint, Dashboard"
+    validations:
+      required: false
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: "Steps to Reproduce & Actual vs. Expected Behavior"
+      description: "Describe how to trigger the bug, what happens now, and what should happen instead. Attach screenshots or logs if helpful."
+      placeholder: |
+        ### Steps to Reproduce
+        1. Go to '...'
+        2. Click on '...'
+        3. Observe error
+
+        ### Expected Behavior
+        What should happen...
+
+        ### Actual Behavior
+        What actually happens (paste error logs or drag-and-drop screenshots here)...
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: "Environment & Technical Context (Optional)"
+      description: "Browser/OS, Docker/Local environment, or suspected source file."
+      placeholder: "e.g., Local Docker setup, Chrome on Linux..."
+    validations:
+      required: false
