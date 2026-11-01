@@ -1,45 +1,260 @@
 import React, { useState } from 'react'
-import { MealSlot, Member, MealType, Dish } from '../types'
-import { Calendar as CalendarIcon, Plus, Trash2, AlertTriangle, Star, CheckCircle, ChevronLeft, ChevronRight, Utensils } from 'lucide-react'
+import { MealSlot, Member, MealType, Dish, CourseType, DishStatus } from '../types'
+import { formatDate, parseDate } from '../dateUtils'
+import {
+  Calendar as CalendarIcon,
+  Plus,
+  Trash2,
+  AlertTriangle,
+  Star,
+  CheckCircle,
+  ChevronLeft,
+  ChevronRight,
+  Utensils,
+  MessageSquare,
+  StickyNote,
+  X,
+  Users,
+  Meh,
+  ThumbsUp,
+  ThumbsDown,
+  LayoutGrid,
+  Rows3,
+  List,
+  Search,
+} from 'lucide-react'
+
+export type CalendarViewMode = 'compact_h' | 'compact_v' | 'detailed'
 
 interface CalendarViewProps {
   slots: MealSlot[]
   members: Member[]
   dishes: Dish[]
   mealTypes: MealType[]
+  courses?: CourseType[]
+  statuses?: DishStatus[]
   startDate: string
   endDate: string
+  weekStartDay: number
+  onChangeWeekStartDay: (day: number) => void
+  onResetToCurrentWeek: () => void
   onDateRangeChange: (start: string, end: string) => void
   onAddCustomSlot: (date: string, mealTypeId: number) => void
   onDeleteSlot: (slotId: number) => void
-  onAssignDish: (slotId: number, dishId: number) => void
+  onDeleteMealTypeSlots?: (mealTypeId: number) => Promise<void>
+  onUpdateSlotNotes?: (slotId: number, notes: string | null) => Promise<void>
+  onAssignDish: (slotId: number, dishId: number, assignedMemberIds?: number[]) => void
+  onCreateDish?: (payload: {
+    title: string
+    description?: string
+    notes?: string
+    status_id: number
+    course_ids: number[]
+  }) => Promise<Dish>
   onRemoveDish: (slotId: number, dishId: number) => void
+  onAddSlotDishNote: (slotId: number, dishId: number, note: string) => void
+  onDeleteSlotDishNote: (slotId: number, dishId: number, noteId: number) => void
+  onSetSlotDishRating: (slotId: number, dishId: number, memberId: number, rating: 'thumbs_up' | 'neutral' | 'thumbs_down') => Promise<void>
+  onDeleteSlotDishRating: (slotId: number, dishId: number, memberId: number) => Promise<void>
 }
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
   slots,
+  members,
   dishes,
   mealTypes,
+  courses = [],
+  statuses = [],
   startDate,
   endDate,
+  weekStartDay,
+  onChangeWeekStartDay,
+  onResetToCurrentWeek,
   onDateRangeChange,
   onAddCustomSlot,
   onDeleteSlot,
+  onDeleteMealTypeSlots,
+  onUpdateSlotNotes,
   onAssignDish,
+  onCreateDish,
   onRemoveDish,
+  onAddSlotDishNote,
+  onDeleteSlotDishNote,
+  onSetSlotDishRating,
+  onDeleteSlotDishRating,
 }) => {
+  // P004: Switch 3 modalità (Compatta Orizzontale, Compatta Verticale, Dettagliata)
+  const [viewMode, setViewMode] = useState<CalendarViewMode>(() => {
+    const saved = localStorage.getItem('menu_design_view_mode')
+    if (saved === 'detailed') return 'detailed'
+    if (saved === 'compact_v') return 'compact_v'
+    return 'compact_h' // default (o fallback da vecchio 'compact')
+  })
+
+  const handleToggleViewMode = (mode: CalendarViewMode) => {
+    setViewMode(mode)
+    localStorage.setItem('menu_design_view_mode', mode)
+  }
+
   const [selectedSlotForDish, setSelectedSlotForDish] = useState<number | null>(null)
   const [selectedMealTypeForDate, setSelectedMealTypeForDate] = useState<string | null>(null)
   const [newSlotMealTypeId, setNewSlotMealTypeId] = useState<number>(mealTypes[0]?.id || 1)
 
+  // Alternative Dish Diners Selection State (P002)
+  const [assignForSpecificMembers, setAssignForSpecificMembers] = useState(false)
+  const [selectedMemberIdsForDish, setSelectedMemberIdsForDish] = useState<number[]>([])
+
+  // P007: Dish Search & Course Filter
+  const [dishSearch, setDishSearch] = useState('')
+  const [selectedCourseFilter, setSelectedCourseFilter] = useState<number | null>(null)
+
+  // P008: Inline Quick Create Dish
+  const [isCreatingDish, setIsCreatingDish] = useState(false)
+  const [newDishTitle, setNewDishTitle] = useState('')
+  const [newDishCourseIds, setNewDishCourseIds] = useState<number[]>([])
+  const [newDishNotes, setNewDishNotes] = useState('')
+  const [isSavingDish, setIsSavingDish] = useState(false)
+  const [createDishError, setCreateDishError] = useState<string | null>(null)
+
+  // Inline Note State (J001)
+  const [activeNoteDishId, setActiveNoteDishId] = useState<{ slotId: number; dishId: number } | null>(null)
+  const [noteText, setNoteText] = useState('')
+
+  // Meal Slot General Note State (P010)
+  const [editingSlotNoteId, setEditingSlotNoteId] = useState<number | null>(null)
+  const [editSlotNoteValue, setEditSlotNoteValue] = useState<string>('')
+
+  const handleStartEditSlotNote = (slotId: number, currentNote?: string) => {
+    setEditingSlotNoteId(slotId)
+    setEditSlotNoteValue(currentNote || '')
+  }
+
+  const handleSaveSlotNote = async (slotId: number) => {
+    if (onUpdateSlotNotes) {
+      await onUpdateSlotNotes(slotId, editSlotNoteValue.trim() || null)
+    }
+    setEditingSlotNoteId(null)
+  }
+
+  const handleDeleteSlotNote = async (slotId: number) => {
+    if (window.confirm('Sei sicuro di voler eliminare la nota per questo pasto?')) {
+      if (onUpdateSlotNotes) {
+        await onUpdateSlotNotes(slotId, null)
+      }
+      if (editingSlotNoteId === slotId) {
+        setEditingSlotNoteId(null)
+      }
+    }
+  }
+
   // Shift 7 days
   const handleShiftDays = (direction: 'prev' | 'next') => {
-    const start = new Date(startDate)
+    const start = parseDate(startDate)
     const offset = direction === 'next' ? 7 : -7
     start.setDate(start.getDate() + offset)
     const end = new Date(start)
     end.setDate(end.getDate() + 6)
-    onDateRangeChange(start.toISOString().split('T')[0], end.toISOString().split('T')[0])
+    onDateRangeChange(formatDate(start), formatDate(end))
+  }
+
+  const handleOpenAssignModal = (slotId: number) => {
+    setSelectedSlotForDish(slotId)
+    setAssignForSpecificMembers(false)
+    setSelectedMemberIdsForDish([])
+    setDishSearch('')
+    setSelectedCourseFilter(null)
+    setIsCreatingDish(false)
+    setNewDishTitle('')
+    setNewDishCourseIds([])
+    setNewDishNotes('')
+    setCreateDishError(null)
+  }
+
+  const handleSelectDishForSlot = (dishId: number) => {
+    if (!selectedSlotForDish) return
+    const assignedIds =
+      assignForSpecificMembers && selectedMemberIdsForDish.length > 0 ? selectedMemberIdsForDish : undefined
+    onAssignDish(selectedSlotForDish, dishId, assignedIds)
+    setSelectedSlotForDish(null)
+    setIsCreatingDish(false)
+  }
+
+  const handleToggleMemberForDish = (memberId: number) => {
+    if (selectedMemberIdsForDish.includes(memberId)) {
+      setSelectedMemberIdsForDish(selectedMemberIdsForDish.filter((id) => id !== memberId))
+    } else {
+      setSelectedMemberIdsForDish([...selectedMemberIdsForDish, memberId])
+    }
+  }
+
+  const handleStartCreateDish = (prefillTitle?: string) => {
+    setIsCreatingDish(true)
+    setNewDishTitle(prefillTitle || dishSearch || '')
+    setNewDishCourseIds(selectedCourseFilter ? [selectedCourseFilter] : [])
+    setNewDishNotes('')
+    setCreateDishError(null)
+  }
+
+  const handleToggleCourseForNewDish = (courseId: number) => {
+    if (newDishCourseIds.includes(courseId)) {
+      setNewDishCourseIds(newDishCourseIds.filter((id) => id !== courseId))
+    } else {
+      setNewDishCourseIds([...newDishCourseIds, courseId])
+    }
+  }
+
+  const handleQuickCreateDishSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!newDishTitle.trim()) {
+      setCreateDishError('Inserisci il nome del piatto')
+      return
+    }
+    if (!selectedSlotForDish) return
+
+    setIsSavingDish(true)
+    setCreateDishError(null)
+    try {
+      const defaultStatus = statuses?.find((s) => s.is_default) || statuses?.[0]
+      const statusId = defaultStatus?.id || 1
+
+      if (onCreateDish) {
+        const created = await onCreateDish({
+          title: newDishTitle.trim(),
+          course_ids: newDishCourseIds,
+          notes: newDishNotes.trim() || undefined,
+          status_id: statusId,
+        })
+        const assignedIds =
+          assignForSpecificMembers && selectedMemberIdsForDish.length > 0 ? selectedMemberIdsForDish : undefined
+        onAssignDish(selectedSlotForDish, created.id, assignedIds)
+      }
+      setSelectedSlotForDish(null)
+      setIsCreatingDish(false)
+    } catch (err: any) {
+      setCreateDishError(err.message || 'Errore nella creazione del piatto')
+    } finally {
+      setIsSavingDish(false)
+    }
+  }
+
+  // P009: Check if meal type has any dishes assigned across the current week
+  const hasDishesInWeek = (mealTypeId: number) => {
+    return slots.some((s) => s.meal_type.id === mealTypeId && s.dishes.length > 0)
+  }
+
+  const handleDeleteMealType = async (mealTypeId: number, mealTypeName: string) => {
+    if (window.confirm(`Vuoi rimuovere il pasto "${mealTypeName}" da tutta la settimana visualizzata?`)) {
+      if (onDeleteMealTypeSlots) {
+        await onDeleteMealTypeSlots(mealTypeId)
+      }
+    }
+  }
+
+  const handleSaveNote = (slotId: number, dishId: number) => {
+    if (!noteText.trim()) return
+    onAddSlotDishNote(slotId, dishId, noteText.trim())
+    setNoteText('')
+    setActiveNoteDishId(null)
   }
 
   // Group slots by date
@@ -51,43 +266,610 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const sortedDates = Object.keys(slotsByDate).sort()
 
+  // 7 consecutive dates of the week
+  const weekDates = Array.from({ length: 7 }, (_, i) => {
+    const d = parseDate(startDate)
+    d.setDate(d.getDate() + i)
+    return formatDate(d)
+  })
+
+  // Unique meal types active or present in this week (P009)
+  const activeMealTypes = mealTypes
+    .filter((mt) => slots.some((s) => s.meal_type.id === mt.id))
+    .sort((a, b) => a.default_sort_order - b.default_sort_order)
+
+  // P007: Filtered dishes list by search text and course filter
+  const filteredDishes = dishes.filter((dish) => {
+    const matchesSearch =
+      !dishSearch.trim() ||
+      dish.title.toLowerCase().includes(dishSearch.toLowerCase()) ||
+      (dish.description && dish.description.toLowerCase().includes(dishSearch.toLowerCase()))
+    const matchesCourse =
+      selectedCourseFilter === null ||
+      dish.courses.some((c) => c.id === selectedCourseFilter)
+    return matchesSearch && matchesCourse
+  })
+
+  // Map of slot by date and meal_type_id
+  const slotMap = new Map<string, MealSlot>()
+  slots.forEach((s) => {
+    slotMap.set(`${s.date}_${s.meal_type.id}`, s)
+  })
+
+  const currentTodayStr = formatDate(new Date())
+  const isCurrentWeek = weekDates.includes(currentTodayStr)
+
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
-      {/* Top Header & Navigation */}
-      <div className="bg-white rounded-2xl p-4 sm:p-5 border border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-2.5 pb-16 md:pb-4">
+      {/* Top Header & Navigation (G002: super compact) */}
+      <div className="bg-white rounded-lg px-3 py-1.5 border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-2xs">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 flex items-center space-x-2">
-            <CalendarIcon className="w-5 h-5 text-brand-600" />
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center space-x-1.5">
+            <CalendarIcon className="w-4 h-4 text-brand-600" />
             <span>Pianificatore Pasti</span>
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-[11px] text-slate-500">
             Pianifica e personalizza i pasti della settimana per tutta la famiglia
           </p>
         </div>
 
-        <div className="flex items-center space-x-2">
-          <button
-            onClick={() => handleShiftDays('prev')}
-            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-            title="Settimana precedente"
-          >
-            <ChevronLeft className="w-4 h-4" />
-          </button>
-          <span className="text-xs font-semibold px-3 py-1.5 bg-slate-100 rounded-lg text-slate-700">
-            {startDate} ➔ {endDate}
-          </span>
-          <button
-            onClick={() => handleShiftDays('next')}
-            className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-            title="Settimana successiva"
-          >
-            <ChevronRight className="w-4 h-4" />
-          </button>
+        <div className="flex items-center space-x-2 self-start md:self-auto flex-wrap gap-y-1.5">
+          {/* P004: Switch 3 modalità (Orizzontale, Verticale, Dettagliata) */}
+          <div className="flex items-center rounded-md border border-slate-200 bg-slate-100 p-0.5 text-xs">
+            <button
+              onClick={() => handleToggleViewMode('compact_h')}
+              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+                viewMode === 'compact_h'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Compatta Orizzontale: pasti in riga, giorni in colonna"
+            >
+              <LayoutGrid className="w-3 h-3" />
+              <span>Orizzontale</span>
+            </button>
+            <button
+              onClick={() => handleToggleViewMode('compact_v')}
+              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+                viewMode === 'compact_v'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Compatta Verticale: giorni in riga, pasti in colonna"
+            >
+              <Rows3 className="w-3 h-3" />
+              <span>Verticale</span>
+            </button>
+            <button
+              onClick={() => handleToggleViewMode('detailed')}
+              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+                viewMode === 'detailed'
+                  ? 'bg-white text-slate-900 shadow-2xs font-semibold'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+              title="Vista Dettagliata: presenze, compatibilità estesa e note"
+            >
+              <List className="w-3 h-3" />
+              <span>Dettagliata</span>
+            </button>
+          </div>
+
+          {/* P005: Scelta giorno inizio settimana */}
+          <div className="flex items-center space-x-1 text-[11px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
+            <span className="text-slate-400 font-medium">Inizio:</span>
+            <select
+              value={weekStartDay}
+              onChange={(e) => onChangeWeekStartDay(Number(e.target.value))}
+              className="bg-transparent text-slate-700 font-medium focus:outline-hidden cursor-pointer text-[11px]"
+              title="Giorno di inizio settimana predefinito"
+            >
+              <option value={6}>Sabato</option>
+              <option value={0}>Domenica</option>
+              <option value={1}>Lunedì</option>
+              <option value={2}>Martedì</option>
+              <option value={3}>Mercoledì</option>
+              <option value={4}>Giovedì</option>
+              <option value={5}>Venerdì</option>
+              <option value={-1}>Oggi</option>
+            </select>
+          </div>
+
+          {/* Navigazione Settimana con Quick Reset Oggi */}
+          <div className="flex items-center space-x-1">
+            <button
+              onClick={() => handleShiftDays('prev')}
+              className="p-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
+              title="Settimana precedente"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+
+            <button
+              onClick={onResetToCurrentWeek}
+              className={`px-1.5 py-0.5 rounded text-[11px] font-medium border transition-colors ${
+                isCurrentWeek
+                  ? 'bg-slate-100 border-slate-200 text-slate-600'
+                  : 'bg-brand-50 border-brand-200 text-brand-700 hover:bg-brand-100 font-semibold'
+              }`}
+              title="Torna alla settimana corrente contenente oggi"
+            >
+              Oggi
+            </button>
+
+            <span className="text-[11px] font-semibold px-2 py-0.5 bg-slate-100 rounded text-slate-700">
+              {startDate} ➔ {endDate}
+            </span>
+
+            <button
+              onClick={() => handleShiftDays('next')}
+              className="p-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
+              title="Settimana successiva"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Days List */}
-      <div className="space-y-6">
+      {viewMode === 'compact_h' ? (
+        /* P003: Compact Horizontal Matrix View (7 days horizontally as columns, meal types as rows) */
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse table-fixed min-w-[760px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="w-20 sm:w-24 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
+                    Pasto
+                  </th>
+                  {weekDates.map((dateStr) => {
+                    const dateObj = parseDate(dateStr)
+                    const isToday = currentTodayStr === dateStr
+                    const dayShort = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(dateObj)
+                    const dayNum = dateObj.getDate()
+                    const monthShort = new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(dateObj)
+                    return (
+                      <th
+                        key={dateStr}
+                        className={`px-1.5 py-1 text-center border-r border-slate-200 last:border-r-0 ${
+                          isToday ? 'bg-brand-50/80 text-brand-900 font-bold' : 'text-slate-700 font-semibold'
+                        }`}
+                      >
+                        <div className="capitalize text-xs leading-tight">{dayShort}</div>
+                        <div className="text-[10px] text-slate-500 font-normal">
+                          {dayNum} {monthShort}
+                          {isToday && <span className="ml-1 text-[9px] text-brand-600 font-bold">• Oggi</span>}
+                        </div>
+                      </th>
+                    )
+                  })}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {activeMealTypes.map((mt) => (
+                  <tr key={mt.id} className="hover:bg-slate-50/40 transition-colors">
+                    {/* Meal Type Row Header (P009) */}
+                    <td className="px-2 py-2 font-bold text-[11px] text-slate-700 uppercase bg-slate-50/60 border-r border-slate-200 align-top">
+                      <div className="flex items-center justify-between group">
+                        <span className="truncate flex-1 text-center">{mt.name}</span>
+                        {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMealType(mt.id, mt.name)}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors ml-1"
+                            title={`Elimina ${mt.name} dalla settimana (nessun piatto assegnato)`}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* 7 Day Cells */}
+                    {weekDates.map((dateStr) => {
+                      const slot = slotMap.get(`${dateStr}_${mt.id}`)
+                      const isToday = currentTodayStr === dateStr
+
+                      return (
+                        <td
+                          key={dateStr}
+                          className={`px-1.5 py-1.5 border-r border-slate-200 last:border-r-0 align-top transition-colors ${
+                            isToday ? 'bg-brand-50/25' : ''
+                          }`}
+                        >
+                          {slot ? (
+                            <div className="space-y-1">
+                              {/* P010: Meal Slot Note */}
+                              {editingSlotNoteId === slot.id ? (
+                                <div className="flex items-center space-x-1 p-0.5 bg-amber-50 rounded border border-amber-300 mb-1">
+                                  <input
+                                    type="text"
+                                    autoFocus
+                                    value={editSlotNoteValue}
+                                    onChange={(e) => setEditSlotNoteValue(e.target.value)}
+                                    placeholder="Nota pasto..."
+                                    className="w-full min-w-0 px-1 py-0.2 text-[9px] rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') {
+                                        e.preventDefault()
+                                        handleSaveSlotNote(slot.id)
+                                      } else if (e.key === 'Escape') {
+                                        setEditingSlotNoteId(null)
+                                      }
+                                    }}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => handleSaveSlotNote(slot.id)}
+                                    className="px-1 py-0.2 bg-amber-600 text-white font-medium text-[9px] rounded hover:bg-amber-700 flex-shrink-0"
+                                  >
+                                    ✓
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditingSlotNoteId(null)}
+                                    className="px-0.5 py-0.2 text-slate-500 hover:bg-amber-100 text-[9px] rounded flex-shrink-0"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : slot.notes ? (
+                                <div
+                                  className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
+                                  onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
+                                  title="Clicca per modificare la nota"
+                                >
+                                  <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
+                                    <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
+                                    <span className="italic font-medium">{slot.notes}</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleDeleteSlotNote(slot.id)
+                                    }}
+                                    title="Elimina nota pasto"
+                                    className="opacity-0 group-hover:opacity-100 text-amber-700 hover:text-rose-600 text-[9px] px-0.5 flex-shrink-0 transition-opacity"
+                                  >
+                                    ✕
+                                  </button>
+                                </div>
+                              ) : null}
+
+                              {slot.dishes.length === 0 ? (
+                                <div className="flex items-center space-x-0.5">
+                                  <button
+                                    onClick={() => handleOpenAssignModal(slot.id)}
+                                    className="flex-1 text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
+                                    title="Aggiungi piatto a questo pasto"
+                                  >
+                                    <Plus className="w-2.5 h-2.5" />
+                                    <span>Piatto</span>
+                                  </button>
+                                  {!slot.notes && (
+                                    <button
+                                      onClick={() => handleStartEditSlotNote(slot.id, '')}
+                                      className="px-1 text-center py-1 text-[10px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
+                                      title="Aggiungi nota per questo pasto"
+                                    >
+                                      <Plus className="w-2.5 h-2.5" />
+                                      <span>Nota</span>
+                                    </button>
+                                  )}
+                                </div>
+                              ) : (
+                                <>
+                                  {slot.dishes.map((d) => {
+                                    const hasAssignedMembers =
+                                      d.assigned_member_ids && d.assigned_member_ids.length > 0
+                                    const assignedList = hasAssignedMembers
+                                      ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
+                                      : []
+                                    const namesStr = assignedList.map((m) => m.name).join(', ')
+
+                                    return (
+                                      <div
+                                        key={d.id}
+                                        className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
+                                      >
+                                        <div className="truncate pr-1 text-[11px] leading-snug">
+                                          <span className="font-medium text-slate-800">• {d.dish_title}</span>
+                                          {hasAssignedMembers && (
+                                            <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap">
+                                              ({namesStr})
+                                            </span>
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={() => onRemoveDish(slot.id, d.dish_id)}
+                                          title="Rimuovi piatto"
+                                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
+                                        >
+                                          ✕
+                                        </button>
+                                      </div>
+                                    )
+                                  })}
+                                  <div className="flex items-center space-x-0.5 pt-0.5">
+                                    <button
+                                      onClick={() => handleOpenAssignModal(slot.id)}
+                                      className="flex-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center justify-center space-x-0.5"
+                                      title="Aggiungi altro piatto"
+                                    >
+                                      <Plus className="w-2.5 h-2.5" />
+                                      <span>Altro</span>
+                                    </button>
+                                    {!slot.notes && (
+                                      <button
+                                        onClick={() => handleStartEditSlotNote(slot.id, '')}
+                                        className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center justify-center space-x-0.5"
+                                        title="Aggiungi nota per questo pasto"
+                                      >
+                                        <Plus className="w-2.5 h-2.5" />
+                                        <span>Nota</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => onAddCustomSlot(dateStr, mt.id)}
+                              className="w-full h-full min-h-[32px] flex items-center justify-center text-[10px] text-slate-300 hover:text-brand-600 hover:bg-slate-50 rounded transition-colors"
+                              title={`Aggiungi ${mt.name} per questo giorno`}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                          )}
+                        </td>
+                      )
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : viewMode === 'compact_v' ? (
+        /* P004: Compact Vertical Matrix View (days as rows, meal types as columns) */
+        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[760px]">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="w-28 sm:w-36 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
+                    Giorno
+                  </th>
+                  {activeMealTypes.map((mt) => (
+                    <th
+                      key={mt.id}
+                      className="px-2 py-1 text-center font-bold text-slate-700 uppercase text-[11px] border-r border-slate-200 last:border-r-0"
+                    >
+                      <div className="flex items-center justify-center space-x-1">
+                        <span className="truncate">{mt.name}</span>
+                        {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteMealType(mt.id, mt.name)}
+                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors"
+                            title={`Elimina ${mt.name} dalla settimana (nessun piatto assegnato)`}
+                          >
+                            <X className="w-2.5 h-2.5" />
+                          </button>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {weekDates.map((dateStr) => {
+                  const dateObj = parseDate(dateStr)
+                  const isToday = currentTodayStr === dateStr
+                  const dayShort = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(dateObj)
+                  const dayNum = dateObj.getDate()
+                  const monthShort = new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(dateObj)
+
+                  return (
+                    <tr
+                      key={dateStr}
+                      className={`hover:bg-slate-50/40 transition-colors ${isToday ? 'bg-brand-50/25' : ''}`}
+                    >
+                      {/* Day Header Cell (Row Header) */}
+                      <td
+                        className={`px-2 py-2 border-r border-slate-200 align-top ${
+                          isToday ? 'bg-brand-50/70 text-brand-900' : 'bg-slate-50/60 text-slate-800'
+                        }`}
+                      >
+                        <div className="flex flex-col items-center justify-center text-center">
+                          <span className="capitalize font-bold text-xs">{dayShort}</span>
+                          <span className="text-[11px] text-slate-600 font-medium">
+                            {dayNum} {monthShort}
+                          </span>
+                          {isToday && (
+                            <span className="mt-0.5 bg-brand-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded uppercase">
+                              Oggi
+                            </span>
+                          )}
+                          <button
+                            onClick={() => setSelectedMealTypeForDate(dateStr)}
+                            className="mt-1.5 flex items-center space-x-0.5 text-[9px] text-slate-500 hover:text-brand-600 border border-slate-200 bg-white hover:bg-slate-50 px-1.5 py-0.5 rounded transition-colors"
+                            title={`Aggiungi altro pasto per ${dayShort} ${dayNum}`}
+                          >
+                            <Plus className="w-2.5 h-2.5" />
+                            <span>Pasto</span>
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Meal Type Cells for this Day */}
+                      {activeMealTypes.map((mt) => {
+                        const slot = slotMap.get(`${dateStr}_${mt.id}`)
+                        return (
+                          <td
+                            key={mt.id}
+                            className="px-2 py-1.5 border-r border-slate-200 last:border-r-0 align-top min-w-[140px]"
+                          >
+                            {slot ? (
+                              <div className="space-y-1">
+                                {/* P010: Meal Slot Note */}
+                                {editingSlotNoteId === slot.id ? (
+                                  <div className="flex items-center space-x-1 p-0.5 bg-amber-50 rounded border border-amber-300 mb-1">
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      value={editSlotNoteValue}
+                                      onChange={(e) => setEditSlotNoteValue(e.target.value)}
+                                      placeholder="Nota pasto..."
+                                      className="w-full min-w-0 px-1 py-0.2 text-[9px] rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault()
+                                          handleSaveSlotNote(slot.id)
+                                        } else if (e.key === 'Escape') {
+                                          setEditingSlotNoteId(null)
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveSlotNote(slot.id)}
+                                      className="px-1 py-0.2 bg-amber-600 text-white font-medium text-[9px] rounded hover:bg-amber-700 flex-shrink-0"
+                                    >
+                                      ✓
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setEditingSlotNoteId(null)}
+                                      className="px-0.5 py-0.2 text-slate-500 hover:bg-amber-100 text-[9px] rounded flex-shrink-0"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : slot.notes ? (
+                                  <div
+                                    className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
+                                    onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
+                                    title="Clicca per modificare la nota"
+                                  >
+                                    <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
+                                      <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
+                                      <span className="italic font-medium">{slot.notes}</span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleDeleteSlotNote(slot.id)
+                                      }}
+                                      title="Elimina nota pasto"
+                                      className="opacity-0 group-hover:opacity-100 text-amber-700 hover:text-rose-600 text-[9px] px-0.5 flex-shrink-0 transition-opacity"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ) : null}
+
+                                {slot.dishes.length === 0 ? (
+                                  <div className="flex items-center space-x-0.5">
+                                    <button
+                                      onClick={() => handleOpenAssignModal(slot.id)}
+                                      className="flex-1 text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
+                                      title="Aggiungi piatto a questo pasto"
+                                    >
+                                      <Plus className="w-2.5 h-2.5" />
+                                      <span>Piatto</span>
+                                    </button>
+                                    {!slot.notes && (
+                                      <button
+                                        onClick={() => handleStartEditSlotNote(slot.id, '')}
+                                        className="px-1 text-center py-1 text-[10px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
+                                        title="Aggiungi nota per questo pasto"
+                                      >
+                                        <Plus className="w-2.5 h-2.5" />
+                                        <span>Nota</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <>
+                                    {slot.dishes.map((d) => {
+                                      const hasAssignedMembers =
+                                        d.assigned_member_ids && d.assigned_member_ids.length > 0
+                                      const assignedList = hasAssignedMembers
+                                        ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
+                                        : []
+                                      const namesStr = assignedList.map((m) => m.name).join(', ')
+
+                                      return (
+                                        <div
+                                          key={d.id}
+                                          className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
+                                        >
+                                          <div className="truncate pr-1 text-[11px] leading-snug">
+                                            <span className="font-medium text-slate-800">• {d.dish_title}</span>
+                                            {hasAssignedMembers && (
+                                              <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap">
+                                                ({namesStr})
+                                              </span>
+                                            )}
+                                          </div>
+                                          <button
+                                            onClick={() => onRemoveDish(slot.id, d.dish_id)}
+                                            title="Rimuovi piatto"
+                                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
+                                          >
+                                            ✕
+                                          </button>
+                                        </div>
+                                      )
+                                    })}
+                                    <div className="flex items-center space-x-0.5 pt-0.5">
+                                      <button
+                                        onClick={() => handleOpenAssignModal(slot.id)}
+                                        className="flex-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center justify-center space-x-0.5"
+                                        title="Aggiungi altro piatto"
+                                      >
+                                        <Plus className="w-2.5 h-2.5" />
+                                        <span>Altro</span>
+                                      </button>
+                                      {!slot.notes && (
+                                        <button
+                                          onClick={() => handleStartEditSlotNote(slot.id, '')}
+                                          className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center justify-center space-x-0.5"
+                                          title="Aggiungi nota per questo pasto"
+                                        >
+                                          <Plus className="w-2.5 h-2.5" />
+                                          <span>Nota</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => onAddCustomSlot(dateStr, mt.id)}
+                                className="w-full h-full min-h-[32px] flex items-center justify-center text-[10px] text-slate-300 hover:text-brand-600 hover:bg-slate-50 rounded transition-colors"
+                                title={`Aggiungi ${mt.name} per questo giorno`}
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            )}
+                          </td>
+                        )
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* Detailed Days List */
+        <div className="space-y-2">
         {sortedDates.map((dateStr) => {
           const daySlots = slotsByDate[dateStr]
           const dateObj = new Date(dateStr)
@@ -101,22 +883,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           return (
             <div
               key={dateStr}
-              className={`bg-white rounded-2xl border ${
-                isToday ? 'border-brand-400 shadow-sm' : 'border-slate-200'
+              className={`bg-white rounded-lg border ${
+                isToday ? 'border-brand-400 shadow-2xs' : 'border-slate-200'
               } overflow-hidden`}
             >
-              {/* Day Header */}
+              {/* Day Header (compact) */}
               <div
-                className={`px-5 py-3 flex items-center justify-between border-b ${
+                className={`px-3 py-1 flex items-center justify-between border-b ${
                   isToday
                     ? 'bg-brand-50 border-brand-200 text-brand-900'
                     : 'bg-slate-50/80 border-slate-200/80 text-slate-800'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="font-bold capitalize text-base">{dayTitle}</span>
+                  <span className="font-bold capitalize text-xs sm:text-sm">{dayTitle}</span>
                   {isToday && (
-                    <span className="bg-brand-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                    <span className="bg-brand-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase">
                       Oggi
                     </span>
                   )}
@@ -124,26 +906,26 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <button
                   onClick={() => setSelectedMealTypeForDate(dateStr)}
-                  className="flex items-center space-x-1 text-xs font-medium text-slate-600 hover:text-brand-600 bg-white border border-slate-200 px-2.5 py-1 rounded-lg transition-colors"
+                  className="flex items-center space-x-1 text-[10px] font-medium text-slate-600 hover:text-brand-600 bg-white border border-slate-200 px-2 py-0.5 rounded transition-colors"
                 >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Aggiungi pasto (es. Brunch)</span>
+                  <Plus className="w-2.5 h-2.5" />
+                  <span>Aggiungi pasto</span>
                 </button>
               </div>
 
               {/* Day's Meal Slots */}
-              <div className="p-4 sm:p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="p-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
                 {daySlots.map((slot) => (
                   <div
                     key={slot.id}
-                    className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between space-y-3"
+                    className="rounded-md border border-slate-200 bg-white p-2 flex flex-col justify-between space-y-1.5 shadow-2xs"
                   >
                     <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <span className="font-bold text-xs uppercase px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="font-bold text-[10px] uppercase px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700">
                           {slot.meal_type.name}
                         </span>
-                        <span className="text-[11px] text-slate-400 font-medium">
+                        <span className="text-[10px] text-slate-400 font-medium">
                           {slot.attendee_count} a tavola
                         </span>
                       </div>
@@ -151,80 +933,327 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <button
                         onClick={() => onDeleteSlot(slot.id)}
                         title="Elimina questo pasto dal piano"
-                        className="text-slate-300 hover:text-rose-500 p-1 rounded transition-colors"
+                        className="text-slate-300 hover:text-rose-500 p-0.5 rounded transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-3 h-3" />
                       </button>
                     </div>
 
+                    {/* P010: Meal Slot General Note */}
+                    {editingSlotNoteId === slot.id ? (
+                      <div className="flex items-center space-x-1 p-1 bg-amber-50/90 rounded border border-amber-300 mb-1">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={editSlotNoteValue}
+                          onChange={(e) => setEditSlotNoteValue(e.target.value)}
+                          placeholder="Es. Pranzo dalla nonna, cena fuori..."
+                          className="flex-1 px-1.5 py-0.5 text-xs rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault()
+                              handleSaveSlotNote(slot.id)
+                            } else if (e.key === 'Escape') {
+                              setEditingSlotNoteId(null)
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSaveSlotNote(slot.id)}
+                          className="px-2 py-0.5 bg-amber-600 text-white font-medium text-xs rounded hover:bg-amber-700"
+                        >
+                          Salva
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingSlotNoteId(null)}
+                          className="px-1 py-0.5 text-slate-500 hover:bg-amber-100 text-xs rounded"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : slot.notes ? (
+                      <div
+                        className="group relative flex items-start justify-between p-1.5 rounded bg-amber-50/80 border border-amber-200/90 text-amber-900 text-xs shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
+                        onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
+                        title="Clicca per modificare la nota del pasto"
+                      >
+                        <div className="flex items-start space-x-1.5 pr-2">
+                          <StickyNote className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
+                          <span className="italic font-medium leading-snug break-words">{slot.notes}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            handleDeleteSlotNote(slot.id)
+                          }}
+                          title="Elimina nota pasto"
+                          className="opacity-0 group-hover:opacity-100 text-amber-600 hover:text-rose-600 hover:bg-amber-200/50 p-0.5 rounded transition-opacity"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ) : null}
+
                     {/* Dishes in this slot */}
-                    <div className="space-y-2 flex-1">
+                    <div className="space-y-1.5 flex-1">
                       {slot.dishes.length === 0 ? (
-                        <p className="text-xs text-slate-400 italic py-2">
+                        <p className="text-[10px] text-slate-400 italic py-1">
                           Nessun piatto pianificato.
                         </p>
                       ) : (
-                        slot.dishes.map((d) => (
-                          <div
-                            key={d.id}
-                            className="p-2.5 rounded-lg bg-slate-50 border border-slate-100 text-xs space-y-1.5"
-                          >
-                            <div className="flex items-center justify-between font-medium text-slate-800">
-                              <span>{d.dish_title}</span>
-                              <button
-                                onClick={() => onRemoveDish(slot.id, d.dish_id)}
-                                className="text-slate-400 hover:text-rose-500 px-1"
-                              >
-                                ✕
-                              </button>
+                        slot.dishes.map((d) => {
+                          const hasAssignedMembers =
+                            d.assigned_member_ids && d.assigned_member_ids.length > 0
+                          const assignedMembersList = hasAssignedMembers
+                            ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
+                            : []
+
+                          const isAddingNote =
+                            activeNoteDishId?.slotId === slot.id && activeNoteDishId?.dishId === d.dish_id
+
+                          return (
+                            <div
+                              key={d.id}
+                              className="p-1.5 rounded bg-slate-50 border border-slate-100 text-xs space-y-1"
+                            >
+                              <div className="flex items-start justify-between font-medium text-slate-800">
+                                <div>
+                                  <span className="font-semibold text-xs">{d.dish_title}</span>
+                                  {/* P002: Badge for alternative dish */}
+                                  {hasAssignedMembers && (
+                                    <div className="text-[9px] text-amber-800 font-medium bg-amber-50 border border-amber-200 px-1 py-0.2 rounded mt-0.5 inline-block">
+                                      Per: {assignedMembersList.map((m) => m.name).join(', ')}
+                                    </div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => onRemoveDish(slot.id, d.dish_id)}
+                                  className="text-slate-400 hover:text-rose-500 text-xs px-1"
+                                  title="Rimuovi"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              {/* Smart Compatibility Alert */}
+                              {d.compatibility.status === 'warning' && (
+                                <div className="flex items-center space-x-1 text-amber-800 font-medium bg-amber-50 p-1 rounded text-[10px]">
+                                  <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-amber-600" />
+                                  <span>{d.compatibility.message}</span>
+                                </div>
+                              )}
+
+                              {d.compatibility.status === 'hit' && (
+                                <div className="flex items-center space-x-1 text-pink-700 font-medium bg-pink-50 p-1 rounded text-[10px]">
+                                  <Star className="w-2.5 h-2.5 flex-shrink-0 fill-pink-500" />
+                                  <span>{d.compatibility.message}</span>
+                                </div>
+                              )}
+
+                              {d.compatibility.status === 'ok' && !d.compatibility.is_conflict && (
+                                <div className="flex items-center space-x-1 text-emerald-600 text-[10px]">
+                                  <CheckCircle className="w-2.5 h-2.5" />
+                                  <span>Gradito</span>
+                                </div>
+                              )}
+
+                              {/* J002 / J003: Valutazione facoltativa per questo pasto */}
+                              <div className="pt-1 border-t border-slate-200/60 space-y-0.5">
+                                <div className="flex items-center justify-between text-[9px] text-slate-400">
+                                  <span className="font-semibold uppercase tracking-wider">
+                                    Voto pasto (👍 / 😐 / 👎):
+                                  </span>
+                                </div>
+                                <div className="flex flex-wrap gap-1">
+                                  {members.map((m) => {
+                                    const mealRatingObj = d.ratings?.find((r) => r.member_id === m.id)
+                                    const currentMealRating = mealRatingObj?.rating
+                                    const isThumbsUp = currentMealRating === 'thumbs_up'
+                                    const isNeutral = currentMealRating === 'neutral'
+                                    const isThumbsDown = currentMealRating === 'thumbs_down'
+
+                                    const handleToggleRating = (targetRating: 'thumbs_up' | 'neutral' | 'thumbs_down') => {
+                                      if (currentMealRating === targetRating) {
+                                        onDeleteSlotDishRating(slot.id, d.dish_id, m.id)
+                                      } else {
+                                        onSetSlotDishRating(slot.id, d.dish_id, m.id, targetRating)
+                                      }
+                                    }
+
+                                    return (
+                                      <div
+                                        key={m.id}
+                                        className={`flex items-center space-x-1 px-1.5 py-0.2 rounded text-[10px] border transition-colors ${
+                                          isThumbsDown
+                                            ? 'bg-rose-50 border-rose-300 ring-1 ring-rose-200'
+                                            : isThumbsUp
+                                            ? 'bg-emerald-50 border-emerald-300'
+                                            : isNeutral
+                                            ? 'bg-slate-100 border-slate-300'
+                                            : 'bg-white border-slate-200/80'
+                                        }`}
+                                      >
+                                        <span
+                                          className="w-1.5 h-1.5 rounded-full"
+                                          style={{ backgroundColor: m.avatar_color || '#3B82F6' }}
+                                        />
+                                        <span className="text-slate-700 font-medium">{m.name}:</span>
+
+                                        <div className="flex items-center rounded border border-slate-200 overflow-hidden bg-slate-50">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleRating('thumbs_up')}
+                                            title={`${m.name}: Piaciuto in questo pasto (tocca per deselezionare)`}
+                                            className={`px-1 py-0.2 transition-all ${
+                                              isThumbsUp ? 'bg-emerald-600 text-white font-bold' : 'text-slate-300 hover:text-emerald-600'
+                                            }`}
+                                          >
+                                            <ThumbsUp className="w-2.5 h-2.5" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleRating('neutral')}
+                                            title={`${m.name}: Normale / Ok (tocca per deselezionare)`}
+                                            className={`px-1 py-0.2 transition-all ${
+                                              isNeutral ? 'bg-slate-600 text-white font-bold' : 'text-slate-300 hover:text-slate-600'
+                                            }`}
+                                          >
+                                            <Meh className="w-2.5 h-2.5" />
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleToggleRating('thumbs_down')}
+                                            title={`${m.name}: Non piaciuto in questo pasto (tocca per deselezionare)`}
+                                            className={`px-1 py-0.2 transition-all ${
+                                              isThumbsDown ? 'bg-rose-600 text-white font-bold' : 'text-slate-300 hover:text-rose-500'
+                                            }`}
+                                          >
+                                            <ThumbsDown className="w-2.5 h-2.5" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    )
+                                  })}
+                                </div>
+                              </div>
+
+                              {/* J001: Notes list and inline add */}
+                              <div className="pt-1 border-t border-slate-200/60 space-y-0.5">
+                                <div className="flex items-center justify-between text-[9px] text-slate-400">
+                                  <span className="flex items-center space-x-1">
+                                    <MessageSquare className="w-2.5 h-2.5" />
+                                    <span>Note ({d.notes_list?.length || 0}):</span>
+                                  </span>
+                                  {!isAddingNote && (
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveNoteDishId({ slotId: slot.id, dishId: d.dish_id })
+                                        setNoteText('')
+                                      }}
+                                      className="text-brand-600 hover:text-brand-700 font-medium"
+                                    >
+                                      + Nota
+                                    </button>
+                                  )}
+                                </div>
+
+                                {d.notes_list && d.notes_list.length > 0 && (
+                                  <div className="space-y-0.5">
+                                    {d.notes_list.map((n) => (
+                                      <div
+                                        key={n.id}
+                                        className="p-1 rounded bg-white border border-slate-200/70 flex items-start justify-between text-[10px]"
+                                      >
+                                        <p className="text-slate-700 whitespace-pre-wrap flex-1">{n.note}</p>
+                                        <button
+                                          type="button"
+                                          onClick={() => onDeleteSlotDishNote(slot.id, d.dish_id, n.id)}
+                                          className="text-slate-400 hover:text-rose-500 ml-1 p-0.5"
+                                          title="Elimina nota"
+                                        >
+                                          <X className="w-2.5 h-2.5" />
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {isAddingNote && (
+                                  <div className="flex items-center space-x-1 pt-0.5">
+                                    <input
+                                      type="text"
+                                      autoFocus
+                                      value={noteText}
+                                      onChange={(e) => setNoteText(e.target.value)}
+                                      placeholder="Nota pasto..."
+                                      className="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                          e.preventDefault()
+                                          handleSaveNote(slot.id, d.dish_id)
+                                        }
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleSaveNote(slot.id, d.dish_id)}
+                                      className="px-2 py-0.5 bg-brand-600 text-white font-medium text-[10px] rounded hover:bg-brand-700"
+                                    >
+                                      Salva
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setActiveNoteDishId(null)}
+                                      className="px-1 py-0.5 text-slate-500 hover:bg-slate-100 text-[10px] rounded"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
                             </div>
-
-                            {/* Smart Compatibility Alert */}
-                            {d.compatibility.status === 'warning' && (
-                              <div className="flex items-center space-x-1 text-amber-700 font-medium bg-amber-50 p-1.5 rounded">
-                                <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0" />
-                                <span>{d.compatibility.message}</span>
-                              </div>
-                            )}
-
-                            {d.compatibility.status === 'hit' && (
-                              <div className="flex items-center space-x-1 text-pink-700 font-medium bg-pink-50 p-1.5 rounded">
-                                <Star className="w-3.5 h-3.5 flex-shrink-0 fill-pink-500" />
-                                <span>{d.compatibility.message}</span>
-                              </div>
-                            )}
-
-                            {d.compatibility.status === 'ok' && !d.compatibility.is_conflict && (
-                              <div className="flex items-center space-x-1 text-emerald-600 text-[11px]">
-                                <CheckCircle className="w-3 h-3" />
-                                <span>Gradito</span>
-                              </div>
-                            )}
-                          </div>
-                        ))
+                          )
+                        })
                       )}
                     </div>
 
-                    <button
-                      onClick={() => setSelectedSlotForDish(slot.id)}
-                      className="w-full py-2 bg-slate-50 hover:bg-slate-100 text-brand-700 font-medium text-xs rounded-lg border border-slate-200/80 transition-colors flex items-center justify-center space-x-1"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Scegli piatto dal catalogo</span>
-                    </button>
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        onClick={() => handleOpenAssignModal(slot.id)}
+                        className="flex-1 py-1 bg-slate-50 hover:bg-slate-100 text-brand-700 font-medium text-xs rounded border border-slate-200/80 transition-colors flex items-center justify-center space-x-1"
+                      >
+                        <Plus className="w-3 h-3" />
+                        <span>Scegli piatto</span>
+                      </button>
+                      {!slot.notes && (
+                        <button
+                          onClick={() => handleStartEditSlotNote(slot.id, '')}
+                          className="py-1 px-2.5 bg-slate-50 hover:bg-amber-50 text-amber-800 font-medium text-xs rounded border border-slate-200/80 hover:border-amber-300 transition-colors flex items-center justify-center space-x-1"
+                          title="Aggiungi una nota relativa al pasto"
+                        >
+                          <Plus className="w-3 h-3 text-amber-600" />
+                          <span>Nota</span>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
           )
         })}
-      </div>
+        </div>
+      )}
 
       {/* Modal: Add Custom Slot to Date */}
       {selectedMealTypeForDate && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-xl">
-            <h3 className="font-bold text-lg text-slate-900">Aggiungi Tipo di Pasto</h3>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-lg p-4 max-w-sm w-full space-y-3 shadow-xl">
+            <h3 className="font-bold text-sm text-slate-900">Aggiungi Tipo di Pasto</h3>
             <p className="text-xs text-slate-500">
               Scegli quale pasto aggiungere al giorno {selectedMealTypeForDate} (es. Brunch, Merenda, Colazione):
             </p>
@@ -232,7 +1261,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <select
               value={newSlotMealTypeId}
               onChange={(e) => setNewSlotMealTypeId(Number(e.target.value))}
-              className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm"
+              className="w-full px-2.5 py-1.5 border border-slate-300 rounded text-xs sm:text-sm bg-white"
             >
               {mealTypes.map((mt) => (
                 <option key={mt.id} value={mt.id}>
@@ -241,10 +1270,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               ))}
             </select>
 
-            <div className="flex justify-end space-x-2 pt-2">
+            <div className="flex justify-end space-x-2 pt-1">
               <button
                 onClick={() => setSelectedMealTypeForDate(null)}
-                className="px-4 py-2 rounded-xl text-sm text-slate-600 hover:bg-slate-100"
+                className="px-3 py-1 rounded text-xs text-slate-600 hover:bg-slate-100"
               >
                 Annulla
               </button>
@@ -253,7 +1282,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   onAddCustomSlot(selectedMealTypeForDate, newSlotMealTypeId)
                   setSelectedMealTypeForDate(null)
                 }}
-                className="px-4 py-2 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700"
+                className="px-3 py-1 rounded text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 shadow-2xs"
               >
                 Conferma
               </button>
@@ -262,64 +1291,300 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Pick Dish for Slot */}
+      {/* Modal: Pick Dish for Slot (P002: Diners Selection, P007: Search/Filter, P008: Quick Create) */}
       {selectedSlotForDish !== null && (
-        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-900 flex items-center space-x-2">
-                <Utensils className="w-5 h-5 text-brand-600" />
-                <span>Scegli Piatto per il Menù</span>
+        <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-lg p-4 max-w-lg w-full space-y-2.5 shadow-xl max-h-[88vh] flex flex-col">
+            <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
+              <h3 className="font-bold text-sm text-slate-900 flex items-center space-x-1.5">
+                <Utensils className="w-3.5 h-3.5 text-brand-600" />
+                <span>{isCreatingDish ? 'Nuovo Piatto per il Menù' : 'Scegli Piatto per il Menù'}</span>
               </h3>
-              <button
-                onClick={() => setSelectedSlotForDish(null)}
-                className="text-slate-400 hover:text-slate-600 text-sm"
-              >
-                ✕
-              </button>
+              <div className="flex items-center space-x-1">
+                {!isCreatingDish && onCreateDish && (
+                  <button
+                    type="button"
+                    onClick={() => handleStartCreateDish()}
+                    className="flex items-center space-x-1 text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-0.5 rounded transition-colors"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>Nuovo Piatto</span>
+                  </button>
+                )}
+                <button
+                  onClick={() => setSelectedSlotForDish(null)}
+                  className="text-slate-400 hover:text-slate-600 text-xs p-1"
+                >
+                  ✕
+                </button>
+              </div>
             </div>
 
-            <div className="overflow-y-auto flex-1 space-y-2 pr-1">
-              {dishes.length === 0 ? (
-                <p className="text-sm text-slate-400 text-center py-6">
-                  Nessun piatto ancora presente nel catalogo. Vai alla sezione "Catalogo Ricette" per aggiungerne uno!
-                </p>
-              ) : (
-                dishes.map((dish) => (
-                  <div
-                    key={dish.id}
-                    onClick={() => {
-                      onAssignDish(selectedSlotForDish, dish.id)
-                      setSelectedSlotForDish(null)
-                    }}
-                    className="p-3 rounded-xl border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 cursor-pointer transition-all flex items-center justify-between"
-                  >
-                    <div>
-                      <h4 className="font-semibold text-slate-900 text-sm">{dish.title}</h4>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {dish.courses.map((c) => (
+            {/* P002: Option to target specific diners (alternative dish) */}
+            <div className="p-2 rounded bg-slate-50 border border-slate-200/80 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-slate-700 flex items-center space-x-1 text-[11px]">
+                  <Users className="w-3 h-3 text-brand-600" />
+                  <span>Destinatari del piatto:</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAssignForSpecificMembers(!assignForSpecificMembers)
+                    if (!assignForSpecificMembers) {
+                      setSelectedMemberIdsForDish(members.map((m) => m.id))
+                    } else {
+                      setSelectedMemberIdsForDish([])
+                    }
+                  }}
+                  className="text-[10px] font-medium text-brand-600 hover:text-brand-700 underline"
+                >
+                  {assignForSpecificMembers ? 'Per tutti i presenti' : 'Alternativa per alcuni'}
+                </button>
+              </div>
+
+              {assignForSpecificMembers ? (
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-500 block">
+                    Spunta i commensali a cui è destinato questo piatto:
+                  </span>
+                  <div className="flex flex-wrap gap-1 pt-0.5">
+                    {members.map((m) => {
+                      const isSelected = selectedMemberIdsForDish.includes(m.id)
+                      return (
+                        <button
+                          type="button"
+                          key={m.id}
+                          onClick={() => handleToggleMemberForDish(m.id)}
+                          className={`flex items-center space-x-1 px-1.5 py-0.2 rounded-full text-[11px] transition-all border ${
+                            isSelected
+                              ? 'bg-brand-50 text-brand-800 border-brand-300 font-semibold'
+                              : 'bg-white text-slate-500 border-slate-200'
+                          }`}
+                        >
                           <span
-                            key={c.id}
-                            className="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-medium"
-                          >
-                            {c.name}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                    <span
-                      className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-                      style={{
-                        backgroundColor: `${dish.status.color}15`,
-                        color: dish.status.color,
-                      }}
-                    >
-                      {dish.status.name}
-                    </span>
+                            className="w-1.5 h-1.5 rounded-full"
+                            style={{ backgroundColor: m.avatar_color || '#3B82F6' }}
+                          />
+                          <span>{m.name}</span>
+                        </button>
+                      )
+                    })}
                   </div>
-                ))
+                </div>
+              ) : (
+                <p className="text-[10px] text-slate-500 italic">
+                  Per tutti i presenti a tavola (default).
+                </p>
               )}
             </div>
+
+            {isCreatingDish ? (
+              /* P008: Inline Quick Create Dish Form */
+              <form onSubmit={handleQuickCreateDishSubmit} className="space-y-2.5 overflow-y-auto flex-1 pr-1">
+                {createDishError && (
+                  <div className="p-2 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded">
+                    {createDishError}
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Nome Piatto <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={newDishTitle}
+                    onChange={(e) => setNewDishTitle(e.target.value)}
+                    placeholder="Es. Pasta al pesto, Risotto ai funghi..."
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Portate / Tipo di Piatto
+                  </label>
+                  <div className="flex flex-wrap gap-1">
+                    {courses.map((c) => {
+                      const isSelected = newDishCourseIds.includes(c.id)
+                      return (
+                        <button
+                          type="button"
+                          key={c.id}
+                          onClick={() => handleToggleCourseForNewDish(c.id)}
+                          className={`text-[11px] px-2 py-0.5 rounded border transition-colors ${
+                            isSelected
+                              ? 'bg-brand-600 text-white border-brand-600 font-semibold'
+                              : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                          }`}
+                        >
+                          {c.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    Note / Descrizione (opzionale)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={newDishNotes}
+                    onChange={(e) => setNewDishNotes(e.target.value)}
+                    placeholder="Note sulla preparazione, ingredienti o varianti..."
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden resize-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCreatingDish(false)
+                      setCreateDishError(null)
+                    }}
+                    className="px-3 py-1 rounded text-xs text-slate-600 hover:bg-slate-100"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingDish}
+                    className="px-3 py-1 rounded text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-2xs flex items-center space-x-1"
+                  >
+                    {isSavingDish && <span className="animate-spin mr-1">⏳</span>}
+                    <span>Salva e Assegna al Menù</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              /* P007: Search, Course Filter, and Dish List */
+              <>
+                <div className="space-y-1.5">
+                  {/* Search input */}
+                  <div className="relative">
+                    <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={dishSearch}
+                      onChange={(e) => setDishSearch(e.target.value)}
+                      placeholder="Cerca piatto per nome o ingrediente..."
+                      className="w-full pl-8 pr-7 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden"
+                    />
+                    {dishSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setDishSearch('')}
+                        className="text-slate-400 hover:text-slate-600 absolute right-2 top-1/2 -translate-y-1/2 text-xs"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Course type filter chips */}
+                  {courses.length > 0 && (
+                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-[10px]">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedCourseFilter(null)}
+                        className={`px-2 py-0.5 rounded-full whitespace-nowrap border transition-all ${
+                          selectedCourseFilter === null
+                            ? 'bg-slate-800 text-white border-slate-800 font-semibold'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        Tutti ({dishes.length})
+                      </button>
+                      {courses.map((c) => {
+                        const count = dishes.filter((d) => d.courses.some((dc) => dc.id === c.id)).length
+                        const isSelected = selectedCourseFilter === c.id
+                        return (
+                          <button
+                            type="button"
+                            key={c.id}
+                            onClick={() => setSelectedCourseFilter(isSelected ? null : c.id)}
+                            className={`px-2 py-0.5 rounded-full whitespace-nowrap border transition-all ${
+                              isSelected
+                                ? 'bg-brand-600 text-white border-brand-600 font-semibold'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                          >
+                            {c.name} ({count})
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Filtered Dishes List */}
+                <div className="overflow-y-auto flex-1 space-y-1 pr-1">
+                  {filteredDishes.length === 0 ? (
+                    <div className="text-center py-6 px-4 space-y-2">
+                      <p className="text-xs text-slate-500">
+                        {dishSearch.trim()
+                          ? `Nessun piatto trovato per "${dishSearch}".`
+                          : 'Nessun piatto corrisponde ai filtri selezionati.'}
+                      </p>
+                      {onCreateDish && (
+                        <button
+                          type="button"
+                          onClick={() => handleStartCreateDish(dishSearch)}
+                          className="inline-flex items-center space-x-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1 rounded transition-colors"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>
+                            {dishSearch.trim()
+                              ? `Crea "${dishSearch}" come nuovo piatto`
+                              : 'Crea un nuovo piatto'}
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredDishes.map((dish) => (
+                      <div
+                        key={dish.id}
+                        onClick={() => handleSelectDishForSlot(dish.id)}
+                        className="p-2 rounded border border-slate-200 hover:border-brand-500 hover:bg-brand-50/50 cursor-pointer transition-all flex items-center justify-between"
+                      >
+                        <div className="pr-2">
+                          <h4 className="font-semibold text-slate-900 text-xs">{dish.title}</h4>
+                          {dish.description && (
+                            <p className="text-[10px] text-slate-500 truncate max-w-xs">{dish.description}</p>
+                          )}
+                          <div className="flex flex-wrap gap-1 mt-0.5">
+                            {dish.courses.map((c) => (
+                              <span
+                                key={c.id}
+                                className="text-[9px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-medium"
+                              >
+                                {c.name}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <span
+                          className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full whitespace-nowrap"
+                          style={{
+                            backgroundColor: `${dish.status.color}15`,
+                            color: dish.status.color,
+                          }}
+                        >
+                          {dish.status.name}
+                        </span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

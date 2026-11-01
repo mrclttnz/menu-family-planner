@@ -49,6 +49,7 @@ def list_dish_statuses(
                 name=s.custom_label if s.custom_label else s.lookup.name,
                 custom_label=s.custom_label,
                 color=s.color,
+                is_default=bool(s.is_default),
                 is_active=s.is_active,
             )
         )
@@ -87,6 +88,7 @@ def update_dish_status(
         name=status_obj.custom_label if status_obj.custom_label else status_obj.lookup.name,
         custom_label=status_obj.custom_label,
         color=status_obj.color,
+        is_default=bool(status_obj.is_default),
         is_active=status_obj.is_active,
     )
 

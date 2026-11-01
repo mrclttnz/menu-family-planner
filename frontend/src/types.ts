@@ -31,6 +31,7 @@ export interface DishStatus {
   name: string;
   custom_label?: string;
   color: string;
+  is_default: boolean;
   is_active: boolean;
 }
 
@@ -87,12 +88,34 @@ export interface Dish {
   updated_at: string;
 }
 
+export interface SlotDishNote {
+  id: number;
+  meal_slot_dish_id: number;
+  meal_date: string;
+  meal_type_name: string;
+  note: string;
+  created_at: string;
+}
+
+export interface SlotDishRating {
+  id: number;
+  meal_slot_dish_id: number;
+  member_id: number;
+  member_name: string;
+  avatar_color?: string;
+  rating: 'thumbs_up' | 'neutral' | 'thumbs_down';
+  created_at: string;
+}
+
 export interface SlotDish {
   id: number;
   dish_id: number;
   dish_title: string;
   sort_order: number;
   notes?: string;
+  assigned_member_ids?: number[];
+  notes_list?: SlotDishNote[];
+  ratings?: SlotDishRating[];
   compatibility: {
     status: 'warning' | 'hit' | 'ok';
     severity: 'warning' | 'success' | 'info';

@@ -10,6 +10,7 @@ import {
   Dish,
   MealSlot,
 } from './types'
+import { formatDate, getWeekRangeContaining } from './dateUtils'
 import { Navbar } from './components/Navbar'
 import { AuthModal } from './components/AuthModal'
 import { TodayView } from './components/TodayView'
@@ -32,14 +33,39 @@ export function App() {
   const [dishes, setDishes] = useState<Dish[]>([])
   const [calendarSlots, setCalendarSlots] = useState<MealSlot[]>([])
 
-  // Calendar date range (7 days default: today -> today + 6)
-  const todayStr = new Date().toISOString().split('T')[0]
-  const defaultEnd = new Date()
-  defaultEnd.setDate(defaultEnd.getDate() + 6)
-  const defaultEndStr = defaultEnd.toISOString().split('T')[0]
+  // P005: Week start day preference (1=Lunedì, 6=Sabato, 0=Domenica, -1=Oggi)
+  const [weekStartDay, setWeekStartDay] = useState<number>(() => {
+    const saved = localStorage.getItem('menu_design_week_start_day')
+    return saved !== null ? parseInt(saved, 10) : 1
+  })
 
-  const [startDate, setStartDate] = useState(todayStr)
-  const [endDate, setEndDate] = useState(defaultEndStr)
+  // Calendar date range: 7 days aligned with weekStartDay containing today
+  const [calendarRange, setCalendarRange] = useState(() => {
+    const saved = localStorage.getItem('menu_design_week_start_day')
+    const startDay = saved !== null ? parseInt(saved, 10) : 1
+    return getWeekRangeContaining(new Date(), startDay)
+  })
+
+  const startDate = calendarRange.startDate
+  const endDate = calendarRange.endDate
+
+  const handleDateRangeChange = (start: string, end: string) => {
+    setCalendarRange({ startDate: start, endDate: end })
+  }
+
+  const handleChangeWeekStartDay = (newStartDay: number) => {
+    setWeekStartDay(newStartDay)
+    localStorage.setItem('menu_design_week_start_day', String(newStartDay))
+    const range = getWeekRangeContaining(new Date(), newStartDay)
+    setCalendarRange(range)
+  }
+
+  const handleResetToCurrentWeek = () => {
+    const range = getWeekRangeContaining(new Date(), weekStartDay)
+    setCalendarRange(range)
+  }
+
+  const todayStr = formatDate(new Date())
 
   // Initial load: verify auth
   useEffect(() => {
@@ -117,14 +143,14 @@ export function App() {
     }
   }
 
-  // Assign Dish to Slot
-  const handleAssignDish = async (slotId: number, dishId?: number) => {
+  // Assign Dish to Slot (supports alternative dishes with assigned_member_ids)
+  const handleAssignDish = async (slotId: number, dishId?: number, assignedMemberIds?: number[]) => {
     if (!dishId) {
       setActiveTab('calendar')
       return
     }
     try {
-      await api.assignDishToSlot(slotId, { dish_id: dishId })
+      await api.assignDishToSlot(slotId, { dish_id: dishId, assigned_member_ids: assignedMemberIds })
       const updatedCalendar = await api.getCalendar(startDate, endDate)
       setCalendarSlots(updatedCalendar)
     } catch (err) {
@@ -140,6 +166,55 @@ export function App() {
       setCalendarSlots(updatedCalendar)
     } catch (err) {
       console.error('Failed to remove dish:', err)
+    }
+  }
+
+  // Add Note to Slot Dish (J001)
+  const handleAddSlotDishNote = async (slotId: number, dishId: number, note: string) => {
+    try {
+      await api.addSlotDishNote(slotId, dishId, note)
+      const updatedCalendar = await api.getCalendar(startDate, endDate)
+      setCalendarSlots(updatedCalendar)
+    } catch (err) {
+      console.error('Failed to add note:', err)
+    }
+  }
+
+  // Delete Note from Slot Dish (J001)
+  const handleDeleteSlotDishNote = async (slotId: number, dishId: number, noteId: number) => {
+    try {
+      await api.deleteSlotDishNote(slotId, dishId, noteId)
+      const updatedCalendar = await api.getCalendar(startDate, endDate)
+      setCalendarSlots(updatedCalendar)
+    } catch (err) {
+      console.error('Failed to delete note:', err)
+    }
+  }
+
+  // Set Meal Rating for a Dish in a Specific Slot (J002)
+  const handleSetSlotDishRating = async (
+    slotId: number,
+    dishId: number,
+    memberId: number,
+    rating: 'thumbs_up' | 'neutral' | 'thumbs_down'
+  ) => {
+    try {
+      await api.setSlotDishRating(slotId, dishId, memberId, rating)
+      const updatedCalendar = await api.getCalendar(startDate, endDate)
+      setCalendarSlots(updatedCalendar)
+    } catch (err) {
+      console.error('Failed to set meal rating:', err)
+    }
+  }
+
+  // Delete/Toggle Off Meal Rating for a Dish (J003)
+  const handleDeleteSlotDishRating = async (slotId: number, dishId: number, memberId: number) => {
+    try {
+      await api.deleteSlotDishRating(slotId, dishId, memberId)
+      const updatedCalendar = await api.getCalendar(startDate, endDate)
+      setCalendarSlots(updatedCalendar)
+    } catch (err) {
+      console.error('Failed to delete meal rating:', err)
     }
   }
 
@@ -167,7 +242,40 @@ export function App() {
 
   // Create Dish
   const handleCreateDish = async (payload: Parameters<typeof api.createDish>[0]) => {
-    await api.createDish(payload)
+    const newDish = await api.createDish(payload)
+    const [dishesData, calendarData] = await Promise.all([
+      api.getDishes(),
+      api.getCalendar(startDate, endDate),
+    ])
+    setDishes(dishesData)
+    setCalendarSlots(calendarData)
+    return newDish
+  }
+
+  // Delete Meal Type Slots for the current week range (P009)
+  const handleDeleteMealTypeSlots = async (mealTypeId: number) => {
+    try {
+      await api.deleteSlotsByMealType(mealTypeId, startDate, endDate)
+      const updatedCalendar = await api.getCalendar(startDate, endDate)
+      setCalendarSlots(updatedCalendar)
+    } catch (err) {
+      console.error('Failed to delete meal type slots:', err)
+    }
+  }
+
+  // Update/Delete Meal Slot Notes (P010)
+  const handleUpdateSlotNotes = async (slotId: number, notes: string | null) => {
+    try {
+      const updatedSlot = await api.updateSlotNotes(slotId, notes)
+      setCalendarSlots((prev) => prev.map((s) => (s.id === slotId ? updatedSlot : s)))
+    } catch (err) {
+      console.error('Failed to update slot notes:', err)
+    }
+  }
+
+  // Update Dish (G001/D004)
+  const handleUpdateDish = async (dishId: number, payload: Parameters<typeof api.updateDish>[1]) => {
+    await api.updateDish(dishId, payload)
     const [dishesData, calendarData] = await Promise.all([
       api.getDishes(),
       api.getCalendar(startDate, endDate),
@@ -201,6 +309,19 @@ export function App() {
   // Add Member
   const handleAddMember = async (payload: Parameters<typeof api.createMember>[0]) => {
     await api.createMember(payload)
+    const [membersData, dishesData, calendarData] = await Promise.all([
+      api.getMembers(),
+      api.getDishes(),
+      api.getCalendar(startDate, endDate),
+    ])
+    setMembers(membersData)
+    setDishes(dishesData)
+    setCalendarSlots(calendarData)
+  }
+
+  // Update Member (G001)
+  const handleUpdateMember = async (id: number, payload: Parameters<typeof api.updateMember>[1]) => {
+    await api.updateMember(id, payload)
     const [membersData, dishesData, calendarData] = await Promise.all([
       api.getMembers(),
       api.getDishes(),
@@ -249,7 +370,7 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 pt-6">
+      <main className="flex-1 max-w-full xl:max-w-[1550px] w-full mx-auto px-2 sm:px-3 pt-1.5 pb-4">
         {activeTab === 'today' && (
           <TodayView
             slots={todaySlots}
@@ -261,6 +382,10 @@ export function App() {
               console.log(slotId)
             }}
             onRemoveDish={handleRemoveDish}
+            onAddSlotDishNote={handleAddSlotDishNote}
+            onDeleteSlotDishNote={handleDeleteSlotDishNote}
+            onSetSlotDishRating={handleSetSlotDishRating}
+            onDeleteSlotDishRating={handleDeleteSlotDishRating}
           />
         )}
 
@@ -270,16 +395,25 @@ export function App() {
             members={members}
             dishes={dishes}
             mealTypes={mealTypes}
+            courses={courses}
+            statuses={statuses}
             startDate={startDate}
             endDate={endDate}
-            onDateRangeChange={(start, end) => {
-              setStartDate(start)
-              setEndDate(end)
-            }}
+            weekStartDay={weekStartDay}
+            onChangeWeekStartDay={handleChangeWeekStartDay}
+            onResetToCurrentWeek={handleResetToCurrentWeek}
+            onDateRangeChange={handleDateRangeChange}
             onAddCustomSlot={handleAddCustomSlot}
             onDeleteSlot={handleDeleteSlot}
+            onDeleteMealTypeSlots={handleDeleteMealTypeSlots}
+            onUpdateSlotNotes={handleUpdateSlotNotes}
             onAssignDish={handleAssignDish}
+            onCreateDish={handleCreateDish}
             onRemoveDish={handleRemoveDish}
+            onAddSlotDishNote={handleAddSlotDishNote}
+            onDeleteSlotDishNote={handleDeleteSlotDishNote}
+            onSetSlotDishRating={handleSetSlotDishRating}
+            onDeleteSlotDishRating={handleDeleteSlotDishRating}
           />
         )}
 
@@ -290,6 +424,7 @@ export function App() {
             courses={courses}
             sources={sources}
             onCreateDish={handleCreateDish}
+            onUpdateDish={handleUpdateDish}
             onDeleteDish={handleDeleteDish}
             onSetPreference={handleSetPreference}
           />
@@ -299,6 +434,7 @@ export function App() {
           <MembersView
             members={members}
             onAddMember={handleAddMember}
+            onUpdateMember={handleUpdateMember}
             onDeleteMember={handleDeleteMember}
           />
         )}

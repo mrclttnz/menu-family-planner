@@ -8,6 +8,7 @@ import {
   Dish,
   MealSlot,
   MealSlotAttendance,
+  SlotDishNote,
 } from './types'
 
 const TOKEN_KEY = 'menu_design_jwt_token'
@@ -146,6 +147,7 @@ export const api = {
       method: 'PUT',
       body: JSON.stringify({ rating }),
     }),
+  getDishNotes: (dishId: number) => request<SlotDishNote[]>(`/dishes/${dishId}/notes`),
 
   // Calendar
   getCalendar: (startDate: string, endDate: string) =>
@@ -159,13 +161,48 @@ export const api = {
     request<void>(`/calendar/slots/${slotId}`, {
       method: 'DELETE',
     }),
-  assignDishToSlot: (slotId: number, payload: { dish_id: number; sort_order?: number; notes?: string }) =>
+  updateSlotNotes: (slotId: number, notes: string | null) =>
+    request<MealSlot>(`/calendar/slots/${slotId}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes }),
+    }),
+  deleteSlotsByMealType: (mealTypeId: number, startDate: string, endDate: string) =>
+    request<void>(`/calendar/slots/by-meal-type?meal_type_id=${mealTypeId}&start_date=${startDate}&end_date=${endDate}`, {
+      method: 'DELETE',
+    }),
+  assignDishToSlot: (
+    slotId: number,
+    payload: { dish_id: number; sort_order?: number; notes?: string; assigned_member_ids?: number[] }
+  ) =>
     request<MealSlot>(`/calendar/slots/${slotId}/dishes`, {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
   removeDishFromSlot: (slotId: number, dishId: number) =>
     request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}`, {
+      method: 'DELETE',
+    }),
+  addSlotDishNote: (slotId: number, dishId: number, note: string) =>
+    request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}/notes`, {
+      method: 'POST',
+      body: JSON.stringify({ note }),
+    }),
+  deleteSlotDishNote: (slotId: number, dishId: number, noteId: number) =>
+    request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}/notes/${noteId}`, {
+      method: 'DELETE',
+    }),
+  setSlotDishRating: (
+    slotId: number,
+    dishId: number,
+    memberId: number,
+    rating: 'thumbs_up' | 'neutral' | 'thumbs_down'
+  ) =>
+    request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}/ratings`, {
+      method: 'POST',
+      body: JSON.stringify({ member_id: memberId, rating }),
+    }),
+  deleteSlotDishRating: (slotId: number, dishId: number, memberId: number) =>
+    request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}/ratings/${memberId}`, {
       method: 'DELETE',
     }),
 

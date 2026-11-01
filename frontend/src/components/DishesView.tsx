@@ -1,6 +1,22 @@
 import React, { useState } from 'react'
-import { Dish, DishStatus, CourseType, SourceType } from '../types'
-import { Plus, Search, ExternalLink, Book, Star, Meh, Ban, Filter, Trash2 } from 'lucide-react'
+import { Dish, DishStatus, CourseType, SourceType, SlotDishNote } from '../types'
+import { api } from '../api'
+import {
+  Plus,
+  Search,
+  ExternalLink,
+  Book,
+  Meh,
+  ThumbsUp,
+  ThumbsDown,
+  Filter,
+  Trash2,
+  Edit2,
+  MessageSquare,
+  Calendar,
+  X,
+  Loader2,
+} from 'lucide-react'
 
 interface DishesViewProps {
   dishes: Dish[]
@@ -8,6 +24,16 @@ interface DishesViewProps {
   courses: CourseType[]
   sources: SourceType[]
   onCreateDish: (payload: {
+    title: string
+    description?: string
+    notes?: string
+    status_id: number
+    course_ids: number[]
+    source_type_id?: number
+    source_reference?: string
+    source_url?: string
+  }) => Promise<any>
+  onUpdateDish: (dishId: number, payload: {
     title: string
     description?: string
     notes?: string
@@ -27,25 +53,95 @@ export const DishesView: React.FC<DishesViewProps> = ({
   courses,
   sources,
   onCreateDish,
+  onUpdateDish,
   onDeleteDish,
   onSetPreference,
 }) => {
   const [search, setSearch] = useState('')
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<number | null>(null)
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<number | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
 
-  // New Dish Form State
+  // Modal State (Create & Edit)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [editingDish, setEditingDish] = useState<Dish | null>(null)
+
+  // History Notes Drawer/Modal
+  const [historyDish, setHistoryDish] = useState<Dish | null>(null)
+  const [historyNotes, setHistoryNotes] = useState<SlotDishNote[]>([])
+  const [loadingHistory, setLoadingHistory] = useState(false)
+
+  // Form State
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [notes, setNotes] = useState('')
-  const [statusId, setStatusId] = useState<number>(statuses[0]?.id || 1)
-  const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([courses[0]?.id || 1])
-  const [sourceTypeId, setSourceTypeId] = useState<number | undefined>(sources[0]?.id)
+  const [statusId, setStatusId] = useState<number>(1)
+  const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([])
+  const [sourceTypeId, setSourceTypeId] = useState<number | undefined>(undefined)
   const [sourceReference, setSourceReference] = useState('')
   const [sourceUrl, setSourceUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // D001: Sort statuses so default status (OK) is always FIRST in lists and dropdowns
+  const sortedStatuses = [...statuses].sort((a, b) => {
+    if (a.is_default && !b.is_default) return -1
+    if (!a.is_default && b.is_default) return 1
+    return 0
+  })
+
+  // D001: Get the default status: first status with is_default === true, fallback to statuses[0]
+  const getDefaultStatusId = (): number => {
+    const defaultStat = statuses.find((s) => s.is_default)
+    return defaultStat ? defaultStat.id : statuses[0]?.id || 1
+  }
+
+  React.useEffect(() => {
+    if (statuses.length > 0 && !editingDish) {
+      setStatusId(getDefaultStatusId())
+    }
+  }, [statuses, editingDish])
+
+  const handleOpenCreate = () => {
+    setEditingDish(null)
+    setTitle('')
+    setDescription('')
+    setNotes('')
+    setStatusId(getDefaultStatusId())
+    setSelectedCourseIds([courses[0]?.id || 1])
+    setSourceTypeId(undefined) // D002: Optional source type defaults to undefined
+    setSourceReference('')
+    setSourceUrl('')
+    setFormError(null)
+    setIsModalOpen(true)
+  }
+
+  const handleOpenEdit = (dish: Dish) => {
+    setEditingDish(dish)
+    setTitle(dish.title)
+    setDescription(dish.description || '')
+    setNotes(dish.notes || '')
+    setStatusId(dish.status.id)
+    setSelectedCourseIds(dish.courses.map((c) => c.id))
+    setSourceTypeId(dish.source.source_type_id || undefined)
+    setSourceReference(dish.source.source_reference || '')
+    setSourceUrl(dish.source.source_url || '')
+    setFormError(null)
+    setIsModalOpen(true)
+  }
+
+  const handleOpenHistory = async (dish: Dish) => {
+    setHistoryDish(dish)
+    setLoadingHistory(true)
+    try {
+      const notesData = await api.getDishNotes(dish.id)
+      setHistoryNotes(notesData)
+    } catch (err) {
+      console.error('Failed to load dish notes:', err)
+      setHistoryNotes([])
+    } finally {
+      setLoadingHistory(false)
+    }
+  }
 
   const handleToggleCourse = (id: number) => {
     if (selectedCourseIds.includes(id)) {
@@ -57,39 +153,40 @@ export const DishesView: React.FC<DishesViewProps> = ({
     }
   }
 
-  const handleCreateSubmit = async (e: React.FormEvent) => {
+  const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
     setSubmitting(true)
     try {
-      await onCreateDish({
-        title,
-        description: description || undefined,
-        notes: notes || undefined,
+      const payload = {
+        title: title.trim(),
+        description: description.trim() || undefined,
+        notes: notes.trim() || undefined,
         status_id: statusId,
         course_ids: selectedCourseIds,
-        source_type_id: sourceTypeId,
-        source_reference: sourceReference || undefined,
-        source_url: sourceUrl || undefined,
-      })
+        source_type_id: sourceTypeId || undefined,
+        source_reference: sourceReference.trim() || undefined,
+        source_url: sourceUrl.trim() || undefined,
+      }
+
+      if (editingDish) {
+        await onUpdateDish(editingDish.id, payload)
+      } else {
+        await onCreateDish(payload)
+      }
       setIsModalOpen(false)
-      setTitle('')
-      setDescription('')
-      setNotes('')
-      setSourceReference('')
-      setSourceUrl('')
     } catch (err: unknown) {
       if (err instanceof Error) {
         setFormError(err.message)
       } else {
-        setFormError('Errore durante la creazione del piatto.')
+        setFormError('Errore durante il salvataggio del piatto.')
       }
     } finally {
       setSubmitting(false)
     }
   }
 
-  // Filter dishes client side for instant responsiveness
+  // Client-side filter
   const filteredDishes = dishes.filter((dish) => {
     if (search.trim()) {
       const term = search.toLowerCase()
@@ -107,50 +204,47 @@ export const DishesView: React.FC<DishesViewProps> = ({
   })
 
   return (
-    <div className="space-y-6 pb-20 md:pb-8">
-      {/* Top Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-2.5 pb-16 md:pb-4">
+      {/* Top Bar (G002: super compact padding) */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Catalogo Ricette & Piatti</h2>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <h2 className="text-base sm:text-lg font-bold text-slate-900">Catalogo Ricette & Piatti</h2>
+          <p className="text-[11px] text-slate-500">
             Salva i piatti collaudati, la lista "Da provare" e dove trovare le ricette
           </p>
         </div>
 
         <button
-          onClick={() => {
-            setIsModalOpen(true)
-            setFormError(null)
-          }}
-          className="flex items-center justify-center space-x-1.5 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold rounded-xl shadow-sm transition-all"
+          onClick={handleOpenCreate}
+          className="flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition-all self-start sm:self-auto"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Nuovo Piatto</span>
         </button>
       </div>
 
-      {/* Filters & Search */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs space-y-3">
+      {/* Filters & Search (G002: compact) */}
+      <div className="bg-white rounded-lg p-2 border border-slate-200 shadow-2xs space-y-1.5">
         {/* Search */}
         <div className="relative">
-          <Search className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
+          <Search className="w-3.5 h-3.5 absolute left-2.5 top-2 text-slate-400" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Cerca piatto per nome o note..."
-            className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+            className="w-full pl-8 pr-2.5 py-1 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
           />
         </div>
 
         {/* Course Filters */}
-        <div className="flex items-center space-x-1 overflow-x-auto pb-1 text-xs">
-          <span className="text-slate-400 font-medium px-2 py-1 flex items-center">
+        <div className="flex items-center space-x-1 overflow-x-auto pb-0.5 text-xs">
+          <span className="text-slate-400 font-medium px-1.5 flex items-center text-[11px]">
             <Filter className="w-3 h-3 mr-1" /> Portata:
           </span>
           <button
             onClick={() => setSelectedCourseFilter(null)}
-            className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors ${
+            className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-colors text-xs ${
               selectedCourseFilter === null
                 ? 'bg-brand-600 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -162,7 +256,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
             <button
               key={c.id}
               onClick={() => setSelectedCourseFilter(c.id)}
-              className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors ${
+              className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-colors text-xs ${
                 selectedCourseFilter === c.id
                   ? 'bg-brand-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -174,23 +268,23 @@ export const DishesView: React.FC<DishesViewProps> = ({
         </div>
 
         {/* Status Filters */}
-        <div className="flex items-center space-x-1 overflow-x-auto pb-1 text-xs">
-          <span className="text-slate-400 font-medium px-2 py-1">Stato:</span>
+        <div className="flex items-center space-x-1 overflow-x-auto pb-0.5 text-xs">
+          <span className="text-slate-400 font-medium px-1.5 text-[11px]">Stato:</span>
           <button
             onClick={() => setSelectedStatusFilter(null)}
-            className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors ${
+            className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-colors text-xs ${
               selectedStatusFilter === null
                 ? 'bg-slate-900 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
-            Tutti gli stati
+            Tutti
           </button>
           {statuses.map((s) => (
             <button
               key={s.id}
               onClick={() => setSelectedStatusFilter(s.id)}
-              className={`px-2.5 py-1 rounded-lg font-medium whitespace-nowrap transition-colors ${
+              className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-colors text-xs ${
                 selectedStatusFilter === s.id
                   ? 'bg-slate-900 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -202,26 +296,26 @@ export const DishesView: React.FC<DishesViewProps> = ({
         </div>
       </div>
 
-      {/* Dishes Cards Grid */}
+      {/* Dishes Cards Grid (G002: 4-5 columns on large screens, compact padding) */}
       {filteredDishes.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-          <p className="text-slate-500 font-medium">Nessun piatto trovato con i filtri attivi.</p>
-          <p className="text-xs text-slate-400 mt-1">
+        <div className="bg-white rounded-lg p-6 text-center border border-slate-200">
+          <p className="text-slate-500 font-medium text-xs sm:text-sm">Nessun piatto trovato con i filtri attivi.</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">
             Aggiungi il tuo primo piatto col pulsante "Nuovo Piatto"!
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5">
           {filteredDishes.map((dish) => (
             <div
               key={dish.id}
-              className="bg-white rounded-2xl border border-slate-200 hover:border-slate-300 shadow-2xs overflow-hidden flex flex-col justify-between p-5 space-y-4"
+              className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-2xs overflow-hidden flex flex-col justify-between p-2.5 space-y-2"
             >
-              <div className="space-y-3">
-                {/* Header: Status and Delete */}
+              <div className="space-y-1.5">
+                {/* Header: Status, Edit & Delete */}
                 <div className="flex items-center justify-between">
                   <span
-                    className="text-xs font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider"
+                    className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full uppercase tracking-wider"
                     style={{
                       backgroundColor: `${dish.status.color}15`,
                       color: dish.status.color,
@@ -230,31 +324,47 @@ export const DishesView: React.FC<DishesViewProps> = ({
                     {dish.status.name}
                   </span>
 
-                  <button
-                    onClick={() => onDeleteDish(dish.id)}
-                    className="text-slate-300 hover:text-rose-500 p-1 rounded transition-colors"
-                    title="Elimina piatto"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center space-x-1">
+                    {/* G001/D004: Edit Button */}
+                    <button
+                      onClick={() => handleOpenEdit(dish)}
+                      className="text-slate-400 hover:text-brand-600 p-1 rounded transition-colors"
+                      title="Modifica piatto"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    {/* Delete Button */}
+                    <button
+                      onClick={() => onDeleteDish(dish.id)}
+                      className="text-slate-300 hover:text-rose-500 p-1 rounded transition-colors"
+                      title="Elimina piatto"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Title & Notes */}
                 <div>
-                  <h3 className="font-bold text-slate-900 text-base">{dish.title}</h3>
+                  <h3 className="font-bold text-slate-900 text-sm leading-snug">{dish.title}</h3>
                   {dish.description && (
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-2">
+                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
                       {dish.description}
+                    </p>
+                  )}
+                  {dish.notes && !dish.description && (
+                    <p className="text-[11px] text-slate-400 italic mt-0.5 line-clamp-2">
+                      {dish.notes}
                     </p>
                   )}
                 </div>
 
-                {/* Course Badges (Multi-Course) */}
+                {/* Course Badges */}
                 <div className="flex flex-wrap gap-1">
                   {dish.courses.map((c) => (
                     <span
                       key={c.id}
-                      className="text-[11px] font-medium bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md"
+                      className="text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded"
                     >
                       {c.name}
                     </span>
@@ -263,9 +373,9 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
                 {/* Recipe Source Link/Reference */}
                 {(dish.source.source_reference || dish.source.source_url) && (
-                  <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                    <div className="flex items-center space-x-1.5 truncate">
-                      <Book className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                    <div className="flex items-center space-x-1.5 truncate text-[11px]">
+                      <Book className="w-3 h-3 text-slate-400 flex-shrink-0" />
                       <span className="truncate">
                         {dish.source.source_reference || dish.source.source_type_name || 'Ricetta'}
                       </span>
@@ -276,78 +386,106 @@ export const DishesView: React.FC<DishesViewProps> = ({
                         href={dish.source.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center space-x-1 text-brand-600 hover:text-brand-700 font-semibold ml-2 flex-shrink-0"
+                        className="flex items-center space-x-0.5 text-brand-600 hover:text-brand-700 font-semibold ml-1.5 flex-shrink-0 text-[11px]"
                       >
-                        <span>Apri link</span>
-                        <ExternalLink className="w-3 h-3" />
+                        <span>Link</span>
+                        <ExternalLink className="w-2.5 h-2.5" />
                       </a>
                     )}
                   </div>
                 )}
+
+                {/* J001: Historical Notes Button */}
+                <button
+                  type="button"
+                  onClick={() => handleOpenHistory(dish)}
+                  className="w-full flex items-center justify-center space-x-1.5 py-1 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-[11px] font-medium text-slate-600 hover:text-brand-700 transition-colors"
+                >
+                  <MessageSquare className="w-3 h-3 text-brand-600" />
+                  <span>Storico note dai pasti</span>
+                </button>
               </div>
 
               {/* Per-Member Preferences Matrix */}
-              <div className="pt-3 border-t border-slate-100 space-y-2">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  Gradimento in famiglia:
-                </span>
-                <div className="space-y-1.5">
-                  {dish.preferences.map((pref) => (
-                    <div
-                      key={pref.member_id}
-                      className="flex items-center justify-between text-xs"
-                    >
-                      <div className="flex items-center space-x-1.5">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: pref.avatar_color || '#3B82F6' }}
-                        />
-                        <span className="text-slate-700 font-medium">{pref.member_name}</span>
+              <div className="pt-1.5 border-t border-slate-100 space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                    Gradimento commensali:
+                  </span>
+                  <span className="text-[9px] text-slate-400">
+                    👍 Piace | 😐 Ok | 👎 No
+                  </span>
+                </div>
+                <div className="space-y-1">
+                  {dish.preferences.map((pref) => {
+                    const isDisliked = pref.rating === 'dislike'
+                    const isFavorite = pref.rating === 'favorite'
+
+                    return (
+                      <div
+                        key={pref.member_id}
+                        className={`flex items-center justify-between text-xs px-1.5 py-0.5 rounded transition-colors ${
+                          isDisliked ? 'bg-rose-50 border border-rose-200' : ''
+                        }`}
+                      >
+                        <div className="flex items-center space-x-1 min-w-0">
+                          <span
+                            className="w-2 h-2 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: pref.avatar_color || '#3B82F6' }}
+                          />
+                          <span className="text-slate-700 font-medium text-[11px] truncate">{pref.member_name}</span>
+                          {isDisliked && (
+                            <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
+                              Non piace
+                            </span>
+                          )}
+                        </div>
+
+                        {/* 3-State Toggle: favorite, neutral, dislike */}
+                        <div className="flex rounded border border-slate-200 overflow-hidden bg-slate-50">
+                          <button
+                            type="button"
+                            onClick={() => onSetPreference(dish.id, pref.member_id, 'favorite')}
+                            title={`${pref.member_name}: Piace molto`}
+                            className={`px-1.5 py-0.5 flex items-center transition-colors ${
+                              isFavorite
+                                ? 'bg-pink-100 text-pink-700 font-bold'
+                                : 'text-slate-400 hover:text-pink-600'
+                            }`}
+                          >
+                            <ThumbsUp className={`w-3 h-3 ${isFavorite ? 'fill-pink-500' : ''}`} />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onSetPreference(dish.id, pref.member_id, 'neutral')}
+                            title={`${pref.member_name}: Neutro / Ok`}
+                            className={`px-1.5 py-0.5 flex items-center transition-colors ${
+                              pref.rating === 'neutral'
+                                ? 'bg-emerald-100 text-emerald-800 font-bold'
+                                : 'text-slate-400 hover:text-emerald-700'
+                            }`}
+                          >
+                            <Meh className="w-3 h-3" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => onSetPreference(dish.id, pref.member_id, 'dislike')}
+                            title={`${pref.member_name}: NON piace a questo commensale`}
+                            className={`px-1.5 py-0.5 flex items-center space-x-0.5 transition-colors ${
+                              isDisliked
+                                ? 'bg-rose-600 text-white font-bold'
+                                : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                            }`}
+                          >
+                            <ThumbsDown className="w-3 h-3" />
+                            <span className="text-[9px] font-bold">Non piace</span>
+                          </button>
+                        </div>
                       </div>
-
-                      {/* 3-State Toggle: favorite, neutral (default), dislike */}
-                      <div className="flex rounded-lg border border-slate-200 overflow-hidden bg-slate-50 p-0.5">
-                        <button
-                          type="button"
-                          onClick={() => onSetPreference(dish.id, pref.member_id, 'favorite')}
-                          title="Piace molto"
-                          className={`p-1 rounded flex items-center space-x-0.5 transition-colors ${
-                            pref.rating === 'favorite'
-                              ? 'bg-pink-100 text-pink-700 font-bold'
-                              : 'text-slate-400 hover:text-pink-600'
-                          }`}
-                        >
-                          <Star className={`w-3.5 h-3.5 ${pref.rating === 'favorite' ? 'fill-pink-500' : ''}`} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => onSetPreference(dish.id, pref.member_id, 'neutral')}
-                          title="Va bene (default)"
-                          className={`p-1 rounded flex items-center space-x-0.5 transition-colors ${
-                            pref.rating === 'neutral'
-                              ? 'bg-emerald-100 text-emerald-800 font-bold'
-                              : 'text-slate-400 hover:text-emerald-700'
-                          }`}
-                        >
-                          <Meh className="w-3.5 h-3.5" />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => onSetPreference(dish.id, pref.member_id, 'dislike')}
-                          title="Non piace"
-                          className={`p-1 rounded flex items-center space-x-0.5 transition-colors ${
-                            pref.rating === 'dislike'
-                              ? 'bg-rose-100 text-rose-700 font-bold'
-                              : 'text-slate-400 hover:text-rose-600'
-                          }`}
-                        >
-                          <Ban className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -355,29 +493,31 @@ export const DishesView: React.FC<DishesViewProps> = ({
         </div>
       )}
 
-      {/* Modal: Nuovo Piatto */}
+      {/* Modal: Nuovo / Modifica Piatto */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 sm:p-7 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-xl p-5 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-3.5 shadow-xl">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
-              <h3 className="font-bold text-lg text-slate-900">Aggiungi Nuovo Piatto</h3>
+              <h3 className="font-bold text-base sm:text-lg text-slate-900">
+                {editingDish ? 'Modifica Piatto' : 'Aggiungi Nuovo Piatto'}
+              </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 text-sm"
+                className="text-slate-400 hover:text-slate-600 text-sm p-1"
               >
                 ✕
               </button>
             </div>
 
             {formError && (
-              <div className="p-3 bg-rose-50 text-rose-700 rounded-xl text-xs font-medium">
+              <div className="p-2.5 bg-rose-50 text-rose-700 rounded-lg text-xs font-medium">
                 {formError}
               </div>
             )}
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
+            <form onSubmit={handleFormSubmit} className="space-y-3.5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Nome Piatto *
                 </label>
                 <input
@@ -386,13 +526,13 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="es. Risotto alla milanese"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm"
                 />
               </div>
 
               {/* Multi-Course Selection */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Tipi di Portata (Seleziona uno o più) *
                 </label>
                 <div className="flex flex-wrap gap-1.5">
@@ -403,7 +543,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                         type="button"
                         key={c.id}
                         onClick={() => handleToggleCourse(c.id)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-all ${
                           isSelected
                             ? 'bg-brand-600 text-white border-brand-600 shadow-2xs'
                             : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'
@@ -418,15 +558,15 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
               {/* Status */}
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Stato del Piatto *
                 </label>
                 <select
                   value={statusId}
                   onChange={(e) => setStatusId(Number(e.target.value))}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm bg-white"
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm bg-white font-medium"
                 >
-                  {statuses.map((s) => (
+                  {sortedStatuses.map((s) => (
                     <option key={s.id} value={s.id}>
                       {s.name}
                     </option>
@@ -435,19 +575,23 @@ export const DishesView: React.FC<DishesViewProps> = ({
               </div>
 
               {/* Recipe Source */}
-              <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3">
-                <span className="text-xs font-semibold text-slate-700 uppercase tracking-wider block">
+              <div className="p-3 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2.5">
+                <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider block">
                   Dov'è la Ricetta?
                 </span>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-1">Tipo Fonte</label>
+                    <label className="block text-[10px] text-slate-500 mb-1">Tipo Fonte (Opzionale)</label>
                     <select
-                      value={sourceTypeId}
-                      onChange={(e) => setSourceTypeId(Number(e.target.value))}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white"
+                      value={sourceTypeId !== undefined ? sourceTypeId : ''}
+                      onChange={(e) => {
+                        const val = e.target.value
+                        setSourceTypeId(val === '' ? undefined : Number(val))
+                      }}
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs bg-white"
                     >
+                      <option value="">-- Nessuna (opzionale) --</option>
                       {sources.map((src) => (
                         <option key={src.id} value={src.id}>
                           {src.name}
@@ -457,7 +601,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-[11px] text-slate-500 mb-1">
+                    <label className="block text-[10px] text-slate-500 mb-1">
                       Riferimento (Libro, Pagina, Note)
                     </label>
                     <input
@@ -465,55 +609,201 @@ export const DishesView: React.FC<DishesViewProps> = ({
                       value={sourceReference}
                       onChange={(e) => setSourceReference(e.target.value)}
                       placeholder="es. Il Cucchiaio d'Argento p. 112"
-                      className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs"
+                      className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-[11px] text-slate-500 mb-1">
+                  <label className="block text-[10px] text-slate-500 mb-1">
                     Link Web o Social (URL)
                   </label>
                   <input
                     type="url"
                     value={sourceUrl}
                     onChange={(e) => setSourceUrl(e.target.value)}
-                    placeholder="https://... o link a reel Instagram"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs"
+                    placeholder="https://..."
+                    className="w-full px-2.5 py-1.5 rounded-lg border border-slate-300 text-xs"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
                   Note o Suggerimenti di Preparazione
                 </label>
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="es. Fare tostare bene il riso, variante senza burro..."
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
+                  placeholder="es. Tostare bene il riso, variante con brodo vegetale..."
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm"
                 />
               </div>
 
-              <div className="flex justify-end space-x-2 pt-2">
+              {/* If editing, allow setting member preferences right inside the modal */}
+              {editingDish && (
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider block">
+                      Gradimento commensali (Piaciuto o No):
+                    </span>
+                    <span className="text-[10px] text-slate-400">Salvataggio immediato</span>
+                  </div>
+                  <div className="space-y-1">
+                    {editingDish.preferences.map((pref) => {
+                      const isDisliked = pref.rating === 'dislike'
+                      const isFavorite = pref.rating === 'favorite'
+                      return (
+                        <div
+                          key={pref.member_id}
+                          className={`flex items-center justify-between text-xs px-2 py-1 rounded bg-white border ${
+                            isDisliked ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200'
+                          }`}
+                        >
+                          <div className="flex items-center space-x-1.5">
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: pref.avatar_color || '#3B82F6' }}
+                            />
+                            <span className="font-medium text-slate-800">{pref.member_name}</span>
+                            {isDisliked && (
+                              <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-1 py-0.2 rounded">
+                                Non piace
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex rounded border border-slate-200 overflow-hidden bg-slate-50">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSetPreference(editingDish.id, pref.member_id, 'favorite')
+                                pref.rating = 'favorite'
+                              }}
+                              className={`px-2 py-0.5 text-[10px] flex items-center space-x-1 ${
+                                isFavorite ? 'bg-pink-100 text-pink-700 font-bold' : 'text-slate-500 hover:text-pink-600'
+                              }`}
+                            >
+                              <ThumbsUp className="w-3 h-3" />
+                              <span>Piace</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSetPreference(editingDish.id, pref.member_id, 'neutral')
+                                pref.rating = 'neutral'
+                              }}
+                              className={`px-2 py-0.5 text-[10px] flex items-center space-x-1 ${
+                                pref.rating === 'neutral'
+                                  ? 'bg-emerald-100 text-emerald-800 font-bold'
+                                  : 'text-slate-500 hover:text-emerald-700'
+                              }`}
+                            >
+                              <Meh className="w-3 h-3" />
+                              <span>Ok</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onSetPreference(editingDish.id, pref.member_id, 'dislike')
+                                pref.rating = 'dislike'
+                              }}
+                              className={`px-2 py-0.5 text-[10px] flex items-center space-x-1 ${
+                                isDisliked
+                                  ? 'bg-rose-600 text-white font-bold'
+                                  : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50'
+                              }`}
+                            >
+                              <ThumbsDown className="w-3 h-3" />
+                              <span className="font-bold">Non piace</span>
+                            </button>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end space-x-2 pt-1">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl text-sm text-slate-600 hover:bg-slate-100"
+                  className="px-3.5 py-2 rounded-lg text-xs sm:text-sm text-slate-600 hover:bg-slate-100"
                 >
                   Annulla
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 shadow-sm"
+                  className="px-4 py-2 rounded-lg text-xs sm:text-sm font-semibold bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 shadow-xs"
                 >
-                  {submitting ? 'Salvataggio...' : 'Salva Piatto'}
+                  {submitting ? 'Salvataggio...' : editingDish ? 'Salva Modifiche' : 'Salva Piatto'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Storico Note Dai Pasti (J001) */}
+      {historyDish && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-xl p-5 max-w-md w-full max-h-[85vh] flex flex-col space-y-3 shadow-xl">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <Calendar className="w-4 h-4 text-brand-600" />
+                <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate">
+                  Note dai pasti: {historyDish.title}
+                </h3>
+              </div>
+              <button
+                onClick={() => setHistoryDish(null)}
+                className="text-slate-400 hover:text-slate-600 p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+              {loadingHistory ? (
+                <div className="py-8 flex justify-center text-slate-400">
+                  <Loader2 className="w-6 h-6 animate-spin text-brand-600" />
+                </div>
+              ) : historyNotes.length === 0 ? (
+                <p className="text-xs text-slate-400 text-center py-6">
+                  Nessuna nota inserita per questo piatto nei pasti passati.
+                  <br />
+                  <span className="text-[11px] text-slate-400 mt-1 block">
+                    Puoi inserire note dal "Piano Pasti" o da "Oggi a Tavola" ogni volta che viene consumato!
+                  </span>
+                </p>
+              ) : (
+                historyNotes.map((n) => (
+                  <div
+                    key={n.id}
+                    className="p-2.5 rounded-lg border border-slate-200/80 bg-slate-50 space-y-1 text-xs"
+                  >
+                    <div className="flex items-center justify-between text-[11px] text-slate-500">
+                      <span className="font-semibold text-slate-700">
+                        📅 {n.meal_date} ({n.meal_type_name})
+                      </span>
+                    </div>
+                    <p className="text-slate-800 text-xs whitespace-pre-wrap">{n.note}</p>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="pt-2 border-t border-slate-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setHistoryDish(null)}
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+              >
+                Chiudi
+              </button>
+            </div>
           </div>
         </div>
       )}

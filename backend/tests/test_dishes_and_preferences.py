@@ -132,3 +132,85 @@ def test_update_dish_validates_courses(client, auth_headers):
     })
     assert res_bad.status_code == 400
     assert "invalid" in res_bad.json()["detail"].lower()
+
+
+def test_default_status_ok_flag(client, auth_headers):
+    """D001: verify status 'ok' has is_default = True"""
+    res = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    assert res.status_code == 200
+    statuses = res.json()
+    ok_status = next(s for s in statuses if s["code"] == "ok")
+    assert ok_status["is_default"] is True
+    # The others should be False
+    other_statuses = [s for s in statuses if s["code"] != "ok"]
+    assert all(s["is_default"] is False for s in other_statuses)
+
+
+def test_optional_source_type_dish_creation(client, auth_headers):
+    """D002: verify dish can be created without source_type_id"""
+    res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    status_id = res_statuses.json()[0]["id"]
+    res_courses = client.get("/api/v1/taxonomies/courses", headers=auth_headers)
+    course_id = res_courses.json()[0]["id"]
+
+    res = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Frittata semplice",
+        "status_id": status_id,
+        "course_ids": [course_id],
+        "source_type_id": None
+    })
+    assert res.status_code == 201
+    data = res.json()
+    assert data["source"]["source_type_id"] is None
+
+
+def test_slot_dish_multiple_notes_and_history(client, auth_headers):
+    """J001: verify multiple optional notes for dish consumption and history by date"""
+    # Create dish
+    res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    status_id = res_statuses.json()[0]["id"]
+    res_courses = client.get("/api/v1/taxonomies/courses", headers=auth_headers)
+    course_id = res_courses.json()[0]["id"]
+
+    res_dish = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Risotto ai carciofi",
+        "status_id": status_id,
+        "course_ids": [course_id]
+    })
+    dish_id = res_dish.json()["id"]
+
+    # Get calendar slot
+    res_cal = client.get("/api/v1/calendar?start_date=2026-11-01&end_date=2026-11-02", headers=auth_headers)
+    slot_id = res_cal.json()[0]["id"]
+
+    # Assign dish
+    client.post(f"/api/v1/calendar/slots/{slot_id}/dishes", headers=auth_headers, json={"dish_id": dish_id})
+
+    # Add Note 1
+    res_n1 = client.post(
+        f"/api/v1/calendar/slots/{slot_id}/dishes/{dish_id}/notes",
+        headers=auth_headers,
+        json={"note": "Cottura perfetta al dente"}
+    )
+    assert res_n1.status_code == 200
+    slot_data = res_n1.json()
+    dish_slot = next(d for d in slot_data["dishes"] if d["dish_id"] == dish_id)
+    assert len(dish_slot["notes_list"]) == 1
+    assert dish_slot["notes_list"][0]["note"] == "Cottura perfetta al dente"
+    assert dish_slot["notes_list"][0]["meal_date"] == "2026-11-01"
+
+    # Add Note 2
+    res_n2 = client.post(
+        f"/api/v1/calendar/slots/{slot_id}/dishes/{dish_id}/notes",
+        headers=auth_headers,
+        json={"note": "Piaciuto tantissimo a tutti"}
+    )
+    dish_slot = next(d for d in res_n2.json()["dishes"] if d["dish_id"] == dish_id)
+    assert len(dish_slot["notes_list"]) == 2
+
+    # Query dish history
+    res_history = client.get(f"/api/v1/dishes/{dish_id}/notes", headers=auth_headers)
+    assert res_history.status_code == 200
+    history = res_history.json()
+    assert len(history) == 2
+    assert history[0]["meal_date"] == "2026-11-01"

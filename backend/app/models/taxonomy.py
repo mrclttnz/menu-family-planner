@@ -11,6 +11,7 @@ class DishStatusLookup(Base):
     name = Column(String(100), nullable=False)
     description = Column(String(255), nullable=True)
     sort_order = Column(Integer, nullable=False, default=0)
+    is_default = Column(Boolean, nullable=False, default=False)
     is_system = Column(Boolean, nullable=False, default=True)
 
     # Relationships
@@ -25,6 +26,7 @@ class DishStatus(Base):
     status_lookup_id = Column(Integer, ForeignKey("dish_status_lookups.id", ondelete="RESTRICT"), nullable=False)
     custom_label = Column(String(100), nullable=True)
     color = Column(String(20), nullable=False, default="#10B981")
+    is_default = Column(Boolean, nullable=False, default=False)
     is_active = Column(Boolean, nullable=False, default=True)
 
     # Relationships

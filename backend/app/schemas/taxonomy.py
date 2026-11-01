@@ -30,6 +30,7 @@ class DishStatusResponse(BaseModel):
     name: str
     custom_label: Optional[str]
     color: str
+    is_default: bool = False
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)

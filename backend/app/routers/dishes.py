@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.household import Household, Member
 from app.models.taxonomy import DishStatus, CourseType, SourceType
 from app.models.dish import Dish, DishCourse, DishMemberPreference
+from app.models.meal_plan import MealSlot, MealSlotDish, MealSlotDishNote
 from app.schemas.dish import (
     DishCreate,
     DishUpdate,
@@ -16,6 +17,7 @@ from app.schemas.dish import (
     MemberPreferenceSummary,
 )
 from app.schemas.preference import PreferenceUpdate, PreferenceResponse
+from app.schemas.meal_plan import SlotDishNoteResponse
 from app.api.deps import get_current_household
 
 router = APIRouter(prefix="/dishes", tags=["Dish Catalog & Preferences"])
@@ -295,3 +297,38 @@ def set_member_preference(
         rating=pref.rating,
         updated_at=pref.updated_at
     )
+
+
+@router.get("/{dish_id}/notes", response_model=List[SlotDishNoteResponse])
+def get_dish_notes(
+    dish_id: int,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Retrieve historical meal notes for this dish across all planned/consumed meals."""
+    dish = db.query(Dish).filter(Dish.id == dish_id, Dish.household_id == current_household.id).first()
+    if not dish:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish not found.")
+
+    notes_query = (
+        db.query(MealSlotDishNote, MealSlot.date, MealSlot)
+        .join(MealSlotDish, MealSlotDishNote.meal_slot_dish_id == MealSlotDish.id)
+        .join(MealSlot, MealSlotDish.meal_slot_id == MealSlot.id)
+        .filter(MealSlotDish.dish_id == dish_id, MealSlot.household_id == current_household.id)
+        .order_by(MealSlot.date.desc(), MealSlotDishNote.created_at.desc())
+        .all()
+    )
+
+    results = []
+    for note_obj, slot_date, slot in notes_query:
+        results.append(
+            SlotDishNoteResponse(
+                id=note_obj.id,
+                meal_slot_dish_id=note_obj.meal_slot_dish_id,
+                meal_date=slot_date,
+                meal_type_name=slot.meal_type.name,
+                note=note_obj.note,
+                created_at=note_obj.created_at,
+            )
+        )
+    return results

@@ -6,17 +6,19 @@ def seed_system_lookups(db: Session) -> None:
     """Seeds global master lookups (dish statuses, meal types, default course types, and source types)."""
     # 1. Dish Status Lookups
     default_status_lookups = [
-        {"code": "to_try", "name": "Da provare", "description": "Ricetta nuova da sperimentare", "sort_order": 1},
-        {"code": "ok", "name": "OK", "description": "Piatto collaudato e approvato", "sort_order": 2},
-        {"code": "discarded", "name": "Scartato", "description": "Non gradito o non replicabile", "sort_order": 3},
-        {"code": "retry_with_changes", "name": "Da riprovare con variazioni", "description": "Buona base ma richiede modifiche", "sort_order": 4},
-        {"code": "favorite", "name": "Preferito", "description": "Un grande classico di famiglia", "sort_order": 5},
+        {"code": "to_try", "name": "Da provare", "description": "Ricetta nuova da sperimentare", "sort_order": 1, "is_default": False},
+        {"code": "ok", "name": "OK", "description": "Piatto collaudato e approvato", "sort_order": 2, "is_default": True},
+        {"code": "discarded", "name": "Scartato", "description": "Non gradito o non replicabile", "sort_order": 3, "is_default": False},
+        {"code": "retry_with_changes", "name": "Da riprovare con variazioni", "description": "Buona base ma richiede modifiche", "sort_order": 4, "is_default": False},
+        {"code": "favorite", "name": "Preferito", "description": "Un grande classico di famiglia", "sort_order": 5, "is_default": False},
     ]
     for item in default_status_lookups:
         existing = db.query(DishStatusLookup).filter_by(code=item["code"]).first()
         if not existing:
             lookup = DishStatusLookup(**item, is_system=True)
             db.add(lookup)
+        else:
+            existing.is_default = item["is_default"]
 
     # 2. Meal Types
     default_meal_types = [
@@ -78,13 +80,17 @@ def seed_household_statuses(db: Session, household_id: int) -> None:
     }
     for lookup in lookups:
         existing = db.query(DishStatus).filter_by(household_id=household_id, status_lookup_id=lookup.id).first()
+        is_default = (lookup.code == "ok")
         if not existing:
             color = colors.get(lookup.code, "#10B981")
             status = DishStatus(
                 household_id=household_id,
                 status_lookup_id=lookup.id,
                 color=color,
+                is_default=is_default,
                 is_active=True
             )
             db.add(status)
+        else:
+            existing.is_default = is_default
     db.commit()

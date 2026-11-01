@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
+from app.core.migrations import run_auto_migrations
 from app.routers import auth, members, taxonomies, dishes, calendar, attendance
 from app.services.seed_defaults import seed_system_lookups
 
@@ -14,6 +15,7 @@ from app.services.seed_defaults import seed_system_lookups
 async def lifespan(app: FastAPI):
     # Create all tables on startup (safe for SQLite/dev)
     Base.metadata.create_all(bind=engine)
+    run_auto_migrations(engine)
     
     # Seed default system master lookups
     db = SessionLocal()

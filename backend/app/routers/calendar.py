@@ -6,12 +6,24 @@ from app.core.database import get_db
 from app.models.household import Household, Member
 from app.models.taxonomy import MealType
 from app.models.dish import Dish
-from app.models.meal_plan import MealSlot, MealSlotDish, Attendance
+from app.models.meal_plan import (
+    MealSlot,
+    MealSlotDish,
+    MealSlotDishMember,
+    MealSlotDishNote,
+    MealSlotDishRating,
+    Attendance,
+)
 from app.schemas.meal_plan import (
     MealSlotCreate,
+    MealSlotNotesUpdate,
     MealSlotResponse,
     SlotDishCreate,
     SlotDishResponse,
+    SlotDishNoteCreate,
+    SlotDishNoteResponse,
+    SlotDishRatingCreate,
+    SlotDishRatingResponse,
 )
 from app.schemas.taxonomy import MealTypeResponse
 from app.services.compatibility import evaluate_dish_compatibility
@@ -67,10 +79,34 @@ def build_slot_response(
     absent_ids = [r.member_id for r in absent_records]
     attendee_count = len(all_members) - len(absent_ids)
 
-    # 2. Dishes with compatibility
+    # 2. Dishes with compatibility, assigned members, notes, and ratings
     dishes_out = []
     for d_assign in slot.dishes:
-        comp = evaluate_dish_compatibility(slot, d_assign.dish, all_members, db)
+        assigned_ids = [m.member_id for m in d_assign.assigned_members]
+        comp = evaluate_dish_compatibility(slot, d_assign.dish, all_members, db, assigned_member_ids=assigned_ids)
+        notes_list = [
+            SlotDishNoteResponse(
+                id=n.id,
+                meal_slot_dish_id=n.meal_slot_dish_id,
+                meal_date=slot.date,
+                meal_type_name=slot.meal_type.name,
+                note=n.note,
+                created_at=n.created_at,
+            )
+            for n in d_assign.notes_list
+        ]
+        ratings_list = [
+            SlotDishRatingResponse(
+                id=r.id,
+                meal_slot_dish_id=r.meal_slot_dish_id,
+                member_id=r.member_id,
+                member_name=r.member.name if r.member else "Membro",
+                avatar_color=r.member.avatar_color if r.member else None,
+                rating=r.rating,
+                created_at=r.created_at,
+            )
+            for r in d_assign.ratings
+        ]
         dishes_out.append(
             SlotDishResponse(
                 id=d_assign.id,
@@ -79,6 +115,9 @@ def build_slot_response(
                 sort_order=d_assign.sort_order,
                 notes=d_assign.notes,
                 compatibility=comp,
+                assigned_member_ids=assigned_ids,
+                notes_list=notes_list,
+                ratings=ratings_list,
             )
         )
 
@@ -143,7 +182,10 @@ def create_custom_slot(
         MealSlot.meal_type_id == req.meal_type_id
     ).first()
     if existing:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This meal slot already exists for that date.")
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A {meal_type.name} slot already exists for {req.date}."
+        )
 
     slot = MealSlot(
         household_id=current_household.id,
@@ -160,13 +202,48 @@ def create_custom_slot(
     return build_slot_response(slot, members, db)
 
 
+@router.delete("/slots/by-meal-type", status_code=status.HTTP_204_NO_CONTENT)
+def delete_slots_by_meal_type(
+    meal_type_id: int = Query(...),
+    start_date: date = Query(...),
+    end_date: date = Query(...),
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Delete all slots of a given meal type within date range if none have dishes attached (P009)."""
+    slots = (
+        db.query(MealSlot)
+        .filter(
+            MealSlot.household_id == current_household.id,
+            MealSlot.meal_type_id == meal_type_id,
+            MealSlot.date >= start_date,
+            MealSlot.date <= end_date,
+        )
+        .all()
+    )
+    if not slots:
+        return None
+
+    for s in slots:
+        if s.dishes:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete meal type slots because some slots have dishes assigned."
+            )
+
+    for s in slots:
+        db.delete(s)
+    db.commit()
+    return None
+
+
 @router.delete("/slots/{slot_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_custom_slot(
+def delete_slot(
     slot_id: int,
     current_household: Household = Depends(get_current_household),
     db: Session = Depends(get_db)
 ):
-    """Remove a meal slot for a day (e.g. cancel Lunch when planning Brunch)."""
+    """Delete a meal slot entirely (e.g. skip Sunday dinner or delete custom slot)."""
     slot = db.query(MealSlot).filter(
         MealSlot.id == slot_id,
         MealSlot.household_id == current_household.id
@@ -179,6 +256,29 @@ def delete_custom_slot(
     return None
 
 
+@router.patch("/slots/{slot_id}/notes", response_model=MealSlotResponse)
+def update_slot_notes(
+    slot_id: int,
+    req: MealSlotNotesUpdate,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Update or clear the general note for a meal slot (P010)."""
+    slot = db.query(MealSlot).filter(
+        MealSlot.id == slot_id,
+        MealSlot.household_id == current_household.id
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found.")
+
+    slot.notes = req.notes.strip() if req.notes and req.notes.strip() else None
+    db.commit()
+    db.refresh(slot)
+
+    members = db.query(Member).filter(Member.household_id == current_household.id).all()
+    return build_slot_response(slot, members, db)
+
+
 @router.post("/slots/{slot_id}/dishes", response_model=MealSlotResponse)
 def assign_dish_to_slot(
     slot_id: int,
@@ -186,7 +286,7 @@ def assign_dish_to_slot(
     current_household: Household = Depends(get_current_household),
     db: Session = Depends(get_db)
 ):
-    """Assign a catalog dish to a meal slot."""
+    """Assign a catalog dish to a meal slot, optionally targeted to specific diners (alternative dish)."""
     slot = db.query(MealSlot).filter(
         MealSlot.id == slot_id,
         MealSlot.household_id == current_household.id
@@ -203,6 +303,7 @@ def assign_dish_to_slot(
 
     existing_assign = db.query(MealSlotDish).filter_by(meal_slot_id=slot.id, dish_id=dish.id).first()
     if existing_assign:
+        assignment = existing_assign
         existing_assign.sort_order = req.sort_order or 0
         existing_assign.notes = req.notes
     else:
@@ -213,9 +314,160 @@ def assign_dish_to_slot(
             notes=req.notes
         )
         db.add(assignment)
+        db.flush()
+
+    # Update assigned members (alternative dish diners)
+    if req.assigned_member_ids is not None:
+        db.query(MealSlotDishMember).filter_by(meal_slot_dish_id=assignment.id).delete()
+        for mid in req.assigned_member_ids:
+            if any(m.id == mid for m in slot.household.members):
+                db.add(MealSlotDishMember(meal_slot_dish_id=assignment.id, member_id=mid))
 
     db.commit()
     db.refresh(slot)
+
+    members = db.query(Member).filter(Member.household_id == current_household.id).all()
+    return build_slot_response(slot, members, db)
+
+
+@router.post("/slots/{slot_id}/dishes/{dish_id}/notes", response_model=MealSlotResponse)
+def add_note_to_slot_dish(
+    slot_id: int,
+    dish_id: int,
+    req: SlotDishNoteCreate,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Add a timestamped feedback note to a dish consumed in this meal slot."""
+    slot = db.query(MealSlot).filter(
+        MealSlot.id == slot_id,
+        MealSlot.household_id == current_household.id
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found.")
+
+    assignment = db.query(MealSlotDish).filter_by(meal_slot_id=slot.id, dish_id=dish_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish is not assigned to this meal slot.")
+
+    new_note = MealSlotDishNote(
+        meal_slot_dish_id=assignment.id,
+        note=req.note.strip()
+    )
+    db.add(new_note)
+    db.commit()
+    db.refresh(slot)
+
+    members = db.query(Member).filter(Member.household_id == current_household.id).all()
+    return build_slot_response(slot, members, db)
+
+
+@router.delete("/slots/{slot_id}/dishes/{dish_id}/notes/{note_id}", response_model=MealSlotResponse)
+def delete_note_from_slot_dish(
+    slot_id: int,
+    dish_id: int,
+    note_id: int,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Delete a feedback note from a dish consumed in this meal slot."""
+    slot = db.query(MealSlot).filter(
+        MealSlot.id == slot_id,
+        MealSlot.household_id == current_household.id
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found.")
+
+    assignment = db.query(MealSlotDish).filter_by(meal_slot_id=slot.id, dish_id=dish_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish is not assigned to this meal slot.")
+
+    note_obj = db.query(MealSlotDishNote).filter(
+        MealSlotDishNote.id == note_id,
+        MealSlotDishNote.meal_slot_dish_id == assignment.id
+    ).first()
+    if note_obj:
+        db.delete(note_obj)
+        db.commit()
+        db.refresh(slot)
+
+    members = db.query(Member).filter(Member.household_id == current_household.id).all()
+    return build_slot_response(slot, members, db)
+
+
+@router.post("/slots/{slot_id}/dishes/{dish_id}/ratings", response_model=MealSlotResponse)
+def set_slot_dish_rating(
+    slot_id: int,
+    dish_id: int,
+    req: SlotDishRatingCreate,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Set or update a diner's rating for a dish in this specific meal slot (J002)."""
+    slot = db.query(MealSlot).filter(
+        MealSlot.id == slot_id,
+        MealSlot.household_id == current_household.id
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found.")
+
+    assignment = db.query(MealSlotDish).filter_by(meal_slot_id=slot.id, dish_id=dish_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish is not assigned to this meal slot.")
+
+    member = db.query(Member).filter(Member.id == req.member_id, Member.household_id == current_household.id).first()
+    if not member:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Member not found.")
+
+    rating_obj = db.query(MealSlotDishRating).filter_by(
+        meal_slot_dish_id=assignment.id,
+        member_id=req.member_id
+    ).first()
+
+    if rating_obj:
+        rating_obj.rating = req.rating
+    else:
+        rating_obj = MealSlotDishRating(
+            meal_slot_dish_id=assignment.id,
+            member_id=req.member_id,
+            rating=req.rating
+        )
+        db.add(rating_obj)
+
+    db.commit()
+    db.refresh(slot)
+    members = db.query(Member).filter(Member.household_id == current_household.id).all()
+    return build_slot_response(slot, members, db)
+
+
+@router.delete("/slots/{slot_id}/dishes/{dish_id}/ratings/{member_id}", response_model=MealSlotResponse)
+def delete_slot_dish_rating(
+    slot_id: int,
+    dish_id: int,
+    member_id: int,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Remove a diner's rating for a dish in this specific meal slot (J003 toggle off)."""
+    slot = db.query(MealSlot).filter(
+        MealSlot.id == slot_id,
+        MealSlot.household_id == current_household.id
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found.")
+
+    assignment = db.query(MealSlotDish).filter_by(meal_slot_id=slot.id, dish_id=dish_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish is not assigned to this meal slot.")
+
+    rating_obj = db.query(MealSlotDishRating).filter_by(
+        meal_slot_dish_id=assignment.id,
+        member_id=member_id
+    ).first()
+    if rating_obj:
+        db.delete(rating_obj)
+        db.commit()
+        db.refresh(slot)
 
     members = db.query(Member).filter(Member.household_id == current_household.id).all()
     return build_slot_response(slot, members, db)

@@ -39,9 +39,56 @@ class MealSlotDish(Base):
     # Relationships
     meal_slot = relationship("MealSlot", back_populates="dishes")
     dish = relationship("Dish", back_populates="meal_assignments")
+    assigned_members = relationship("MealSlotDishMember", back_populates="slot_dish", cascade="all, delete-orphan")
+    notes_list = relationship("MealSlotDishNote", back_populates="slot_dish", cascade="all, delete-orphan", order_by="MealSlotDishNote.created_at.asc()")
+    ratings = relationship("MealSlotDishRating", back_populates="slot_dish", cascade="all, delete-orphan")
 
     __table_args__ = (
         UniqueConstraint("meal_slot_id", "dish_id", name="uq_meal_slot_dish"),
+    )
+
+
+class MealSlotDishMember(Base):
+    """Specific diner assignment for a dish in a slot (supporting alternative dishes)."""
+    __tablename__ = "meal_slot_dish_members"
+
+    meal_slot_dish_id = Column(Integer, ForeignKey("meal_slot_dishes.id", ondelete="CASCADE"), primary_key=True)
+    member_id = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), primary_key=True)
+
+    # Relationships
+    slot_dish = relationship("MealSlotDish", back_populates="assigned_members")
+    member = relationship("Member")
+
+
+class MealSlotDishNote(Base):
+    """Multiple timestamped notes/reviews for each time a dish is consumed."""
+    __tablename__ = "meal_slot_dish_notes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    meal_slot_dish_id = Column(Integer, ForeignKey("meal_slot_dishes.id", ondelete="CASCADE"), nullable=False, index=True)
+    note = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    slot_dish = relationship("MealSlotDish", back_populates="notes_list")
+
+
+class MealSlotDishRating(Base):
+    """Per-member rating for a specific meal consumption of a dish (J002)."""
+    __tablename__ = "meal_slot_dish_ratings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    meal_slot_dish_id = Column(Integer, ForeignKey("meal_slot_dishes.id", ondelete="CASCADE"), nullable=False, index=True)
+    member_id = Column(Integer, ForeignKey("members.id", ondelete="CASCADE"), nullable=False, index=True)
+    rating = Column(String(20), nullable=False)  # 'thumbs_up', 'neutral', 'thumbs_down'
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    slot_dish = relationship("MealSlotDish", back_populates="ratings")
+    member = relationship("Member")
+
+    __table_args__ = (
+        UniqueConstraint("meal_slot_dish_id", "member_id", name="uq_slot_dish_member_rating"),
     )
 
 
