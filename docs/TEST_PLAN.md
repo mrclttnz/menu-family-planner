@@ -2,7 +2,7 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Verified — All 18 Automated Tests Passing  
+> **Status**: Verified — All 27 Automated Tests Passing  
 > **Author**: Bottega QA Engineer (`qa-engineer`)
 
 ---
@@ -28,6 +28,15 @@ The testing strategy ensures high test confidence without brittle mocks:
 | **`US-04` Exception-Based Attendance** | `backend/tests/test_calendar_and_attendance.py` | All household members are `is_attending = True` by default without manual setup. Toggling off records an absence exception. | **PASS** |
 | **`US-05` Smart Compatibility Warnings** | `backend/tests/test_calendar_and_attendance.py` | Warning badge shown when dish disliked by attending member; warning disappears when disliker is absent (clearance); "Hit" badge when loved by all attendees. | **PASS** |
 | **`US-06` Dynamic Daily Meal Slots** | `backend/tests/test_calendar_and_attendance.py` | Adding a custom meal slot (e.g. `Brunch`) to a date, deleting default `Lunch` slot for special days. | **PASS** |
+| **`US-08` Attendance Date Range Validation** | `backend/tests/test_calendar_and_attendance.py` | Validates strict date ordering (`start_date <= end_date`) and maximum query window limits. | **PASS** |
+| **`US-09` Alternative Dishes & Targeted Compatibility (`P002`)** | `backend/tests/test_calendar_and_attendance.py` | Dishes assigned to specific diners evaluate compatibility exclusively against those targeted attendees. | **PASS** |
+| **`US-10` Decoupled Per-Meal Ratings (`J001`-`J003`)** | `backend/tests/test_calendar_and_attendance.py` | Testing meal satisfaction rating thumbs up/down and ensuring zero side-effects on permanent member preferences. | **PASS** |
+| **`US-11` Meal Type Slot Deletion (`P009`)** | `backend/tests/test_calendar_and_attendance.py` | Deleting a meal type slot from the calendar when no dishes are assigned. | **PASS** |
+| **`US-12` Meal Slot Notes (`P010`)** | `backend/tests/test_calendar_and_attendance.py` | Updating, retrieving, and clearing general meal slot notes (e.g. "Pranzo dalla nonna"). | **PASS** |
+| **`US-13` Dish Course Update Validation** | `backend/tests/test_dishes_and_preferences.py` | Updating dish courses ensuring validated relational consistency and non-empty categories. | **PASS** |
+| **`US-14` Default Dish Status OK (`D001`)** | `backend/tests/test_dishes_and_preferences.py` | Verifies default `is_default` flag on `'ok'` status when creating new dishes. | **PASS** |
+| **`US-15` Optional Source Type (`D002`)** | `backend/tests/test_dishes_and_preferences.py` | Creating dishes without specifying a recipe source type. | **PASS** |
+| **`US-16` Dish Consumption Feedback Notes** | `backend/tests/test_dishes_and_preferences.py` | Adding multiple timestamped notes to a meal slot dish and retrieving historical feedback via `/dishes/{id}/notes`. | **PASS** |
 | **`US-07` Frontend SPA Verification** | `frontend/` build pipeline | TypeScript compile (`tsc`), JSX bundling with Vite, production assets generated without errors, static mount verified on FastAPI. | **PASS** |
 
 ---
@@ -39,31 +48,42 @@ The testing strategy ensures high test confidence without brittle mocks:
 ============================= test session starts ==============================
 platform linux -- Python 3.14.4, pytest-9.1.1, pluggy-1.7.0 -- /home/marco/work/menu-design-2/backend/.venv/bin/python3
 cachedir: .pytest_cache
-rootdir: /home/marco/work/menu-design-2
+rootdir: /home/marco/work/menu-design-2/backend
+configfile: pytest.ini
+testpaths: tests
 plugins: asyncio-1.4.0, anyio-4.15.1
 asyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
-collecting ... collected 18 items
+collecting ... collected 27 items
 
-backend/tests/test_auth.py::test_register_success PASSED                 [  5%]
-backend/tests/test_auth.py::test_register_duplicate_email PASSED         [ 11%]
-backend/tests/test_auth.py::test_register_weak_password PASSED           [ 16%]
-backend/tests/test_auth.py::test_login_success PASSED                    [ 22%]
-backend/tests/test_auth.py::test_login_invalid_password PASSED           [ 27%]
-backend/tests/test_auth.py::test_get_me PASSED                           [ 33%]
-backend/tests/test_auth.py::test_get_me_unauthorized PASSED              [ 38%]
-backend/tests/test_calendar_and_attendance.py::test_default_calendar_and_exception_based_attendance PASSED [ 44%]
-backend/tests/test_calendar_and_attendance.py::test_custom_slot_brunch_and_delete_lunch PASSED [ 50%]
-backend/tests/test_calendar_and_attendance.py::test_smart_compatibility_alert_and_absence_clearance PASSED [ 55%]
-backend/tests/test_dishes_and_preferences.py::test_taxonomies PASSED     [ 61%]
-backend/tests/test_dishes_and_preferences.py::test_create_dish_with_multi_courses_and_preferences PASSED [ 66%]
-backend/tests/test_dishes_and_preferences.py::test_dish_tenant_isolation PASSED [ 72%]
-backend/tests/test_members.py::test_create_and_list_members PASSED       [ 77%]
-backend/tests/test_members.py::test_create_duplicate_member_name_fails PASSED [ 83%]
-backend/tests/test_members.py::test_update_member PASSED                 [ 88%]
-backend/tests/test_members.py::test_delete_member PASSED                 [ 94%]
-backend/tests/test_members.py::test_tenant_isolation_members PASSED      [100%]
+tests/test_auth.py::test_register_success PASSED                         [  3%]
+tests/test_auth.py::test_register_duplicate_email PASSED                 [  7%]
+tests/test_auth.py::test_register_weak_password PASSED                   [ 11%]
+tests/test_auth.py::test_login_success PASSED                            [ 14%]
+tests/test_auth.py::test_login_invalid_password PASSED                   [ 18%]
+tests/test_auth.py::test_get_me PASSED                                   [ 22%]
+tests/test_auth.py::test_get_me_unauthorized PASSED                      [ 25%]
+tests/test_calendar_and_attendance.py::test_default_calendar_and_exception_based_attendance PASSED [ 29%]
+tests/test_calendar_and_attendance.py::test_custom_slot_brunch_and_delete_lunch PASSED [ 33%]
+tests/test_calendar_and_attendance.py::test_smart_compatibility_alert_and_absence_clearance PASSED [ 37%]
+tests/test_calendar_and_attendance.py::test_attendance_date_range_validation PASSED [ 40%]
+tests/test_calendar_and_attendance.py::test_alternative_dishes_targeted_compatibility PASSED [ 44%]
+tests/test_calendar_and_attendance.py::test_slot_dish_ratings_and_independence_from_dish_preferences PASSED [ 48%]
+tests/test_calendar_and_attendance.py::test_delete_slots_by_meal_type_p009 PASSED [ 51%]
+tests/test_calendar_and_attendance.py::test_meal_slot_notes_p010 PASSED   [ 55%]
+tests/test_dishes_and_preferences.py::test_taxonomies PASSED             [ 59%]
+tests/test_dishes_and_preferences.py::test_create_dish_with_multi_courses_and_preferences PASSED [ 62%]
+tests/test_dishes_and_preferences.py::test_dish_tenant_isolation PASSED [ 66%]
+tests/test_dishes_and_preferences.py::test_update_dish_validates_courses PASSED [ 70%]
+tests/test_dishes_and_preferences.py::test_default_status_ok_flag PASSED [ 74%]
+tests/test_dishes_and_preferences.py::test_optional_source_type_dish_creation PASSED [ 77%]
+tests/test_dishes_and_preferences.py::test_slot_dish_multiple_notes_and_history PASSED [ 81%]
+tests/test_members.py::test_create_and_list_members PASSED               [ 85%]
+tests/test_members.py::test_create_duplicate_member_name_fails PASSED   [ 88%]
+tests/test_members.py::test_update_member PASSED                         [ 92%]
+tests/test_members.py::test_delete_member PASSED                         [ 96%]
+tests/test_members.py::test_tenant_isolation_members PASSED              [100%]
 
-======================== 18 passed, 1 warning in 6.32s =========================
+======================== 27 passed, 1 warning in 10.08s ========================
 ```
 
 ### Frontend TypeScript & Vite Build Evidence

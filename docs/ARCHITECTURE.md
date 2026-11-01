@@ -104,12 +104,13 @@ menu-design-2/
 │   │   ├── core/
 │   │   │   ├── config.py         # Validated Pydantic BaseSettings (DATABASE_URL, SECRET_KEY)
 │   │   │   ├── security.py       # Password hashing (bcrypt) and JWT encode/decode
-│   │   │   └── database.py       # SQLAlchemy engine, session maker, base model
+│   │   │   ├── database.py       # SQLAlchemy engine, session maker, base model
+│   │   │   └── migrations.py     # Idempotent runtime auto-migrations for SQLite & Postgres
 │   │   ├── models/               # SQLAlchemy ORM Models
 │   │   │   ├── household.py      # Household & Member models
 │   │   │   ├── taxonomy.py       # CourseType, DishStatus, SourceType
 │   │   │   ├── dish.py           # Dish, DishCourseType, DishPreference
-│   │   │   └── meal_plan.py      # MealSlot, MealSlotDish, Attendance
+│   │   │   └── meal_plan.py      # MealSlot, MealSlotDish, MealSlotDishMember, MealSlotDishNote, MealSlotDishRating, Attendance
 │   │   ├── schemas/              # Pydantic v2 validation schemas
 │   │   │   ├── household.py
 │   │   │   ├── member.py
@@ -188,6 +189,7 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 | Endpoint | Method | Auth | Description |
 | :--- | :--- | :--- | :--- |
 | `/taxonomies/meal-types` | `GET` | Required | List configurable meal types (`Pranzo`, `Cena`, `Brunch`, `Merenda`, etc.) |
+| `/taxonomies/meal-types/{id}` | `DELETE` | Required | Remove meal type and associated slots across range or day if no dishes assigned (`P009`) |
 | `/taxonomies/courses` | `GET` | Required | List course types (e.g., Antipasto, Primo, Secondo, etc.) |
 | `/taxonomies/courses` | `POST` | Required | Create custom course type |
 | `/taxonomies/statuses`| `GET` | Required | List dish statuses backed by lookup table |
@@ -196,11 +198,12 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 ### 5.4 Dish Catalog & Recipe Sources
 | Endpoint | Method | Auth | Description |
 | :--- | :--- | :--- | :--- |
-| `/dishes` | `GET` | Required | Filterable dish list (query params: `status_id`, `course_id`, `search`) |
-| `/dishes` | `POST` | Required | Create dish: `{ title, notes?, status_id, course_ids: [1, 2], source: { type_id, reference, url? } }` |
+| `/dishes` | `GET` | Required | Filterable dish list (query params: `status_id`, `course_id`, `search` substring matching title/notes) |
+| `/dishes` | `POST` | Required | Create dish: `{ title, notes?, status_id, course_ids: [1, 2], source: { type_id?, reference?, url? } }` |
 | `/dishes/{id}` | `GET` | Required | Get dish details including assigned courses, source info, and member preferences |
-| `/dishes/{id}` | `PUT` | Required | Update dish details |
+| `/dishes/{id}` | `PUT` | Required | Update dish details and assigned courses |
 | `/dishes/{id}` | `DELETE`| Required | Delete dish |
+| `/dishes/{id}/notes` | `GET` | Required | Retrieve historical feedback and notes logged for this dish across past planned meals |
 
 ### 5.5 Member Dish Preferences
 | Endpoint | Method | Auth | Description |
@@ -217,11 +220,16 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 ### 5.7 Daily Meal Slots & Compatibility Engine
 | Endpoint | Method | Auth | Description |
 | :--- | :--- | :--- | :--- |
-| `/calendar` | `GET` | Required | Get rolling calendar with planned day slots (e.g. Lunch/Dinner or Brunch/Merenda) & compatibility alerts |
-| `/calendar/slots` | `POST` | Required | Create/customize a meal slot for a day: `{ date, meal_type_id, sort_order? }` (e.g. add Brunch) |
+| `/calendar` | `GET` | Required | Get rolling calendar with planned day slots & compatibility alerts (query params: `start_date`, `end_date`) |
+| `/calendar/slots` | `POST` | Required | Create/customize a meal slot for a day: `{ date, meal_type_id, sort_order? }` |
 | `/calendar/slots/{id}` | `DELETE`| Required | Remove a meal slot for a day (e.g. eliminate Lunch on Brunch day) |
-| `/calendar/slots/{id}/dishes` | `POST` | Required | Assign dish(es) to slot: `{ dish_id, sort_order? }` |
+| `/calendar/slots/{id}/notes` | `PATCH` | Required | Update or clear the general meal slot note (e.g. "Pranzo dalla nonna", `P010`) |
+| `/calendar/slots/{id}/dishes` | `POST` | Required | Assign dish to slot: `{ dish_id, sort_order?, notes?, assigned_member_ids?: int[] }` (supports alternative dishes `P002`) |
 | `/calendar/slots/{id}/dishes/{dish_id}` | `DELETE`| Required | Remove dish from meal slot |
+| `/calendar/slots/{id}/dishes/{dish_id}/notes` | `POST` | Required | Add timestamped feedback note to dish consumed in this meal slot |
+| `/calendar/slots/{id}/dishes/{dish_id}/notes/{note_id}` | `DELETE` | Required | Delete feedback note from dish consumed in this meal slot |
+| `/calendar/slots/{id}/dishes/{dish_id}/ratings` | `POST` | Required | Record member rating for this specific meal (`thumbs_up`, `neutral`, `thumbs_down`, `J001`-`J003`) |
+| `/calendar/slots/{id}/dishes/{dish_id}/ratings` | `DELETE` | Required | Clear member rating for this meal |
 
 ---
 

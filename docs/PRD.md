@@ -71,12 +71,26 @@ Planning daily meals for a family is a recurring source of friction and mental e
     - If a member with `dislike` is **away**, the dish is approved without warning, signaling a great opportunity to enjoy it!
     - If all attendees have `favorite`, display a "Family Hit" badge.
 - **`FR-08` Responsive & Mobile-First UI**:
-  - Polished responsive design optimized for mobile phone consultation at the kitchen counter or on the go.
+  - Polished responsive design optimized for mobile phone consultation at the kitchen counter or on the go, with compact typography and efficient layout minimizing unnecessary scrolling.
+- **`FR-09` Alternative Dishes & Diner Targeting (`P002`)**:
+  - Ability to assign alternative dishes within the same meal slot targeted to specific members (e.g. Pasta al burro for Leo while parents eat Risotto).
+  - Compatibility engine evaluates dislike warnings specifically against the designated diners rather than all attendees.
+- **`FR-10` Multi-View Planner & Customizable Start of Week (`P003`, `P004`, `P005`, `P006`)**:
+  - Switch between three distinct planning views: **Detailed** (full card view), **Compact Horizontal** (7-day row with meal columns), and **Compact Vertical** (days in rows, meals in columns).
+  - Configurable start day of week (Monday, Saturday, Sunday, ..., Today) persisted in user preference.
+- **`FR-11` Meal Slot Notes & Decoupled Post-Meal Ratings (`P010`, `J001`, `J002`, `J003`)**:
+  - Support for high-level meal notes (e.g. *"Pranzo dalla nonna"*) displayed prominently at the top of the meal slot before dishes, with inline edit and delete.
+  - Per-meal diner ratings (`thumbs_up`, `neutral`, `thumbs_down`) and timestamped consumption feedback notes, intentionally separated from permanent dish preferences (`J002`).
+- **`FR-12` Rich Dish Search & Inline Quick-Create (`P007`, `P008`, `P009`, `D001`, `D002`, `D004`)**:
+  - Dish selection modal with course filter chips and fast substring text search across titles and notes.
+  - Inline creation of new dishes directly within the meal assignment modal with default status `'OK'` (`D001`) and optional source type (`D002`).
+  - Removal of unused meal types from the current calendar view (`P009`).
 
-### 2.2 Should-Have (Post-MVP v1.1 - v1.2 Backlog)
-- Alternative dish assignment for a specific member during a meal (e.g. Pasta al burro for Leo when everyone else eats Risotto ai funghi).
-- Dedicated UI management screen to create/edit custom categories, custom source types, and custom dish statuses per household.
-- Quick post-meal rating prompt directly updating the member preference or dish status.
+### 2.2 Should-Have / Backlog (Tracked in `docs/suggerimenti.md`)
+- `G003`: Multi-language UI support (Italian / English localization).
+- `D003`: Excel / CSV import and export for the dish catalog.
+- `A001`: Guest diner support (temporary non-family diners for a meal).
+- `P001`: Automated weekly menu suggestions engine based on attendance, seasonal ingredients, and past rotation frequency.
 - Automated grocery list generator aggregated from planned dishes.
 
 ### 2.3 Could-Have (Future Horizon v2.0+)
