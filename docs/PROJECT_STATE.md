@@ -23,10 +23,12 @@
 - **System Architecture**: `docs/ARCHITECTURE.md` — `[Approved - Gate 2]`
 - **Threat Model**: Inline in `docs/ARCHITECTURE.md` (§6) — `[Approved - Gate 2]`
 - **Database Design**: `docs/DB_SCHEMA.md` — `[Approved - Gate 3]`
-- **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (20/20 Tests Passing)]`
+- **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (27/27 Tests Passing)]`
 - **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS)]`
 - **Deployment Runbook**: `docs/DEPLOYMENT_RUNBOOK.md` — `[Approved - Gate 7 (Ready)]`
 - **External Docker Runbook (QNAP & Docker Hub)**: `docs/DEPLOYMENT_DOCKER_EXTERNAL.md` — `[Production Ready]`
+- **Dynamic Work-Item Backlog**: GitHub Issues ([mrclttnz/menu-family-planner/issues](https://github.com/mrclttnz/menu-family-planner/issues)) — `[Active Backlog]`
+- **Archived Suggestions & Feedback**: `docs/archive/suggerimenti.md` — `[Migrated to Issues #1-#4]`
 
 ## 4. Vertical Slices & Implementation Backlog
 | Slice ID | Feature / Module | Owner Role | Dev Status | QA Status | Review & Sec Gate |
@@ -38,12 +40,13 @@
 | `S5` | Dynamic Daily Meal Slots (Pranzo/Cena/Brunch/Merenda) & Exception-Based Attendance | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S6` | Meal Calendar & Smart Preference/Attendance Compatibility Alerts | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S7` | Mobile Dashboard & Kitchen Overview (React SPA) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S8` | Usability & Planning Extensions (Alternative Dishes, Meal Notes, Multi-Views, Quick Create, Meal Ratings) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
 - [x] **Gate 2 (Architecture & Threat Model Approved)**: Decoupled FastAPI + React SPA with SQLite/Postgres and Option 1 (`favorite` / `neutral` / `dislike`).
 - [x] **Gate 3 (DB Schema & Modules Approved)**: Normalized `dish_status_lookups`, dynamic daily `meal_types`, and exception-based attendance (present by default).
-- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 20 automated tests passing with 100% success rate in `backend/tests/`.
+- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 27 automated tests passing with 100% success rate in `backend/tests/`.
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).

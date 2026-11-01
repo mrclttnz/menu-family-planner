@@ -1,18 +1,36 @@
+# Archivio Suggerimenti & Feedback Storici (`suggerimenti.md`)
+
+> **STATO: ARCHIVIATO**  
+> Il tracciamento del backlog attivo è stato migrato a **GitHub Issues** in data 2026-11-01.  
+> Tutti i punti storici contrassegnati come `(FATTO)` sono conservati qui per memoria storica.  
+> I punti contrassegnati come `(FUTURO)` sono stati convertiti nelle seguenti GitHub Issues:
+
+### Mapping Voci Future $\rightarrow$ GitHub Issues
+
+| ID Storico | Titolo Issue | Issue GitHub | Stato Iniziale |
+| :--- | :--- | :--- | :--- |
+| **G003** | `[FEAT] Supporto multilingua dell'applicazione (Italiano e Inglese)` | [#1](https://github.com/mrclttnz/menu-family-planner/issues/1) | `status:ready` |
+| **D003** | `[FEAT] Import ed Export ricette/piatti da file Excel / CSV` | [#2](https://github.com/mrclttnz/menu-family-planner/issues/2) | `status:ready` |
+| **A001** | `[FEAT] Gestione presenze ospiti nei pasti pianificati` | [#3](https://github.com/mrclttnz/menu-family-planner/issues/3) | `status:ready` |
+| **P001** | `[FEAT] Suggerimento e pianificazione automatica del menù settimanale` | [#4](https://github.com/mrclttnz/menu-family-planner/issues/4) | `status:needs-spec` |
+
+---
+
+## Contenuto Storico Originale
 
 GENERALE
 * G001 - possibilità di modificare le entità inserite (FATTO)
 * G002 - modificare layout generale, stile delle pagine in modo che lo spazio sia usato meglio, es. font più piccoli con layout web (va bene per desktop), meno spazio vuoto in generale nei bordi, negli interlinea, ecc. L'obiettivo è fare stare più informazioni nello spazio visibile e minimizzare la necessità di scroll orizzontale e verticale (FATTO)
-* G003 - rendere l'applicazione multilingua. Possibilità per l'utente di selezionare la lingua e la UI si adatta di conseguenza. Per il momento predisporre lingue Italiano e Inglese (FUTURO)
-
+* G003 - rendere l'applicazione multilingua. Possibilità per l'utente di selezionare la lingua e la UI si adatta di conseguenza. Per il momento predisporre lingue Italiano e Inglese (FUTURO -> Issue #1)
 
 PIATTI
 * D001 - default per nuovo piatto, stato OK (FATTO)
 * D002 - Tipo Fonte è opzionale, può essere lasciato vuoto (FATTO)
-* D003 - possibilità di import/export da excel (FUTURO)
+* D003 - possibilità di import/export da excel (FUTURO -> Issue #2)
 * D004 - possibilità di fare edit dei piatti inseriti (FATTO)
 
 PRESENZE
-* A001 - possibilità di avere ospiti (FUTURO)
+* A001 - possibilità di avere ospiti (FUTURO -> Issue #3)
 
 GIUDIZIO
 * J001 - possibilità di indicare se un piatto è piaciuto o no (FATTO)
@@ -20,7 +38,7 @@ GIUDIZIO
 * J003 - la valutazione dei piatti per un particolare pasto è facoltativa. Il gradimento va evidenziato solo se è stato indicato esplicitamente (FATTO)
 
 PIANIFICAZIONE
-* P001 - il sistema propone un menù per la settimana, sulla base di presenze e preferenze (FUTURO)
+* P001 - il sistema propone un menù per la settimana, sulla base di presenze e preferenze (FUTURO -> Issue #4)
 * P002 - un pasto può prevedere piatti alternativi, ad esempio quando a due persone piace un piatto e ad un'altra no, si possono inserire due primi piatti, uno per le due persone e un altro primo piatto per la terza persona (FATTO)
 * P003 - Aggiungere una visualizzazione compatta dei pasti, in cui si vedano nella pagina a video tutti i giorni. Per ciascun pasto solo il nome dei piatti e, solo se ci sono eccezioni, indicare nella stessa riga senza aumetare lo spazio verticale occupato, per chi è il piatto. Nel Pianificatore Pasti in testa inserire uno switch per passare da visualizzazione compatta alla visualizzazione completa (FATTO)
 * P004 - Aggiungere una visualizzazione compatta verticale, con i giorni in riga e i pasti in colonna. Prevedere uno switch tra Dettagliata, Compatta orizzontale, Compatta verticale (FATTO)
