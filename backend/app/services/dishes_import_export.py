@@ -1,7 +1,7 @@
 import io
 import json
 import csv
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
@@ -18,15 +18,16 @@ from app.schemas.dish import DishImportResult, DishImportRowError
 DANGEROUS_FORMULA_PREFIXES = ("=", "+", "-", "@", "\t", "\r")
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5 MB
 
+# Canonical English headers for consistency across Excel, CSV and JSON
 HEADER_COLUMNS = [
-    "Titolo",
-    "Descrizione",
-    "Note",
-    "Stato",
-    "Tipo Fonte",
-    "Portate",
-    "Riferimento Fonte",
-    "URL Fonte",
+    "title",
+    "description",
+    "notes",
+    "status",
+    "source_type",
+    "courses",
+    "source_reference",
+    "source_url",
 ]
 
 
@@ -56,10 +57,13 @@ def sanitize_from_import(val: Optional[str]) -> Optional[str]:
     return s
 
 
-def parse_courses_field(raw_val: str) -> List[str]:
-    """Parses single course, comma-separated list, or JSON array of courses."""
+def parse_courses_field(raw_val: Any) -> List[str]:
+    """Parses native list, single course, comma-separated list, or JSON array of courses."""
     if not raw_val:
         return []
+    if isinstance(raw_val, list):
+        return [str(x).strip().strip("'\"") for x in raw_val if str(x).strip()]
+
     s = str(raw_val).strip()
     if not s:
         return []
@@ -76,7 +80,6 @@ def parse_courses_field(raw_val: str) -> List[str]:
                 return [r.strip("'\"") for r in res if r]
         except Exception:
             pass
-        # Fallback split
         parts = [p.strip().strip("'\"").strip() for p in inner.split(",")]
         return [p for p in parts if p]
 
@@ -86,7 +89,7 @@ def parse_courses_field(raw_val: str) -> List[str]:
 
 
 def format_courses_field(courses: List[CourseType]) -> str:
-    """Formats courses as JSON array string for clean export."""
+    """Formats courses as JSON array string for clean Excel/CSV export."""
     names = [c.name for c in courses if c.name]
     if not names:
         return "[]"
@@ -94,10 +97,10 @@ def format_courses_field(courses: List[CourseType]) -> str:
 
 
 def export_dishes_to_xlsx(dishes: List[Dish]) -> bytes:
-    """Generates an Excel workbook (.xlsx) containing dishes."""
+    """Generates an Excel workbook (.xlsx) containing dishes with English headers."""
     wb = openpyxl.Workbook()
     ws = wb.active
-    ws.title = "Piatti"
+    ws.title = "Dishes"
 
     # Style Header
     header_font = Font(name="Calibri", size=11, bold=True, color="1F2937")
@@ -148,7 +151,7 @@ def export_dishes_to_xlsx(dishes: List[Dish]) -> bytes:
 
 
 def export_dishes_to_csv(dishes: List[Dish]) -> bytes:
-    """Generates a CSV file with RFC-4180 quoting and UTF-8 BOM encoding."""
+    """Generates a CSV file with RFC-4180 quoting, UTF-8 BOM encoding and English headers."""
     output = io.StringIO()
     writer = csv.writer(output, delimiter=",", quoting=csv.QUOTE_MINIMAL)
 
@@ -172,8 +175,30 @@ def export_dishes_to_csv(dishes: List[Dish]) -> bytes:
     return output.getvalue().encode("utf-8-sig")
 
 
+def export_dishes_to_json(dishes: List[Dish]) -> bytes:
+    """Generates a formatted JSON array with English keys."""
+    data = []
+    for dish in dishes:
+        status_name = dish.status.custom_label if dish.status.custom_label else dish.status.lookup.name
+        source_type_name = dish.source_type.name if dish.source_type else ""
+        courses_list = [dc.course_type.name for dc in dish.courses if dc.course_type and dc.course_type.name]
+
+        data.append({
+            "title": sanitize_for_export(dish.title),
+            "description": sanitize_for_export(dish.description or ""),
+            "notes": sanitize_for_export(dish.notes or ""),
+            "status": sanitize_for_export(status_name),
+            "source_type": sanitize_for_export(source_type_name),
+            "courses": courses_list,
+            "source_reference": sanitize_for_export(dish.source_reference or ""),
+            "source_url": sanitize_for_export(dish.source_url or ""),
+        })
+
+    return json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+
+
 def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
-    """Generates an example template in xlsx or csv format."""
+    """Generates an example template in xlsx, csv, or json format with English keys."""
     example_dishes = [
         {
             "title": "Pasta al Pomodoro Fresco",
@@ -181,8 +206,9 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
             "notes": "Spolverare con Parmigiano Reggiano grattugiato a piacere.",
             "status": "OK",
             "source_type": "Famiglia",
-            "courses": '["Primo"]',
-            "source_ref": "Ricetta della nonna",
+            "courses_str": '["Primo"]',
+            "courses_list": ["Primo"],
+            "source_reference": "Ricetta della nonna",
             "source_url": "",
         },
         {
@@ -191,16 +217,18 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
             "notes": "Cottura a fuoco lento 180°C per 90 minuti coperto con alluminio.",
             "status": "OK",
             "source_type": "Libro / Rivista",
-            "courses": '["Secondo", "Piatto unico"]',
-            "source_ref": "Il Cucchiaio d'Argento p. 112",
+            "courses_str": '["Secondo", "Piatto unico"]',
+            "courses_list": ["Secondo", "Piatto unico"],
+            "source_reference": "Il Cucchiaio d'Argento p. 112",
             "source_url": "https://www.cucchiaio.it/ricetta/arrosto-di-vitello/",
         },
     ]
 
-    if fmt.lower() == "xlsx":
+    f = fmt.lower()
+    if f == "xlsx":
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Template Piatti"
+        ws.title = "Dishes Template"
 
         header_font = Font(name="Calibri", size=11, bold=True, color="1F2937")
         header_fill = PatternFill(start_color="F3F4F6", end_color="F3F4F6", fill_type="solid")
@@ -220,8 +248,8 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
                 d["notes"],
                 d["status"],
                 d["source_type"],
-                d["courses"],
-                d["source_ref"],
+                d["courses_str"],
+                d["source_reference"],
                 d["source_url"],
             ])
 
@@ -238,6 +266,27 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             "template_import_piatti.xlsx",
         )
+
+    elif f == "json":
+        json_data = [
+            {
+                "title": d["title"],
+                "description": d["description"],
+                "notes": d["notes"],
+                "status": d["status"],
+                "source_type": d["source_type"],
+                "courses": d["courses_list"],
+                "source_reference": d["source_reference"],
+                "source_url": d["source_url"],
+            }
+            for d in example_dishes
+        ]
+        return (
+            json.dumps(json_data, ensure_ascii=False, indent=2).encode("utf-8"),
+            "application/json; charset=utf-8",
+            "template_import_piatti.json",
+        )
+
     else:
         output = io.StringIO()
         writer = csv.writer(output, delimiter=",", quoting=csv.QUOTE_MINIMAL)
@@ -249,8 +298,8 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
                 d["notes"],
                 d["status"],
                 d["source_type"],
-                d["courses"],
-                d["source_ref"],
+                d["courses_str"],
+                d["source_reference"],
                 d["source_url"],
             ])
         return (
@@ -261,48 +310,68 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
 
 
 def _normalize_header(h: str) -> str:
-    clean = h.strip().lower().replace("_", " ")
+    """Normalizes header field names strictly in English."""
+    clean = h.strip().lower().replace(" ", "_").replace("-", "_")
     mapping = {
-        "titolo": "title",
         "title": "title",
-        "nome": "title",
         "name": "title",
-        "descrizione": "description",
         "description": "description",
-        "note": "notes",
+        "desc": "description",
         "notes": "notes",
-        "stato": "status",
+        "note": "notes",
         "status": "status",
-        "tipo fonte": "source_type",
-        "tipo_fonte": "source_type",
-        "source type": "source_type",
         "source_type": "source_type",
-        "fonte": "source_type",
-        "portate": "courses",
-        "portata": "courses",
+        "source": "source_type",
         "courses": "courses",
         "course": "courses",
-        "elenco portate": "courses",
-        "tipi portata": "courses",
-        "riferimento fonte": "source_reference",
-        "riferimento": "source_reference",
-        "source reference": "source_reference",
         "source_reference": "source_reference",
-        "url fonte": "source_url",
-        "url": "source_url",
-        "source url": "source_url",
+        "reference": "source_reference",
         "source_url": "source_url",
+        "url": "source_url",
     }
     return mapping.get(clean, clean)
 
 
-def _parse_rows_from_bytes(file_bytes: bytes, filename: str) -> Tuple[List[Dict[str, str]], List[str]]:
-    """Extracts rows as dictionaries with normalized field names from xlsx or csv."""
-    rows: List[Dict[str, str]] = []
+def _parse_rows_from_bytes(file_bytes: bytes, filename: str) -> Tuple[List[Dict[str, Any]], List[str]]:
+    """Extracts rows as dictionaries with normalized English field names from xlsx, csv, or json."""
+    rows: List[Dict[str, Any]] = []
     errors: List[str] = []
     fname = filename.lower()
 
-    if fname.endswith(".xlsx"):
+    if fname.endswith(".json"):
+        try:
+            text = file_bytes.decode("utf-8-sig", errors="replace")
+            payload = json.loads(text)
+            if isinstance(payload, dict):
+                if "dishes" in payload and isinstance(payload["dishes"], list):
+                    raw_items = payload["dishes"]
+                elif "items" in payload and isinstance(payload["items"], list):
+                    raw_items = payload["items"]
+                else:
+                    return [], ["Il JSON deve contenere un array di piatti o una chiave 'dishes'."]
+            elif isinstance(payload, list):
+                raw_items = payload
+            else:
+                return [], ["Il formato JSON deve essere un array di piatti."]
+
+            for item_idx, item in enumerate(raw_items, start=1):
+                if not isinstance(item, dict):
+                    continue
+                row_dict: Dict[str, Any] = {}
+                for k, v in item.items():
+                    norm_k = _normalize_header(str(k))
+                    if norm_k == "courses" and isinstance(v, list):
+                        row_dict["courses"] = json.dumps([str(x) for x in v], ensure_ascii=False)
+                    elif v is not None:
+                        row_dict[norm_k] = str(v).strip()
+                    else:
+                        row_dict[norm_k] = ""
+                row_dict["_row_number"] = str(item_idx)
+                rows.append(row_dict)
+        except Exception as e:
+            return [], [f"Impossibile leggere il file JSON: {str(e)}"]
+
+    elif fname.endswith(".xlsx"):
         try:
             wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
             ws = wb.active
@@ -313,10 +382,9 @@ def _parse_rows_from_bytes(file_bytes: bytes, filename: str) -> Tuple[List[Dict[
             col_map = {idx: _normalize_header(h) for idx, h in enumerate(header_raw) if h}
 
             for row_idx, row_values in enumerate(all_rows[1:], start=2):
-                # Skip completely blank rows
                 if not any(v is not None and str(v).strip() for v in row_values):
                     continue
-                row_dict: Dict[str, str] = {}
+                row_dict: Dict[str, Any] = {}
                 for idx, val in enumerate(row_values):
                     if idx in col_map:
                         val_str = str(val).strip() if val is not None else ""
@@ -340,7 +408,7 @@ def _parse_rows_from_bytes(file_bytes: bytes, filename: str) -> Tuple[List[Dict[
             for row_idx, row_values in enumerate(all_rows[1:], start=2):
                 if not any(v and v.strip() for v in row_values):
                     continue
-                row_dict: Dict[str, str] = {}
+                row_dict: Dict[str, Any] = {}
                 for idx, val in enumerate(row_values):
                     if idx in col_map:
                         row_dict[col_map[idx]] = val.strip() if val else ""
@@ -381,7 +449,6 @@ def import_dishes_from_bytes(
 
     # 1. Preload lookup tables for household
     household_statuses = db.query(DishStatus).filter(DishStatus.household_id == household_id).all()
-    # Build status map: custom_label or lookup.name or code (case-insensitive) -> DishStatus
     status_map: Dict[str, DishStatus] = {}
     default_status: Optional[DishStatus] = None
     for st in household_statuses:
@@ -420,20 +487,24 @@ def import_dishes_from_bytes(
 
     for r in rows:
         row_num = int(r.get("_row_number", 0))
-        raw_title = r.get("title", "").strip()
+        raw_title = r.get("title", "")
+        if isinstance(raw_title, str):
+            raw_title = raw_title.strip()
+        else:
+            raw_title = str(raw_title).strip() if raw_title is not None else ""
 
         # Mandatory validation 1: Title
         if not raw_title:
-            errors.append(DishImportRowError(row=row_num, dish_title="", error="Il campo Nome/Titolo è obbligatorio."))
+            errors.append(DishImportRowError(row=row_num, dish_title="", error="Il campo 'title' è obbligatorio."))
             continue
 
         clean_title = sanitize_from_import(raw_title)
         if not clean_title:
-            errors.append(DishImportRowError(row=row_num, dish_title="", error="Il campo Nome/Titolo non può essere vuoto."))
+            errors.append(DishImportRowError(row=row_num, dish_title="", error="Il campo 'title' non può essere vuoto."))
             continue
 
         # Mandatory validation 2: Status
-        raw_status = r.get("status", "").strip()
+        raw_status = str(r.get("status", "")).strip()
         matched_status: Optional[DishStatus] = None
         if raw_status:
             matched_status = status_map.get(raw_status.lower())
@@ -451,20 +522,20 @@ def import_dishes_from_bytes(
                 DishImportRowError(
                     row=row_num,
                     dish_title=clean_title,
-                    error="Il campo Stato è obbligatorio (es. 'OK', 'Da provare').",
+                    error="Il campo 'status' è obbligatorio (es. 'OK', 'Da provare').",
                 )
             )
             continue
 
         # Mandatory validation 3: Courses
-        raw_courses = r.get("courses", "").strip()
+        raw_courses = r.get("courses", "")
         parsed_courses = parse_courses_field(raw_courses)
         if not parsed_courses:
             errors.append(
                 DishImportRowError(
                     row=row_num,
                     dish_title=clean_title,
-                    error="È necessario specificare almeno una portata valida (es. 'Primo' o '[\"Secondo\", \"Piatto unico\"]').",
+                    error="È necessario specificare almeno una portata valida in 'courses' (es. 'Primo' o '[\"Secondo\", \"Piatto unico\"]').",
                 )
             )
             continue
@@ -475,7 +546,6 @@ def import_dishes_from_bytes(
             if key in course_map:
                 matched_courses.append(course_map[key])
             else:
-                # Dynamically create course type for household if not present
                 new_c = CourseType(
                     household_id=household_id,
                     name=c_name.strip(),
@@ -488,7 +558,7 @@ def import_dishes_from_bytes(
                 matched_courses.append(new_c)
 
         # Optional Source Type
-        raw_source_type = r.get("source_type", "").strip()
+        raw_source_type = str(r.get("source_type", "")).strip()
         matched_source: Optional[SourceType] = None
         if raw_source_type:
             s_key = raw_source_type.lower()
@@ -511,7 +581,6 @@ def import_dishes_from_bytes(
         clean_source_ref = sanitize_from_import(r.get("source_reference", ""))
         clean_source_url = sanitize_from_import(r.get("source_url", ""))
         if clean_source_url and not (clean_source_url.startswith("http://") or clean_source_url.startswith("https://")):
-            # If protocol omitted, add https://
             clean_source_url = f"https://{clean_source_url}"
 
         title_key = clean_title.lower()
@@ -522,7 +591,6 @@ def import_dishes_from_bytes(
                 skipped_count += 1
                 continue
             elif mode == "update":
-                # Update existing dish attributes
                 existing_dish.title = clean_title
                 existing_dish.status_id = matched_status.id
                 existing_dish.source_type_id = matched_source.id if matched_source else None
@@ -532,14 +600,12 @@ def import_dishes_from_bytes(
                 existing_dish.source_url = clean_source_url
                 existing_dish.updated_at = datetime.now(timezone.utc)
 
-                # Replace dish courses
                 db.query(DishCourse).filter(DishCourse.dish_id == existing_dish.id).delete()
                 for c in matched_courses:
                     db.add(DishCourse(dish_id=existing_dish.id, course_type_id=c.id))
 
                 updated_count += 1
         else:
-            # Create new dish
             new_dish = Dish(
                 household_id=household_id,
                 status_id=matched_status.id,

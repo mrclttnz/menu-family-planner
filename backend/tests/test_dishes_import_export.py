@@ -1,10 +1,11 @@
 import io
 import csv
+import json
 import openpyxl
 import pytest
 
 
-def test_export_dishes_csv_and_xlsx(client, auth_headers):
+def test_export_dishes_csv_xlsx_and_json(client, auth_headers):
     # Setup test dishes
     res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
     ok_status = next(s for s in res_statuses.json() if s["code"] == "ok")
@@ -33,32 +34,29 @@ def test_export_dishes_csv_and_xlsx(client, auth_headers):
         "course_ids": [secondo["id"], piatto_unico["id"]],
     })
 
-    # 1. Test CSV Export
+    # 1. Test CSV Export (English headers)
     res_csv = client.get("/api/v1/dishes/export?format=csv", headers=auth_headers)
     assert res_csv.status_code == 200
     assert "text/csv" in res_csv.headers["content-type"]
     assert "attachment; filename=\"piatti_" in res_csv.headers["content-disposition"]
 
-    # Decode CSV content
     csv_text = res_csv.content.decode("utf-8-sig")
     reader = list(csv.reader(io.StringIO(csv_text)))
     assert len(reader) == 3  # Header + 2 dishes
     headers = reader[0]
-    assert headers[0] == "Titolo"
-    assert headers[3] == "Stato"
-    assert headers[5] == "Portate"
+    assert headers[0] == "title"
+    assert headers[3] == "status"
+    assert headers[5] == "courses"
 
-    # Find the dish with comma
     dish1_row = next(r for r in reader[1:] if "Pasta, fagioli e cozze" in r[0])
     assert dish1_row[0] == "Pasta, fagioli e cozze"
     assert dish1_row[3] == "OK"  # Lookup description, not ID
     assert dish1_row[5] == '["Primo"]'
 
-    # Multi-course dish
     dish2_row = next(r for r in reader[1:] if "Arrosto con patate" in r[0])
     assert '["Secondo", "Piatto unico"]' in dish2_row[5] or '["Piatto unico", "Secondo"]' in dish2_row[5]
 
-    # 2. Test XLSX Export
+    # 2. Test XLSX Export (English headers)
     res_xlsx = client.get("/api/v1/dishes/export?format=xlsx", headers=auth_headers)
     assert res_xlsx.status_code == 200
     assert "application/vnd.openxmlformats" in res_xlsx.headers["content-type"]
@@ -67,9 +65,26 @@ def test_export_dishes_csv_and_xlsx(client, auth_headers):
     ws = wb.active
     rows = list(ws.iter_rows(values_only=True))
     assert len(rows) == 3
-    assert rows[0][0] == "Titolo"
+    assert rows[0][0] == "title"
 
-    # 3. Test Filtered Export
+    # 3. Test JSON Export
+    res_json = client.get("/api/v1/dishes/export?format=json", headers=auth_headers)
+    assert res_json.status_code == 200
+    assert "application/json" in res_json.headers["content-type"]
+    assert "attachment; filename=\"piatti_" in res_json.headers["content-disposition"]
+
+    json_data = json.loads(res_json.content.decode("utf-8"))
+    assert len(json_data) == 2
+    dish1_json = next(d for d in json_data if d["title"] == "Pasta, fagioli e cozze")
+    assert dish1_json["status"] == "OK"
+    assert dish1_json["courses"] == ["Primo"]
+    assert dish1_json["notes"] == "Servire caldo, con un filo d'olio a crudo"
+
+    dish2_json = next(d for d in json_data if d["title"] == "Arrosto con patate")
+    assert "Secondo" in dish2_json["courses"]
+    assert "Piatto unico" in dish2_json["courses"]
+
+    # 4. Test Filtered Export
     res_filtered = client.get("/api/v1/dishes/export?format=csv&search=cozze", headers=auth_headers)
     assert res_filtered.status_code == 200
     filtered_reader = list(csv.reader(io.StringIO(res_filtered.content.decode("utf-8-sig"))))
@@ -77,25 +92,34 @@ def test_export_dishes_csv_and_xlsx(client, auth_headers):
     assert filtered_reader[1][0] == "Pasta, fagioli e cozze"
 
 
-def test_download_template(client, auth_headers):
+def test_download_template_all_formats(client, auth_headers):
     # CSV template
     res_csv = client.get("/api/v1/dishes/import-template?format=csv", headers=auth_headers)
     assert res_csv.status_code == 200
     assert "template_import_piatti.csv" in res_csv.headers["content-disposition"]
     csv_rows = list(csv.reader(io.StringIO(res_csv.content.decode("utf-8-sig"))))
-    assert len(csv_rows) >= 3  # Header + sample rows
+    assert len(csv_rows) >= 3
+    assert csv_rows[0][0] == "title"
 
     # XLSX template
     res_xlsx = client.get("/api/v1/dishes/import-template?format=xlsx", headers=auth_headers)
     assert res_xlsx.status_code == 200
     assert "template_import_piatti.xlsx" in res_xlsx.headers["content-disposition"]
     wb = openpyxl.load_workbook(io.BytesIO(res_xlsx.content))
-    assert "Template Piatti" in wb.sheetnames
+    assert "Dishes Template" in wb.sheetnames
+
+    # JSON template
+    res_json = client.get("/api/v1/dishes/import-template?format=json", headers=auth_headers)
+    assert res_json.status_code == 200
+    assert "template_import_piatti.json" in res_json.headers["content-disposition"]
+    json_tpl = json.loads(res_json.content.decode("utf-8"))
+    assert len(json_tpl) >= 2
+    assert "title" in json_tpl[0]
+    assert "courses" in json_tpl[0]
 
 
-def test_import_dishes_csv(client, auth_headers):
-    # CSV with various portate formats: bracketed list, single value, comma separated
-    csv_content = """Titolo,Descrizione,Note,Stato,Tipo Fonte,Portate,Riferimento Fonte,URL Fonte
+def test_import_dishes_csv_english(client, auth_headers):
+    csv_content = """title,description,notes,status,source_type,courses,source_reference,source_url
 "Risotto allo Zafferano","Giallo milanese cremoso","Usare burro freddo","OK","Famiglia","[""Primo""]","Ricetta nonna",https://example.com/risotto
 "Cotoletta alla Milanese","Fritta nel burro chiarificato","Spicchio di limone","OK","Libro / Rivista","Secondo","Il Cucchiaio d'Argento",
 "Polenta e Spezzatino","Piatto invernale ricco","Cuocere 2 ore","OK","Famiglia","[""Secondo"", ""Piatto unico""]","Baita",
@@ -114,7 +138,6 @@ def test_import_dishes_csv(client, auth_headers):
     assert result["skipped"] == 0
     assert result["errors"] == []
 
-    # Verify created in DB
     res_dishes = client.get("/api/v1/dishes", headers=auth_headers)
     dishes = res_dishes.json()
     titles = [d["title"] for d in dishes]
@@ -123,16 +146,53 @@ def test_import_dishes_csv(client, auth_headers):
     assert "Polenta e Spezzatino" in titles
     assert "Spaghetti alla Carbonara" in titles
 
-    # Multi-course check for Polenta e Spezzatino
-    polenta = next(d for d in dishes if d["title"] == "Polenta e Spezzatino")
-    polenta_courses = [c["name"] for c in polenta["courses"]]
-    assert "Secondo" in polenta_courses
-    assert "Piatto unico" in polenta_courses
+
+def test_import_dishes_json(client, auth_headers):
+    # Import from JSON array
+    json_items = [
+        {
+            "title": "Lasagne al Forno Emiliane",
+            "description": "Ragù classico e besciamella vellutata",
+            "notes": "Gratinare a 200°C per 15 minuti",
+            "status": "OK",
+            "source_type": "Famiglia",
+            "courses": ["Primo", "Piatto unico"],
+            "source_reference": "Ricetta di famiglia",
+            "source_url": "https://example.com/lasagne"
+        },
+        {
+            "title": "Insalata Caprese",
+            "description": "Mozzarella di bufala e pomodori cuore di bue",
+            "notes": "Olio extravergine d'oliva a crudo",
+            "status": "OK",
+            "source_type": "Note personali",
+            "courses": ["Secondo"],
+            "source_reference": "",
+            "source_url": ""
+        }
+    ]
+
+    files = {
+        "file": ("dishes_test.json", json.dumps(json_items).encode("utf-8"), "application/json")
+    }
+    res = client.post("/api/v1/dishes/import", headers=auth_headers, files=files, data={"mode": "skip"})
+    assert res.status_code == 200
+    result = res.json()
+    assert result["total_rows"] == 2
+    assert result["created"] == 2
+    assert result["skipped"] == 0
+    assert result["errors"] == []
+
+    # Verify courses for Lasagne
+    dishes = client.get("/api/v1/dishes", headers=auth_headers).json()
+    lasagne = next(d for d in dishes if d["title"] == "Lasagne al Forno Emiliane")
+    course_names = [c["name"] for c in lasagne["courses"]]
+    assert "Primo" in course_names
+    assert "Piatto unico" in course_names
 
 
 def test_import_duplicates_skip_and_update(client, auth_headers):
-    # Pre-insert a dish
-    csv_init = """Titolo,Descrizione,Note,Stato,Tipo Fonte,Portate,Riferimento Fonte,URL Fonte
+    csv_init = """title,description,notes,status,source_type,courses,source_reference,source_url
 "Tiramisù","Originale veneto","Uova fresche","OK","Famiglia","Dolce","Zia Lucia",
 """
     client.post(
@@ -142,8 +202,7 @@ def test_import_duplicates_skip_and_update(client, auth_headers):
         data={"mode": "skip"}
     )
 
-    # 1. Re-import with mode 'skip'
-    csv_update = """Titolo,Descrizione,Note,Stato,Tipo Fonte,Portate,Riferimento Fonte,URL Fonte
+    csv_update = """title,description,notes,status,source_type,courses,source_reference,source_url
 "Tiramisù","Descrizione AGGIORNATA","Nuove note","OK","Famiglia","Dolce","Zia Lucia",
 "Panna Cotta","Al caramello","Facile","OK","Famiglia","Dolce","",
 """
@@ -159,12 +218,10 @@ def test_import_duplicates_skip_and_update(client, auth_headers):
     assert skip_json["skipped"] == 1  # Tiramisù skipped
     assert skip_json["updated"] == 0
 
-    # Verify Tiramisù was NOT updated
     dishes = client.get("/api/v1/dishes", headers=auth_headers).json()
     tiramisu = next(d for d in dishes if d["title"] == "Tiramisù")
     assert tiramisu["description"] == "Originale veneto"
 
-    # 2. Re-import with mode 'update'
     res_update = client.post(
         "/api/v1/dishes/import",
         headers=auth_headers,
@@ -173,7 +230,7 @@ def test_import_duplicates_skip_and_update(client, auth_headers):
     )
     assert res_update.status_code == 200
     upd_json = res_update.json()
-    assert upd_json["updated"] == 2  # Both Tiramisù and Panna Cotta updated
+    assert upd_json["updated"] == 2
     assert upd_json["created"] == 0
 
     dishes_upd = client.get("/api/v1/dishes", headers=auth_headers).json()
@@ -182,8 +239,7 @@ def test_import_duplicates_skip_and_update(client, auth_headers):
 
 
 def test_import_validation_and_row_errors(client, auth_headers):
-    # Missing title in row 2, invalid status in row 3, missing courses in row 4
-    csv_invalid = """Titolo,Descrizione,Note,Stato,Tipo Fonte,Portate,Riferimento Fonte,URL Fonte
+    csv_invalid = """title,description,notes,status,source_type,courses,source_reference,source_url
 "","Manca il titolo","","OK","","Primo","",
 "Bruschetta","","","STATO_INESISTENTE","","Antipasto","",
 "Insalata mista","","","OK","","","",
@@ -209,8 +265,7 @@ def test_import_validation_and_row_errors(client, auth_headers):
 
 
 def test_formula_injection_defense(client, auth_headers):
-    # CSV containing malicious spreadsheet formulas
-    csv_malicious = """Titolo,Descrizione,Note,Stato,Tipo Fonte,Portate,Riferimento Fonte,URL Fonte
+    csv_malicious = """title,description,notes,status,source_type,courses,source_reference,source_url
 "=1+2","=@cmd|' /C calc'!A0","+3-5","OK","Famiglia","Primo","",
 """
     res = client.post(
@@ -222,7 +277,6 @@ def test_formula_injection_defense(client, auth_headers):
     assert res.status_code == 200
     assert res.json()["created"] == 1
 
-    # Check that export sanitizes formula prefix
     res_export = client.get("/api/v1/dishes/export?format=csv", headers=auth_headers)
     assert res_export.status_code == 200
     csv_text = res_export.content.decode("utf-8-sig")

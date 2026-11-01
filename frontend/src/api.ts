@@ -150,7 +150,7 @@ export const api = {
     }),
   getDishNotes: (dishId: number) => request<SlotDishNote[]>(`/dishes/${dishId}/notes`),
 
-  exportDishes: async (format: 'xlsx' | 'csv', params?: { status_id?: number; course_id?: number; search?: string }) => {
+  exportDishes: async (format: 'xlsx' | 'csv' | 'json', params?: { status_id?: number; course_id?: number; search?: string }) => {
     const token = getToken()
     const query = new URLSearchParams()
     query.set('format', format)
@@ -175,7 +175,7 @@ export const api = {
     window.URL.revokeObjectURL(url)
   },
 
-  downloadImportTemplate: async (format: 'xlsx' | 'csv') => {
+  downloadImportTemplate: async (format: 'xlsx' | 'csv' | 'json') => {
     const token = getToken()
     const headers: HeadersInit = {}
     if (token) headers['Authorization'] = `Bearer ${token}`

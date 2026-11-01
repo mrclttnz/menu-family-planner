@@ -24,6 +24,7 @@ from app.api.deps import get_current_household
 from app.services.dishes_import_export import (
     export_dishes_to_xlsx,
     export_dishes_to_csv,
+    export_dishes_to_json,
     generate_import_template,
     import_dishes_from_bytes,
 )
@@ -167,14 +168,14 @@ def create_dish(
 
 @router.get("/export")
 def export_dishes(
-    format: str = Query("xlsx", pattern="^(xlsx|csv)$", description="Export format (xlsx or csv)"),
+    format: str = Query("xlsx", pattern="^(xlsx|csv|json)$", description="Export format (xlsx, csv, or json)"),
     status_id: Optional[int] = Query(None, description="Filter by dish status"),
     course_id: Optional[int] = Query(None, description="Filter by course type"),
     search: Optional[str] = Query(None, description="Search in title or notes"),
     current_household: Household = Depends(get_current_household),
     db: Session = Depends(get_db)
 ):
-    """Exports filtered dishes to Excel (.xlsx) or CSV (.csv)."""
+    """Exports filtered dishes to Excel (.xlsx), CSV (.csv), or JSON (.json)."""
     query = db.query(Dish).filter(Dish.household_id == current_household.id)
 
     if status_id:
@@ -188,10 +189,15 @@ def export_dishes(
     dishes = query.order_by(Dish.title.asc()).all()
     today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
 
-    if format.lower() == "xlsx":
+    fmt = format.lower()
+    if fmt == "xlsx":
         content = export_dishes_to_xlsx(dishes)
         media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         filename = f"piatti_{today_str}.xlsx"
+    elif fmt == "json":
+        content = export_dishes_to_json(dishes)
+        media_type = "application/json; charset=utf-8"
+        filename = f"piatti_{today_str}.json"
     else:
         content = export_dishes_to_csv(dishes)
         media_type = "text/csv; charset=utf-8"
@@ -206,10 +212,10 @@ def export_dishes(
 
 @router.get("/import-template")
 def download_import_template(
-    format: str = Query("xlsx", pattern="^(xlsx|csv)$", description="Template format (xlsx or csv)"),
+    format: str = Query("xlsx", pattern="^(xlsx|csv|json)$", description="Template format (xlsx, csv, or json)"),
     current_household: Household = Depends(get_current_household),
 ):
-    """Downloads an import template with sample rows and valid headers."""
+    """Downloads an import template with sample rows and valid English headers."""
     content, media_type, filename = generate_import_template(format)
     return Response(
         content=content,

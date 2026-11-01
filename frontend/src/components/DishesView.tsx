@@ -20,6 +20,7 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
+  FileCode,
   ChevronDown,
   CheckCircle2,
   AlertTriangle,
@@ -103,7 +104,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   const [importResult, setImportResult] = useState<DishImportResult | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
 
-  const handleExport = async (format: 'xlsx' | 'csv') => {
+  const handleExport = async (format: 'xlsx' | 'csv' | 'json') => {
     setIsExportDropdownOpen(false)
     setIsExporting(true)
     try {
@@ -119,7 +120,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
     }
   }
 
-  const handleDownloadTemplate = async (format: 'xlsx' | 'csv') => {
+  const handleDownloadTemplate = async (format: 'xlsx' | 'csv' | 'json') => {
     try {
       await api.downloadImportTemplate(format)
     } catch (err) {
@@ -129,7 +130,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
   const handleExecuteImport = async () => {
     if (!importFile) {
-      setImportError('Seleziona un file Excel (.xlsx) o CSV (.csv) da importare.')
+      setImportError('Seleziona un file Excel (.xlsx), CSV (.csv) o JSON (.json) da importare.')
       return
     }
     setImportError(null)
@@ -318,6 +319,13 @@ export const DishesView: React.FC<DishesViewProps> = ({
                     <FileText className="w-3.5 h-3.5 text-blue-600" />
                     <span>CSV (.csv)</span>
                   </button>
+                  <button
+                    onClick={() => handleExport('json')}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer"
+                  >
+                    <FileCode className="w-3.5 h-3.5 text-amber-600" />
+                    <span>JSON (.json)</span>
+                  </button>
                 </div>
               </>
             )}
@@ -332,7 +340,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
               setImportError(null)
             }}
             className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 shadow-2xs transition-colors cursor-pointer"
-            title="Importa piatti da file Excel o CSV"
+            title="Importa piatti da file Excel, CSV o JSON"
           >
             <Upload className="w-3.5 h-3.5 text-slate-600" />
             <span>Importa</span>
@@ -949,7 +957,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                     Importa Ricette & Piatti
                   </h3>
                   <p className="text-[11px] text-slate-500">
-                    Carica file Excel (.xlsx) o CSV (.csv) per arricchire il catalogo
+                    Carica file Excel (.xlsx), CSV (.csv) o JSON (.json) con campi in inglese
                   </p>
                 </div>
               </div>
@@ -1012,7 +1020,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   {/* File Upload Dropzone */}
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1 text-xs">
-                      Seleziona File (.xlsx o .csv) <span className="text-rose-500">*</span>
+                      Seleziona File (.xlsx, .csv o .json) <span className="text-rose-500">*</span>
                     </label>
                     <div className="border-2 border-dashed border-slate-200 hover:border-brand-400 rounded-lg p-4 text-center bg-slate-50/60 transition-colors">
                       {importFile ? (
@@ -1020,6 +1028,8 @@ export const DishesView: React.FC<DishesViewProps> = ({
                           <div className="flex items-center space-x-2 text-left overflow-hidden">
                             {importFile.name.endsWith('.xlsx') ? (
                               <FileSpreadsheet className="w-6 h-6 text-emerald-600 shrink-0" />
+                            ) : importFile.name.endsWith('.json') ? (
+                              <FileCode className="w-6 h-6 text-amber-600 shrink-0" />
                             ) : (
                               <FileText className="w-6 h-6 text-blue-600 shrink-0" />
                             )}
@@ -1046,10 +1056,10 @@ export const DishesView: React.FC<DishesViewProps> = ({
                             Scegli un file
                           </span>{' '}
                           <span className="text-xs text-slate-500">oppure trascinalo qui</span>
-                          <p className="text-[10px] text-slate-400 mt-1">Formati supportati: Excel (.xlsx) e CSV (.csv) fino a 5 MB</p>
+                          <p className="text-[10px] text-slate-400 mt-1">Formati supportati: Excel (.xlsx), CSV (.csv) e JSON (.json) fino a 5 MB</p>
                           <input
                             type="file"
-                            accept=".xlsx,.csv"
+                            accept=".xlsx,.csv,.json"
                             onChange={(e) => {
                               if (e.target.files && e.target.files[0]) {
                                 setImportFile(e.target.files[0])
@@ -1104,31 +1114,41 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
                   {/* Template & Instructions Box */}
                   <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-200/80 space-y-1.5 text-[11px] text-slate-600">
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-slate-800">Modelli precompilati di esempio:</span>
-                      <div className="flex items-center space-x-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+                      <span className="font-semibold text-slate-800">Modelli con intestazioni in inglese:</span>
+                      <div className="flex items-center space-x-1.5 flex-wrap">
                         <button
                           type="button"
                           onClick={() => handleDownloadTemplate('xlsx')}
-                          className="text-emerald-700 hover:text-emerald-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer"
+                          className="text-emerald-700 hover:text-emerald-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer text-[11px]"
                         >
                           <FileSpreadsheet className="w-3 h-3" />
-                          <span>Modello Excel</span>
+                          <span>Excel</span>
                         </button>
                         <span className="text-slate-300">|</span>
                         <button
                           type="button"
                           onClick={() => handleDownloadTemplate('csv')}
-                          className="text-blue-700 hover:text-blue-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer"
+                          className="text-blue-700 hover:text-blue-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer text-[11px]"
                         >
                           <FileText className="w-3 h-3" />
-                          <span>Modello CSV</span>
+                          <span>CSV</span>
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadTemplate('json')}
+                          className="text-amber-700 hover:text-amber-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer text-[11px]"
+                        >
+                          <FileCode className="w-3 h-3" />
+                          <span>JSON</span>
                         </button>
                       </div>
                     </div>
                     <p className="text-[10px] text-slate-500 leading-relaxed">
-                      • <strong>Campi obbligatori:</strong> Titolo/Nome, Stato (es. <em>OK</em>), Portate (es. <em>["Secondo", "Piatto unico"]</em> oppure <em>Primo</em>).<br />
-                      • <strong>Campi facoltativi:</strong> Descrizione, Note, Tipo Fonte, Riferimento, URL Fonte.
+                      • <strong>Campi obbligatori:</strong> <code>title</code>, <code>status</code> (es. <em>OK</em>), <code>courses</code> (es. <em>["Secondo", "Piatto unico"]</em> o <em>Primo</em>).<br />
+                      • <strong>Campi facoltativi:</strong> <code>description</code>, <code>notes</code>, <code>source_type</code>, <code>source_reference</code>, <code>source_url</code>.<br />
+                      • Le intestazioni e i nomi delle chiavi sono rigorosamente in <strong>inglese</strong>.
                     </p>
                   </div>
 
