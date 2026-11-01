@@ -41,7 +41,7 @@
 | `S6` | Meal Calendar & Smart Preference/Attendance Compatibility Alerts | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S7` | Mobile Dashboard & Kitchen Overview (React SPA) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S8` | Usability & Planning Extensions (Alternative Dishes, Meal Notes, Multi-Views, Quick Create, Meal Ratings) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S9` | Dish Catalog Import & Export (Excel & CSV) ([#2](https://github.com/mrclttnz/menu-family-planner/issues/2)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S9` | Dish Catalog Import & Export (Excel & CSV) ([#2](https://github.com/mrclttnz/menu-family-planner/issues/2)) | `software-craftsman` | `VERIFICATION` | `PASS` | `PENDING_USER` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
