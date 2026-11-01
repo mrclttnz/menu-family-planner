@@ -1,5 +1,7 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MealSlot, Member, Dish } from '../types'
+import { getLocalizedMealTypeName } from '../taxonomyUtils'
 import {
   AlertTriangle,
   Star,
@@ -39,10 +41,12 @@ export const TodayView: React.FC<TodayViewProps> = ({
   onSetSlotDishRating,
   onDeleteSlotDishRating,
 }) => {
+  const { t, i18n } = useTranslation()
   const [activeNoteDishId, setActiveNoteDishId] = useState<{ slotId: number; dishId: number } | null>(null)
   const [noteText, setNoteText] = useState('')
 
-  const todayFormatted = new Intl.DateTimeFormat('it-IT', {
+  const currentLocale = i18n.language && i18n.language.startsWith('en') ? 'en-US' : 'it-IT'
+  const todayFormatted = new Intl.DateTimeFormat(currentLocale, {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -62,21 +66,21 @@ export const TodayView: React.FC<TodayViewProps> = ({
         <div>
           <div className="flex items-center space-x-1 text-emerald-100 text-[10px] font-semibold uppercase tracking-wider">
             <Clock className="w-3 h-3" />
-            <span>Oggi a Tavola</span>
+            <span>{t('today.banner_title')}</span>
           </div>
           <h1 className="text-sm sm:text-base font-bold capitalize leading-tight">
             {todayFormatted}
           </h1>
         </div>
         <p className="text-[11px] text-emerald-100">
-          Tutti presenti di default. Tocca un nome per segnare l'assenza.
+          {t('today.banner_subtitle')}
         </p>
       </div>
 
       {/* Meals Grid */}
       {slots.length === 0 ? (
         <div className="bg-white rounded-lg p-5 text-center border border-slate-200">
-          <p className="text-slate-500 text-xs">Nessun pasto pianificato per oggi.</p>
+          <p className="text-slate-500 text-xs">{t('today.no_meals')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
@@ -91,11 +95,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 <div className="px-3 py-1.5 border-b border-slate-100 bg-slate-50/70 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <span className="px-2 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-brand-100 text-brand-800">
-                      {slot.meal_type.name}
+                      {getLocalizedMealTypeName(slot.meal_type, t)}
                     </span>
                     <span className="flex items-center text-[11px] font-medium text-slate-500">
                       <Users className="w-3 h-3 mr-1" />
-                      {slot.attendee_count} a tavola
+                      {slot.attendee_count} {t('today.at_table')}
                     </span>
                   </div>
 
@@ -104,14 +108,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
                     className="flex items-center space-x-1 text-[11px] font-semibold text-brand-600 hover:text-brand-700 bg-white border border-brand-200 hover:border-brand-300 px-2 py-0.5 rounded shadow-2xs transition-colors"
                   >
                     <Plus className="w-3 h-3" />
-                    <span>Aggiungi piatto</span>
+                    <span>{t('today.add_dish')}</span>
                   </button>
                 </div>
 
                 {/* Diners Attendance Pills (Exception-based) */}
                 <div className="px-3 py-1.5 bg-slate-50/40 border-b border-slate-100 flex items-center space-x-2 flex-wrap gap-y-1">
                   <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex-shrink-0">
-                    Presenze:
+                    {t('today.attendance')}
                   </span>
                   <div className="flex flex-wrap gap-1">
                     {members.map((m) => {
@@ -144,7 +148,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                 <div className="p-2.5 space-y-2 flex-1">
                   {slot.dishes.length === 0 ? (
                     <div className="text-center py-4 text-slate-400 text-xs">
-                      Nessun piatto ancora scelto per questo pasto.
+                      {t('today.no_dishes')}
                     </div>
                   ) : (
                     slot.dishes.map((dishAssign) => {
@@ -172,7 +176,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                 {/* P002: Badge for alternative dish */}
                                 {hasAssignedMembers && (
                                   <span className="text-[9px] font-medium bg-amber-50 text-amber-800 border border-amber-200 px-1.5 py-0.2 rounded">
-                                    Alternativa per:{' '}
+                                    {t('today.alternative_for')}{' '}
                                     {assignedMembersList.map((m) => m.name).join(', ')}
                                   </span>
                                 )}
@@ -186,7 +190,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                             <button
                               onClick={() => onRemoveDish(slot.id, dishAssign.dish_id)}
                               className="text-slate-400 hover:text-rose-500 text-xs px-1 rounded transition-colors"
-                              title="Rimuovi dal pasto"
+                              title={t('today.remove_dish_title')}
                             >
                               ✕
                             </button>
@@ -210,7 +214,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           {comp.status === 'ok' && !comp.is_conflict && (
                             <div className="flex items-center space-x-1 text-emerald-700 text-[10px]">
                               <CheckCircle className="w-2.5 h-2.5" />
-                              <span>Tutto ok per i commensali a cui è destinato</span>
+                              <span>{t('today.all_ok_compatibility')}</span>
                             </div>
                           )}
 
@@ -218,10 +222,10 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           <div className="pt-1.5 border-t border-slate-100 space-y-1">
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block">
-                                Valutazione pasto:
+                                {t('today.meal_rating')}
                               </span>
                               <span className="text-[9px] text-slate-400">
-                                Facoltativa (tocca per votare o deselezionare): 👍 | 😐 | 👎
+                                {t('today.meal_rating_sub')}
                               </span>
                             </div>
                             <div className="flex flex-wrap gap-1.5">
@@ -234,7 +238,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
                                 const handleToggleRating = (targetRating: 'thumbs_up' | 'neutral' | 'thumbs_down') => {
                                   if (currentMealRating === targetRating) {
-                                    // J003: Click again to toggle off / deselect
                                     onDeleteSlotDishRating(slot.id, dishAssign.dish_id, m.id)
                                   } else {
                                     onSetSlotDishRating(slot.id, dishAssign.dish_id, m.id, targetRating)
@@ -260,13 +263,13 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                     />
                                     <span className="font-medium text-slate-800 text-[10px]">{m.name}:</span>
 
-                                    {/* 3 State Toggle Buttons (J003: solo icone, no scritte) */}
+                                    {/* 3 State Toggle Buttons */}
                                     <div className="flex items-center rounded border border-slate-200 overflow-hidden bg-white">
                                       {/* Piace (👍) */}
                                       <button
                                         type="button"
                                         onClick={() => handleToggleRating('thumbs_up')}
-                                        title={`${m.name}: Piaciuto in questo pasto (tocca di nuovo per annullare)`}
+                                        title={t('today.rating_liked_title', { name: m.name })}
                                         className={`px-1.5 py-0.5 flex items-center transition-all text-[10px] ${
                                           isThumbsUp
                                             ? 'bg-emerald-600 text-white font-bold ring-1 ring-emerald-600'
@@ -280,7 +283,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                       <button
                                         type="button"
                                         onClick={() => handleToggleRating('neutral')}
-                                        title={`${m.name}: Normale / Ok (tocca di nuovo per annullare)`}
+                                        title={t('today.rating_neutral_title', { name: m.name })}
                                         className={`px-1.5 py-0.5 flex items-center transition-all text-[10px] ${
                                           isNeutral
                                             ? 'bg-slate-600 text-white font-bold ring-1 ring-slate-600'
@@ -290,11 +293,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                         <Meh className="w-3 h-3" />
                                       </button>
 
-                                      {/* Non piace (👎) - J003: Solo icona pollice verso giù, nessuna scritta */}
+                                      {/* Non piace (👎) */}
                                       <button
                                         type="button"
                                         onClick={() => handleToggleRating('thumbs_down')}
-                                        title={`${m.name}: Non piaciuto in questo pasto (tocca di nuovo per annullare)`}
+                                        title={t('today.rating_disliked_title', { name: m.name })}
                                         className={`px-1.5 py-0.5 flex items-center transition-all text-[10px] ${
                                           isThumbsDown
                                             ? 'bg-rose-600 text-white font-bold ring-1 ring-rose-600'
@@ -315,7 +318,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                             <div className="flex items-center justify-between text-[10px] text-slate-400">
                               <span className="flex items-center space-x-1">
                                 <MessageSquare className="w-2.5 h-2.5" />
-                                <span>Note ({dishAssign.notes_list?.length || 0}):</span>
+                                <span>{t('today.notes_count', { count: dishAssign.notes_list?.length || 0 })}</span>
                               </span>
                               {!isAddingNote && (
                                 <button
@@ -326,7 +329,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                   }}
                                   className="text-brand-600 hover:text-brand-700 font-medium"
                                 >
-                                  + Aggiungi nota
+                                  {t('today.add_note')}
                                 </button>
                               )}
                             </div>
@@ -343,7 +346,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                       type="button"
                                       onClick={() => onDeleteSlotDishNote(slot.id, dishAssign.dish_id, n.id)}
                                       className="text-slate-400 hover:text-rose-500 ml-1 p-0.5"
-                                      title="Elimina nota"
+                                      title={t('today.delete_note_title')}
                                     >
                                       <X className="w-2.5 h-2.5" />
                                     </button>
@@ -360,7 +363,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                   autoFocus
                                   value={noteText}
                                   onChange={(e) => setNoteText(e.target.value)}
-                                  placeholder="Scrivi nota o osservazione..."
+                                  placeholder={t('today.note_placeholder')}
                                   className="flex-1 px-2 py-0.5 text-[11px] rounded border border-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
@@ -374,7 +377,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                   onClick={() => handleSaveNote(slot.id, dishAssign.dish_id)}
                                   className="px-2 py-0.5 bg-brand-600 text-white font-medium text-[11px] rounded hover:bg-brand-700"
                                 >
-                                  Salva
+                                  {t('today.save')}
                                 </button>
                                 <button
                                   type="button"

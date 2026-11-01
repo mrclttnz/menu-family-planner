@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MealSlot, Member, MealType, Dish, CourseType, DishStatus } from '../types'
 import { formatDate, parseDate } from '../dateUtils'
+import { getLocalizedMealTypeName, getLocalizedStatusName, getLocalizedCourseName } from '../taxonomyUtils'
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -83,6 +85,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onSetSlotDishRating,
   onDeleteSlotDishRating,
 }) => {
+  const { t, i18n } = useTranslation()
+  const currentLocale = i18n.language && i18n.language.startsWith('en') ? 'en-US' : 'it-IT'
+
   // P004: Switch 3 modalità (Compatta Orizzontale, Compatta Verticale, Dettagliata)
   const [viewMode, setViewMode] = useState<CalendarViewMode>(() => {
     const saved = localStorage.getItem('menu_design_view_mode')
@@ -243,7 +248,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }
 
   const handleDeleteMealType = async (mealTypeId: number, mealTypeName: string) => {
-    if (window.confirm(`Vuoi rimuovere il pasto "${mealTypeName}" da tutta la settimana visualizzata?`)) {
+    if (window.confirm(t('calendar.remove_meal_type_confirm', { name: mealTypeName }))) {
       if (onDeleteMealTypeSlots) {
         await onDeleteMealTypeSlots(mealTypeId)
       }
@@ -323,10 +328,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title="Compatta Orizzontale: pasti in riga, giorni in colonna"
+              title={t('calendar.view_horizontal')}
             >
               <LayoutGrid className="w-3 h-3" />
-              <span>Orizzontale</span>
+              <span>{t('calendar.view_horizontal')}</span>
             </button>
             <button
               onClick={() => handleToggleViewMode('compact_v')}
@@ -335,10 +340,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title="Compatta Verticale: giorni in riga, pasti in colonna"
+              title={t('calendar.view_vertical')}
             >
               <Rows3 className="w-3 h-3" />
-              <span>Verticale</span>
+              <span>{t('calendar.view_vertical')}</span>
             </button>
             <button
               onClick={() => handleToggleViewMode('detailed')}
@@ -347,30 +352,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
               }`}
-              title="Vista Dettagliata: presenze, compatibilità estesa e note"
+              title={t('calendar.view_detailed')}
             >
               <List className="w-3 h-3" />
-              <span>Dettagliata</span>
+              <span>{t('calendar.view_detailed')}</span>
             </button>
           </div>
 
           {/* P005: Scelta giorno inizio settimana */}
           <div className="flex items-center space-x-1 text-[11px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
-            <span className="text-slate-400 font-medium">Inizio:</span>
+            <span className="text-slate-400 font-medium">{t('calendar.start_day_from')}</span>
             <select
               value={weekStartDay}
               onChange={(e) => onChangeWeekStartDay(Number(e.target.value))}
               className="bg-transparent text-slate-700 font-medium focus:outline-hidden cursor-pointer text-[11px]"
-              title="Giorno di inizio settimana predefinito"
+              title={t('calendar.start_day_title')}
             >
-              <option value={6}>Sabato</option>
-              <option value={0}>Domenica</option>
-              <option value={1}>Lunedì</option>
-              <option value={2}>Martedì</option>
-              <option value={3}>Mercoledì</option>
-              <option value={4}>Giovedì</option>
-              <option value={5}>Venerdì</option>
-              <option value={-1}>Oggi</option>
+              <option value={6}>{t('calendar.day_saturday')}</option>
+              <option value={0}>{t('calendar.day_sunday')}</option>
+              <option value={1}>{t('calendar.day_monday')}</option>
+              <option value={2}>{t('calendar.day_tuesday')}</option>
+              <option value={3}>{t('calendar.day_wednesday')}</option>
+              <option value={4}>{t('calendar.day_thursday')}</option>
+              <option value={5}>{t('calendar.day_friday')}</option>
+              <option value={-1}>{t('calendar.day_today_rolling')}</option>
             </select>
           </div>
 
@@ -379,7 +384,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <button
               onClick={() => handleShiftDays('prev')}
               className="p-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-              title="Settimana precedente"
+              title={t('calendar.prev_week')}
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
@@ -391,9 +396,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   ? 'bg-slate-100 border-slate-200 text-slate-600'
                   : 'bg-brand-50 border-brand-200 text-brand-700 hover:bg-brand-100 font-semibold'
               }`}
-              title="Torna alla settimana corrente contenente oggi"
+              title={t('calendar.btn_current_week')}
             >
-              Oggi
+              {t('calendar.today_badge')}
             </button>
 
             <span className="text-[11px] font-semibold px-2 py-0.5 bg-slate-100 rounded text-slate-700">
@@ -403,7 +408,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <button
               onClick={() => handleShiftDays('next')}
               className="p-1 rounded border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors"
-              title="Settimana successiva"
+              title={t('calendar.next_week')}
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>
@@ -419,14 +424,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="w-20 sm:w-24 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
-                    Pasto
+                    {t('calendar.meal_column')}
                   </th>
                   {weekDates.map((dateStr) => {
                     const dateObj = parseDate(dateStr)
                     const isToday = currentTodayStr === dateStr
-                    const dayShort = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(dateObj)
+                    const dayShort = new Intl.DateTimeFormat(currentLocale, { weekday: 'short' }).format(dateObj)
                     const dayNum = dateObj.getDate()
-                    const monthShort = new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(dateObj)
+                    const monthShort = new Intl.DateTimeFormat(currentLocale, { month: 'short' }).format(dateObj)
                     return (
                       <th
                         key={dateStr}
@@ -450,13 +455,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     {/* Meal Type Row Header (P009) */}
                     <td className="px-2 py-2 font-bold text-[11px] text-slate-700 uppercase bg-slate-50/60 border-r border-slate-200 align-top">
                       <div className="flex items-center justify-between group">
-                        <span className="truncate flex-1 text-center">{mt.name}</span>
+                        <span className="truncate flex-1 text-center">{getLocalizedMealTypeName(mt, t)}</span>
                         {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteMealType(mt.id, mt.name)}
+                            onClick={() => handleDeleteMealType(mt.id, getLocalizedMealTypeName(mt, t))}
                             className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors ml-1"
-                            title={`Elimina ${mt.name} dalla settimana (nessun piatto assegnato)`}
+                            title={t('calendar.remove_meal_type_title', { name: getLocalizedMealTypeName(mt, t) })}
                           >
                             <X className="w-3 h-3" />
                           </button>
@@ -647,13 +652,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       className="px-2 py-1 text-center font-bold text-slate-700 uppercase text-[11px] border-r border-slate-200 last:border-r-0"
                     >
                       <div className="flex items-center justify-center space-x-1">
-                        <span className="truncate">{mt.name}</span>
+                        <span className="truncate">{getLocalizedMealTypeName(mt, t)}</span>
                         {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
                           <button
                             type="button"
-                            onClick={() => handleDeleteMealType(mt.id, mt.name)}
+                            onClick={() => handleDeleteMealType(mt.id, getLocalizedMealTypeName(mt, t))}
                             className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors"
-                            title={`Elimina ${mt.name} dalla settimana (nessun piatto assegnato)`}
+                            title={t('calendar.remove_meal_type_title', { name: getLocalizedMealTypeName(mt, t) })}
                           >
                             <X className="w-2.5 h-2.5" />
                           </button>
@@ -667,9 +672,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {weekDates.map((dateStr) => {
                   const dateObj = parseDate(dateStr)
                   const isToday = currentTodayStr === dateStr
-                  const dayShort = new Intl.DateTimeFormat('it-IT', { weekday: 'short' }).format(dateObj)
+                  const dayShort = new Intl.DateTimeFormat(currentLocale, { weekday: 'short' }).format(dateObj)
                   const dayNum = dateObj.getDate()
-                  const monthShort = new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(dateObj)
+                  const monthShort = new Intl.DateTimeFormat(currentLocale, { month: 'short' }).format(dateObj)
 
                   return (
                     <tr
@@ -689,13 +694,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           </span>
                           {isToday && (
                             <span className="mt-0.5 bg-brand-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded uppercase">
-                              Oggi
+                              {t('calendar.today_badge')}
                             </span>
                           )}
                           <button
                             onClick={() => setSelectedMealTypeForDate(dateStr)}
                             className="mt-1.5 flex items-center space-x-0.5 text-[9px] text-slate-500 hover:text-brand-600 border border-slate-200 bg-white hover:bg-slate-50 px-1.5 py-0.5 rounded transition-colors"
-                            title={`Aggiungi altro pasto per ${dayShort} ${dayNum}`}
+                            title={`+ Pasto (${dayShort} ${dayNum})`}
                           >
                             <Plus className="w-2.5 h-2.5" />
                             <span>Pasto</span>
@@ -874,7 +879,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           const daySlots = slotsByDate[dateStr]
           const dateObj = new Date(dateStr)
           const isToday = new Date().toISOString().split('T')[0] === dateStr
-          const dayTitle = new Intl.DateTimeFormat('it-IT', {
+          const dayTitle = new Intl.DateTimeFormat(currentLocale, {
             weekday: 'long',
             day: 'numeric',
             month: 'short',
@@ -923,16 +928,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1.5">
                         <span className="font-bold text-[10px] uppercase px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700">
-                          {slot.meal_type.name}
+                          {getLocalizedMealTypeName(slot.meal_type, t)}
                         </span>
                         <span className="text-[10px] text-slate-400 font-medium">
-                          {slot.attendee_count} a tavola
+                          {slot.attendee_count} {t('today.at_table')}
                         </span>
                       </div>
 
                       <button
                         onClick={() => onDeleteSlot(slot.id)}
-                        title="Elimina questo pasto dal piano"
+                        title={t('common.delete')}
                         className="text-slate-300 hover:text-rose-500 p-0.5 rounded transition-colors"
                       >
                         <Trash2 className="w-3 h-3" />
@@ -1253,9 +1258,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {selectedMealTypeForDate && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-3 sm:p-4">
           <div className="bg-white rounded-lg p-4 max-w-sm w-full space-y-3 shadow-xl">
-            <h3 className="font-bold text-sm text-slate-900">Aggiungi Tipo di Pasto</h3>
+            <h3 className="font-bold text-sm text-slate-900">{t('calendar.add_meal_type')}</h3>
             <p className="text-xs text-slate-500">
-              Scegli quale pasto aggiungere al giorno {selectedMealTypeForDate} (es. Brunch, Merenda, Colazione):
+              {selectedMealTypeForDate}:
             </p>
 
             <select
@@ -1265,7 +1270,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             >
               {mealTypes.map((mt) => (
                 <option key={mt.id} value={mt.id}>
-                  {mt.name}
+                  {getLocalizedMealTypeName(mt, t)}
                 </option>
               ))}
             </select>
@@ -1275,7 +1280,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 onClick={() => setSelectedMealTypeForDate(null)}
                 className="px-3 py-1 rounded text-xs text-slate-600 hover:bg-slate-100"
               >
-                Annulla
+                {t('common.cancel')}
               </button>
               <button
                 onClick={() => {
@@ -1284,7 +1289,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 }}
                 className="px-3 py-1 rounded text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 shadow-2xs"
               >
-                Conferma
+                {t('common.confirm')}
               </button>
             </div>
           </div>
@@ -1298,7 +1303,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
               <h3 className="font-bold text-sm text-slate-900 flex items-center space-x-1.5">
                 <Utensils className="w-3.5 h-3.5 text-brand-600" />
-                <span>{isCreatingDish ? 'Nuovo Piatto per il Menù' : 'Scegli Piatto per il Menù'}</span>
+                <span>{isCreatingDish ? t('calendar.new_dish_btn') : t('calendar.select_dish_placeholder')}</span>
               </h3>
               <div className="flex items-center space-x-1">
                 {!isCreatingDish && onCreateDish && (
@@ -1308,7 +1313,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     className="flex items-center space-x-1 text-[11px] font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2 py-0.5 rounded transition-colors"
                   >
                     <Plus className="w-3 h-3" />
-                    <span>Nuovo Piatto</span>
+                    <span>{t('calendar.new_dish_btn')}</span>
                   </button>
                 )}
                 <button
@@ -1325,7 +1330,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-semibold text-slate-700 flex items-center space-x-1 text-[11px]">
                   <Users className="w-3 h-3 text-brand-600" />
-                  <span>Destinatari del piatto:</span>
+                  <span>{t('calendar.alternative_dish')}</span>
                 </span>
                 <button
                   type="button"
@@ -1339,14 +1344,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   }}
                   className="text-[10px] font-medium text-brand-600 hover:text-brand-700 underline"
                 >
-                  {assignForSpecificMembers ? 'Per tutti i presenti' : 'Alternativa per alcuni'}
+                  {assignForSpecificMembers ? t('common.all') : t('calendar.alternative_dish_help')}
                 </button>
               </div>
 
               {assignForSpecificMembers ? (
                 <div className="space-y-1">
                   <span className="text-[10px] text-slate-500 block">
-                    Spunta i commensali a cui è destinato questo piatto:
+                    {t('calendar.select_diners')}
                   </span>
                   <div className="flex flex-wrap gap-1 pt-0.5">
                     {members.map((m) => {
@@ -1374,7 +1379,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
               ) : (
                 <p className="text-[10px] text-slate-500 italic">
-                  Per tutti i presenti a tavola (default).
+                  {t('calendar.alternative_dish_help')}
                 </p>
               )}
             </div>
@@ -1390,7 +1395,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Nome Piatto <span className="text-rose-500">*</span>
+                    {t('dishes.dish_title')} <span className="text-rose-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -1398,14 +1403,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     autoFocus
                     value={newDishTitle}
                     onChange={(e) => setNewDishTitle(e.target.value)}
-                    placeholder="Es. Pasta al pesto, Risotto ai funghi..."
+                    placeholder={t('dishes.dish_title_placeholder')}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden"
                   />
                 </div>
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Portate / Tipo di Piatto
+                    {t('dishes.dish_courses')}
                   </label>
                   <div className="flex flex-wrap gap-1">
                     {courses.map((c) => {
@@ -1421,7 +1426,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
-                          {c.name}
+                          {getLocalizedCourseName(c.name, t)}
                         </button>
                       )
                     })}
@@ -1430,7 +1435,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
                 <div>
                   <label className="block text-[11px] font-semibold text-slate-700 mb-1">
-                    Note / Descrizione (opzionale)
+                    {t('dishes.dish_description')}
                   </label>
                   <textarea
                     rows={2}
@@ -1450,7 +1455,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     }}
                     className="px-3 py-1 rounded text-xs text-slate-600 hover:bg-slate-100"
                   >
-                    Annulla
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="submit"
@@ -1458,7 +1463,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     className="px-3 py-1 rounded text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 transition-colors shadow-2xs flex items-center space-x-1"
                   >
                     {isSavingDish && <span className="animate-spin mr-1">⏳</span>}
-                    <span>Salva e Assegna al Menù</span>
+                    <span>{t('calendar.assign')}</span>
                   </button>
                 </div>
               </form>
@@ -1473,7 +1478,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       type="text"
                       value={dishSearch}
                       onChange={(e) => setDishSearch(e.target.value)}
-                      placeholder="Cerca piatto per nome o ingrediente..."
+                      placeholder={t('calendar.select_dish_placeholder')}
                       className="w-full pl-8 pr-7 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden"
                     />
                     {dishSearch && (
@@ -1499,7 +1504,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                         }`}
                       >
-                        Tutti ({dishes.length})
+                        {t('common.all')} ({dishes.length})
                       </button>
                       {courses.map((c) => {
                         const count = dishes.filter((d) => d.courses.some((dc) => dc.id === c.id)).length
@@ -1515,7 +1520,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                             }`}
                           >
-                            {c.name} ({count})
+                            {getLocalizedCourseName(c.name, t)} ({count})
                           </button>
                         )
                       })}
@@ -1565,7 +1570,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 key={c.id}
                                 className="text-[9px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-medium"
                               >
-                                {c.name}
+                                {getLocalizedCourseName(c.name, t)}
                               </span>
                             ))}
                           </div>
@@ -1577,7 +1582,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             color: dish.status.color,
                           }}
                         >
-                          {dish.status.name}
+                          {getLocalizedStatusName(dish.status, t)}
                         </span>
                       </div>
                     ))

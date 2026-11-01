@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api, setToken } from '../api'
 import { Household } from '../types'
 import { Utensils, AlertCircle } from 'lucide-react'
@@ -8,6 +9,7 @@ interface AuthModalProps {
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
+  const { t } = useTranslation()
   const [isRegister, setIsRegister] = useState(false)
   const [name, setName] = useState('Famiglia Rossi')
   const [email, setEmail] = useState('famiglia.rossi@example.com')
@@ -34,7 +36,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
       if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError('Si è verificato un errore durante l’accesso.')
+        setError(t('auth.error_default'))
       }
     } finally {
       setLoading(false)
@@ -48,11 +50,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 items-center justify-center text-white shadow-md mb-3">
             <Utensils className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-bold text-slate-900">Benvenuto su Menu Design</h2>
+          <h2 className="text-2xl font-bold text-slate-900">{t('auth.welcome_title')}</h2>
           <p className="text-sm text-slate-500 mt-1">
             {isRegister
-              ? 'Crea lo spazio per la tua famiglia'
-              : 'Accedi allo spazio del tuo nucleo familiare'}
+              ? t('auth.register_subtitle')
+              : t('auth.login_subtitle')}
           </p>
         </div>
 
@@ -67,14 +69,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
           {isRegister && (
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Nome Famiglia
+                {t('auth.family_name')}
               </label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="es. Famiglia Rossi"
+                placeholder={t('auth.family_name_placeholder')}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
               />
             </div>
@@ -82,21 +84,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Email Nucleo Familiare
+              {t('auth.email')}
             </label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="famiglia@example.com"
+              placeholder={t('auth.email_placeholder')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
             />
           </div>
 
           <div>
             <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-              Password
+              {t('auth.password')}
             </label>
             <input
               type="password"
@@ -104,7 +106,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
               minLength={8}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Minimo 8 caratteri"
+              placeholder={t('auth.password_placeholder')}
               className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-sm"
             />
           </div>
@@ -114,14 +116,14 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
             disabled={loading}
             className="w-full py-3 px-4 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-medium rounded-xl shadow-sm transition-all text-sm mt-2"
           >
-            {loading ? 'Elaborazione in corso...' : isRegister ? 'Crea Spazio Famiglia' : 'Accedi'}
+            {loading ? t('auth.btn_processing') : isRegister ? t('auth.btn_register') : t('auth.btn_login')}
           </button>
         </form>
 
         <div className="mt-6 text-center text-sm text-slate-600">
           {isRegister ? (
             <p>
-              Hai già un account?{' '}
+              {t('auth.already_account')}{' '}
               <button
                 type="button"
                 onClick={() => {
@@ -130,12 +132,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 }}
                 className="text-brand-600 font-semibold hover:underline"
               >
-                Accedi
+                {t('auth.link_login')}
               </button>
             </p>
           ) : (
             <p>
-              Non hai ancora uno spazio famiglia?{' '}
+              {t('auth.no_account')}{' '}
               <button
                 type="button"
                 onClick={() => {
@@ -144,7 +146,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
                 }}
                 className="text-brand-600 font-semibold hover:underline"
               >
-                Registrati
+                {t('auth.link_register')}
               </button>
             </p>
           )}

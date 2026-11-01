@@ -43,3 +43,27 @@ export function getWeekRangeContaining(
     endDate: formatDate(end),
   }
 }
+
+export function getLocale(lang?: string): string {
+  if (lang) {
+    return lang.startsWith('en') ? 'en-US' : 'it-IT'
+  }
+  const currentLang = localStorage.getItem('menu_design_language') || 'it'
+  return currentLang.startsWith('en') ? 'en-US' : 'it-IT'
+}
+
+export function formatDayTitle(date: Date, locale?: string): string {
+  return new Intl.DateTimeFormat(locale || getLocale(), {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  }).format(date)
+}
+
+export function formatDayShort(date: Date, locale?: string): string {
+  return new Intl.DateTimeFormat(locale || getLocale(), { weekday: 'short' }).format(date)
+}
+
+export function formatMonthShort(date: Date, locale?: string): string {
+  return new Intl.DateTimeFormat(locale || getLocale(), { month: 'short' }).format(date)
+}

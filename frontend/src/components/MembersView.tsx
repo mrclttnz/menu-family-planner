@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { Member } from '../types'
 import { Users, UserPlus, Trash2, Edit2, Baby, Smile, X } from 'lucide-react'
 
@@ -26,6 +27,8 @@ export const MembersView: React.FC<MembersViewProps> = ({
   onUpdateMember,
   onDeleteMember,
 }) => {
+  const { t } = useTranslation()
+
   // Add State
   const [name, setName] = useState('')
   const [avatarColor, setAvatarColor] = useState(COLOR_PALETTE[0])
@@ -57,7 +60,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
       if (err instanceof Error) {
         setError(err.message)
       } else {
-        setError('Errore durante la creazione del familiare.')
+        setError(t('common.error'))
       }
     } finally {
       setLoading(false)
@@ -88,10 +91,16 @@ export const MembersView: React.FC<MembersViewProps> = ({
       if (err instanceof Error) {
         setEditError(err.message)
       } else {
-        setEditError('Errore durante la modifica del familiare.')
+        setEditError(t('common.error'))
       }
     } finally {
       setEditLoading(false)
+    }
+  }
+
+  const handleDeleteClick = (id: number) => {
+    if (window.confirm(t('members.confirm_delete'))) {
+      onDeleteMember(id)
     }
   }
 
@@ -100,10 +109,10 @@ export const MembersView: React.FC<MembersViewProps> = ({
       <div>
         <h2 className="text-lg sm:text-xl font-bold text-slate-900 flex items-center space-x-2">
           <Users className="w-5 h-5 text-brand-600" />
-          <span>I Membri della Famiglia</span>
+          <span>{t('members.title')}</span>
         </h2>
         <p className="text-xs text-slate-500 mt-0.5">
-          Configura i commensali di casa per tracciare presenze e gusti a tavola
+          {t('members.subtitle')}
         </p>
       </div>
 
@@ -111,7 +120,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
       <div className="bg-white rounded-xl p-4 sm:p-5 border border-slate-200 shadow-2xs">
         <h3 className="font-semibold text-slate-800 text-xs sm:text-sm mb-3 flex items-center space-x-1.5">
           <UserPlus className="w-4 h-4 text-brand-600" />
-          <span>Aggiungi un Familiare</span>
+          <span>{t('members.card_add_title')}</span>
         </h3>
 
         {error && (
@@ -124,21 +133,21 @@ export const MembersView: React.FC<MembersViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Nome del Familiare *
+                {t('members.member_name')}
               </label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="es. Mamma, Papà, Leo, Giulia"
+                placeholder={t('members.member_name_placeholder')}
                 className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm"
               />
             </div>
 
             <div>
               <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Colore Badge
+                {t('members.badge_color')}
               </label>
               <div className="flex items-center space-x-2 py-1">
                 {COLOR_PALETTE.map((c) => (
@@ -166,7 +175,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
             />
             <label htmlFor="isChild" className="text-xs text-slate-700 select-none flex items-center space-x-1">
               <Baby className="w-3.5 h-3.5 text-slate-500" />
-              <span>È un bambino/ragazzo (utile per segnalare piatti per soli adulti)</span>
+              <span>{t('members.is_child_label')}</span>
             </label>
           </div>
 
@@ -176,7 +185,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
               disabled={loading}
               className="px-4 py-2 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-semibold text-xs sm:text-sm rounded-lg shadow-2xs transition-all"
             >
-              {loading ? 'Aggiunta...' : 'Aggiungi Familiare'}
+              {loading ? t('members.btn_adding') : t('members.btn_add_member')}
             </button>
           </div>
         </form>
@@ -185,12 +194,12 @@ export const MembersView: React.FC<MembersViewProps> = ({
       {/* Members List */}
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-2xs">
         <div className="px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-          Tutti i Commensali del Nucleo ({members.length})
+          {t('members.all_members_title', { count: members.length })}
         </div>
 
         {members.length === 0 ? (
           <div className="p-6 text-center text-slate-400 text-xs sm:text-sm">
-            Nessun membro ancora aggiunto.
+            {t('members.no_members')}
           </div>
         ) : (
           <div className="divide-y divide-slate-100">
@@ -209,12 +218,12 @@ export const MembersView: React.FC<MembersViewProps> = ({
                       {m.is_child ? (
                         <span className="flex items-center space-x-1 text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-medium border border-amber-200">
                           <Baby className="w-2.5 h-2.5" />
-                          <span>Bambino</span>
+                          <span>{t('members.child_badge')}</span>
                         </span>
                       ) : (
                         <span className="flex items-center space-x-1 text-[10px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded font-medium">
                           <Smile className="w-2.5 h-2.5 text-slate-400" />
-                          <span>Adulto</span>
+                          <span>{t('members.adult_badge')}</span>
                         </span>
                       )}
                     </div>
@@ -226,16 +235,16 @@ export const MembersView: React.FC<MembersViewProps> = ({
                   <button
                     onClick={() => handleStartEdit(m)}
                     className="text-slate-400 hover:text-brand-600 p-1.5 rounded-lg transition-colors"
-                    title="Modifica familiare"
+                    title={t('members.edit_member_tooltip')}
                   >
                     <Edit2 className="w-3.5 h-3.5" />
                   </button>
 
                   {/* Delete Member Button */}
                   <button
-                    onClick={() => onDeleteMember(m.id)}
+                    onClick={() => handleDeleteClick(m.id)}
                     className="text-slate-300 hover:text-rose-500 p-1.5 rounded-lg transition-colors"
-                    title="Rimuovi familiare"
+                    title={t('members.delete_member_tooltip')}
                   >
                     <Trash2 className="w-3.5 h-3.5" />
                   </button>
@@ -253,7 +262,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
             <div className="flex items-center justify-between pb-2 border-b border-slate-100">
               <h3 className="font-bold text-base text-slate-900 flex items-center space-x-2">
                 <Edit2 className="w-4 h-4 text-brand-600" />
-                <span>Modifica Familiare</span>
+                <span>{t('members.edit_title')}</span>
               </h3>
               <button
                 onClick={() => setEditingMember(null)}
@@ -272,7 +281,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
             <form onSubmit={handleUpdateSubmit} className="space-y-3">
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Nome del Familiare *
+                  {t('members.member_name')}
                 </label>
                 <input
                   type="text"
@@ -285,7 +294,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Colore Badge
+                  {t('members.badge_color')}
                 </label>
                 <div className="flex items-center space-x-2 py-1">
                   {COLOR_PALETTE.map((c) => (
@@ -312,7 +321,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
                 />
                 <label htmlFor="editIsChild" className="text-xs text-slate-700 select-none flex items-center space-x-1">
                   <Baby className="w-3.5 h-3.5 text-slate-500" />
-                  <span>È un bambino/ragazzo</span>
+                  <span>{t('members.is_child_short')}</span>
                 </label>
               </div>
 
@@ -322,14 +331,14 @@ export const MembersView: React.FC<MembersViewProps> = ({
                   onClick={() => setEditingMember(null)}
                   className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100"
                 >
-                  Annulla
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={editLoading}
                   className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 shadow-xs"
                 >
-                  {editLoading ? 'Salvataggio...' : 'Salva Modifiche'}
+                  {editLoading ? t('members.btn_saving') : t('members.btn_save_changes')}
                 </button>
               </div>
             </form>
