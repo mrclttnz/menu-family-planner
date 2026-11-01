@@ -427,6 +427,7 @@ export function App() {
             onUpdateDish={handleUpdateDish}
             onDeleteDish={handleDeleteDish}
             onSetPreference={handleSetPreference}
+            onRefreshDishes={loadDomainData}
           />
         )}
 

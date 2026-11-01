@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Dish, DishStatus, CourseType, SourceType, SlotDishNote } from '../types'
+import { Dish, DishStatus, CourseType, SourceType, SlotDishNote, DishImportResult } from '../types'
 import { api } from '../api'
 import {
   Plus,
@@ -16,6 +16,15 @@ import {
   Calendar,
   X,
   Loader2,
+  Upload,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  ChevronDown,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  FileCheck,
 } from 'lucide-react'
 
 interface DishesViewProps {
@@ -45,6 +54,7 @@ interface DishesViewProps {
   }) => Promise<void>
   onDeleteDish: (dishId: number) => Promise<void>
   onSetPreference: (dishId: number, memberId: number, rating: 'favorite' | 'neutral' | 'dislike') => Promise<void>
+  onRefreshDishes?: () => Promise<void> | void
 }
 
 export const DishesView: React.FC<DishesViewProps> = ({
@@ -56,6 +66,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   onUpdateDish,
   onDeleteDish,
   onSetPreference,
+  onRefreshDishes,
 }) => {
   const [search, setSearch] = useState('')
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<number | null>(null)
@@ -81,6 +92,60 @@ export const DishesView: React.FC<DishesViewProps> = ({
   const [sourceUrl, setSourceUrl] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // Export & Import State (Issue #2)
+  const [isExportDropdownOpen, setIsExportDropdownOpen] = useState(false)
+  const [isExporting, setIsExporting] = useState(false)
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importMode, setImportMode] = useState<'skip' | 'update'>('skip')
+  const [isImporting, setIsImporting] = useState(false)
+  const [importResult, setImportResult] = useState<DishImportResult | null>(null)
+  const [importError, setImportError] = useState<string | null>(null)
+
+  const handleExport = async (format: 'xlsx' | 'csv') => {
+    setIsExportDropdownOpen(false)
+    setIsExporting(true)
+    try {
+      await api.exportDishes(format, {
+        status_id: selectedStatusFilter || undefined,
+        course_id: selectedCourseFilter || undefined,
+        search: search.trim() || undefined,
+      })
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Errore durante l\'esportazione.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handleDownloadTemplate = async (format: 'xlsx' | 'csv') => {
+    try {
+      await api.downloadImportTemplate(format)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Errore durante il download del modello.')
+    }
+  }
+
+  const handleExecuteImport = async () => {
+    if (!importFile) {
+      setImportError('Seleziona un file Excel (.xlsx) o CSV (.csv) da importare.')
+      return
+    }
+    setImportError(null)
+    setIsImporting(true)
+    try {
+      const res = await api.importDishes(importFile, importMode)
+      setImportResult(res)
+      if (res.created > 0 || res.updated > 0) {
+        await onRefreshDishes?.()
+      }
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : 'Errore durante l\'importazione.')
+    } finally {
+      setIsImporting(false)
+    }
+  }
 
   // D001: Sort statuses so default status (OK) is always FIRST in lists and dropdowns
   const sortedStatuses = [...statuses].sort((a, b) => {
@@ -214,13 +279,74 @@ export const DishesView: React.FC<DishesViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={handleOpenCreate}
-          className="flex items-center justify-center space-x-1.5 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition-all self-start sm:self-auto"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          <span>Nuovo Piatto</span>
-        </button>
+        <div className="flex items-center space-x-1.5 self-start sm:self-auto">
+          {/* Export Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsExportDropdownOpen(!isExportDropdownOpen)}
+              disabled={isExporting}
+              className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 shadow-2xs transition-colors disabled:opacity-50 cursor-pointer"
+              title="Esporta i piatti correntemente filtrati"
+            >
+              {isExporting ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-slate-600" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-slate-600" />
+              )}
+              <span>Esporta ({filteredDishes.length})</span>
+              <ChevronDown className="w-3 h-3 text-slate-400" />
+            </button>
+
+            {isExportDropdownOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-20"
+                  onClick={() => setIsExportDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95">
+                  <button
+                    onClick={() => handleExport('xlsx')}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Excel (.xlsx)</span>
+                  </button>
+                  <button
+                    onClick={() => handleExport('csv')}
+                    className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer"
+                  >
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    <span>CSV (.csv)</span>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Import Button */}
+          <button
+            onClick={() => {
+              setIsImportModalOpen(true)
+              setImportResult(null)
+              setImportFile(null)
+              setImportError(null)
+            }}
+            className="flex items-center space-x-1 px-2.5 py-1.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold rounded-lg border border-slate-200 shadow-2xs transition-colors cursor-pointer"
+            title="Importa piatti da file Excel o CSV"
+          >
+            <Upload className="w-3.5 h-3.5 text-slate-600" />
+            <span>Importa</span>
+          </button>
+
+          {/* New Dish Button */}
+          <button
+            onClick={handleOpenCreate}
+            className="flex items-center justify-center space-x-1 px-3 py-1.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold rounded-lg shadow-2xs transition-all cursor-pointer"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Nuovo Piatto</span>
+          </button>
+        </div>
       </div>
 
       {/* Filters & Search (G002: compact) */}
@@ -803,6 +929,263 @@ export const DishesView: React.FC<DishesViewProps> = ({
               >
                 Chiudi
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import Modal (Issue #2) */}
+      {isImportModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-2xs z-50 flex items-center justify-center p-3 sm:p-4">
+          <div className="bg-white rounded-xl max-w-lg w-full p-4 sm:p-5 shadow-xl border border-slate-200 max-h-[92vh] flex flex-col space-y-3 overflow-hidden animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100">
+              <div className="flex items-center space-x-2">
+                <div className="p-1.5 bg-brand-50 rounded-lg text-brand-600">
+                  <Upload className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm sm:text-base">
+                    Importa Ricette & Piatti
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    Carica file Excel (.xlsx) o CSV (.csv) per arricchire il catalogo
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsImportModalOpen(false)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto space-y-3.5 pr-0.5 text-xs text-slate-700">
+              {importResult ? (
+                /* Import Summary Screen */
+                <div className="space-y-3">
+                  <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 space-y-2">
+                    <div className="flex items-center space-x-2 text-emerald-800 font-bold text-xs sm:text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <span>Elaborazione completata con successo!</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                      <div className="bg-white p-2 rounded border border-emerald-100">
+                        <span className="block text-emerald-700 font-bold text-base">{importResult.created}</span>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">Nuovi Piatti</span>
+                      </div>
+                      <div className="bg-white p-2 rounded border border-emerald-100">
+                        <span className="block text-blue-700 font-bold text-base">{importResult.updated}</span>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">Aggiornati</span>
+                      </div>
+                      <div className="bg-white p-2 rounded border border-emerald-100">
+                        <span className="block text-slate-600 font-bold text-base">{importResult.skipped}</span>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-wider">Ignorati</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {importResult.errors.length > 0 && (
+                    <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 space-y-1.5">
+                      <div className="flex items-center space-x-1.5 text-amber-800 font-bold text-xs">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>Segnalazioni su righe non importate ({importResult.errors.length}):</span>
+                      </div>
+                      <div className="max-h-40 overflow-y-auto space-y-1 pr-1 text-[11px]">
+                        {importResult.errors.map((err, i) => (
+                          <div key={i} className="p-1.5 bg-white rounded border border-amber-100 text-slate-700">
+                            <span className="font-semibold text-amber-800">Riga {err.row}:</span>{' '}
+                            {err.dish_title ? <span className="font-medium text-slate-800">[{err.dish_title}] </span> : ''}
+                            <span className="text-slate-600">{err.error}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Import Upload & Config Form */
+                <>
+                  {/* File Upload Dropzone */}
+                  <div>
+                    <label className="block font-semibold text-slate-700 mb-1 text-xs">
+                      Seleziona File (.xlsx o .csv) <span className="text-rose-500">*</span>
+                    </label>
+                    <div className="border-2 border-dashed border-slate-200 hover:border-brand-400 rounded-lg p-4 text-center bg-slate-50/60 transition-colors">
+                      {importFile ? (
+                        <div className="flex items-center justify-between bg-white p-2.5 rounded-lg border border-slate-200 shadow-2xs">
+                          <div className="flex items-center space-x-2 text-left overflow-hidden">
+                            {importFile.name.endsWith('.xlsx') ? (
+                              <FileSpreadsheet className="w-6 h-6 text-emerald-600 shrink-0" />
+                            ) : (
+                              <FileText className="w-6 h-6 text-blue-600 shrink-0" />
+                            )}
+                            <div className="truncate">
+                              <p className="font-semibold text-slate-800 text-xs truncate">{importFile.name}</p>
+                              <p className="text-[10px] text-slate-400">
+                                {(importFile.size / 1024).toFixed(1)} KB
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => setImportFile(null)}
+                            className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded cursor-pointer"
+                            title="Rimuovi file"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="cursor-pointer block">
+                          <Upload className="w-7 h-7 mx-auto text-slate-400 mb-1" />
+                          <span className="text-xs font-semibold text-brand-600 hover:underline">
+                            Scegli un file
+                          </span>{' '}
+                          <span className="text-xs text-slate-500">oppure trascinalo qui</span>
+                          <p className="text-[10px] text-slate-400 mt-1">Formati supportati: Excel (.xlsx) e CSV (.csv) fino a 5 MB</p>
+                          <input
+                            type="file"
+                            accept=".xlsx,.csv"
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setImportFile(e.target.files[0])
+                                setImportError(null)
+                              }
+                            }}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Duplicate Strategy */}
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 space-y-2">
+                    <span className="block font-semibold text-slate-800 text-xs">
+                      Se un piatto esiste già nel catalogo (stesso titolo):
+                    </span>
+                    <div className="space-y-1.5">
+                      <label className="flex items-start space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="importMode"
+                          checked={importMode === 'skip'}
+                          onChange={() => setImportMode('skip')}
+                          className="mt-0.5 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-medium text-slate-800 text-xs">Salta piatti già presenti</span>
+                          <span className="block text-[11px] text-slate-500">
+                            I piatti con lo stesso titolo non verranno sovrascritti (consigliato per aggiunte incrementali).
+                          </span>
+                        </div>
+                      </label>
+                      <label className="flex items-start space-x-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="importMode"
+                          checked={importMode === 'update'}
+                          onChange={() => setImportMode('update')}
+                          className="mt-0.5 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                        />
+                        <div>
+                          <span className="font-medium text-slate-800 text-xs">Aggiorna piatti già presenti</span>
+                          <span className="block text-[11px] text-slate-500">
+                            I dati del piatto esistente verranno aggiornati con quelli presenti nel file.
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Template & Instructions Box */}
+                  <div className="p-2.5 bg-slate-50/80 rounded-lg border border-slate-200/80 space-y-1.5 text-[11px] text-slate-600">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-slate-800">Modelli precompilati di esempio:</span>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadTemplate('xlsx')}
+                          className="text-emerald-700 hover:text-emerald-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer"
+                        >
+                          <FileSpreadsheet className="w-3 h-3" />
+                          <span>Modello Excel</span>
+                        </button>
+                        <span className="text-slate-300">|</span>
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadTemplate('csv')}
+                          className="text-blue-700 hover:text-blue-800 font-semibold hover:underline flex items-center space-x-0.5 cursor-pointer"
+                        >
+                          <FileText className="w-3 h-3" />
+                          <span>Modello CSV</span>
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 leading-relaxed">
+                      • <strong>Campi obbligatori:</strong> Titolo/Nome, Stato (es. <em>OK</em>), Portate (es. <em>["Secondo", "Piatto unico"]</em> oppure <em>Primo</em>).<br />
+                      • <strong>Campi facoltativi:</strong> Descrizione, Note, Tipo Fonte, Riferimento, URL Fonte.
+                    </p>
+                  </div>
+
+                  {importError && (
+                    <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-lg flex items-start space-x-2 text-rose-700 text-xs">
+                      <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                      <span>{importError}</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="pt-2 border-t border-slate-100 flex items-center justify-end space-x-2">
+              {importResult ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsImportModalOpen(false)
+                    setImportResult(null)
+                    setImportFile(null)
+                  }}
+                  className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
+                >
+                  Chiudi
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setIsImportModalOpen(false)}
+                    disabled={isImporting}
+                    className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    Annulla
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleExecuteImport}
+                    disabled={!importFile || isImporting}
+                    className="flex items-center space-x-1.5 px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg shadow-2xs transition-all disabled:opacity-50 cursor-pointer"
+                  >
+                    {isImporting ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Importazione in corso...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileCheck className="w-3.5 h-3.5" />
+                        <span>Avvia Importazione</span>
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

@@ -9,6 +9,7 @@ import {
   MealSlot,
   MealSlotAttendance,
   SlotDishNote,
+  DishImportResult,
 } from './types'
 
 const TOKEN_KEY = 'menu_design_jwt_token'
@@ -148,6 +149,59 @@ export const api = {
       body: JSON.stringify({ rating }),
     }),
   getDishNotes: (dishId: number) => request<SlotDishNote[]>(`/dishes/${dishId}/notes`),
+
+  exportDishes: async (format: 'xlsx' | 'csv', params?: { status_id?: number; course_id?: number; search?: string }) => {
+    const token = getToken()
+    const query = new URLSearchParams()
+    query.set('format', format)
+    if (params?.status_id) query.set('status_id', params.status_id.toString())
+    if (params?.course_id) query.set('course_id', params.course_id.toString())
+    if (params?.search) query.set('search', params.search)
+
+    const headers: HeadersInit = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const res = await fetch(`/api/v1/dishes/export?${query.toString()}`, { headers })
+    if (!res.ok) throw new Error('Errore durante l\'esportazione dei piatti.')
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '')
+    a.download = `piatti_${dateStr}.${format}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  },
+
+  downloadImportTemplate: async (format: 'xlsx' | 'csv') => {
+    const token = getToken()
+    const headers: HeadersInit = {}
+    if (token) headers['Authorization'] = `Bearer ${token}`
+
+    const res = await fetch(`/api/v1/dishes/import-template?format=${format}`, { headers })
+    if (!res.ok) throw new Error('Errore durante il download del template.')
+    const blob = await res.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `template_import_piatti.${format}`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    window.URL.revokeObjectURL(url)
+  },
+
+  importDishes: async (file: File, mode: 'skip' | 'update'): Promise<DishImportResult> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('mode', mode)
+    return request<DishImportResult>('/dishes/import', {
+      method: 'POST',
+      body: formData,
+    })
+  },
 
   // Calendar
   getCalendar: (startDate: string, endDate: string) =>

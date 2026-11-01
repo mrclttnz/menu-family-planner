@@ -1,5 +1,6 @@
+from datetime import datetime, timezone
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Response
 from sqlalchemy.orm import Session
 from sqlalchemy import or_
 from app.core.database import get_db
@@ -15,10 +16,17 @@ from app.schemas.dish import (
     CourseSummary,
     DishSourceInfo,
     MemberPreferenceSummary,
+    DishImportResult,
 )
 from app.schemas.preference import PreferenceUpdate, PreferenceResponse
 from app.schemas.meal_plan import SlotDishNoteResponse
 from app.api.deps import get_current_household
+from app.services.dishes_import_export import (
+    export_dishes_to_xlsx,
+    export_dishes_to_csv,
+    generate_import_template,
+    import_dishes_from_bytes,
+)
 
 router = APIRouter(prefix="/dishes", tags=["Dish Catalog & Preferences"])
 
@@ -155,6 +163,86 @@ def create_dish(
 
     members = db.query(Member).filter(Member.household_id == current_household.id).all()
     return build_dish_response(dish, members)
+
+
+@router.get("/export")
+def export_dishes(
+    format: str = Query("xlsx", pattern="^(xlsx|csv)$", description="Export format (xlsx or csv)"),
+    status_id: Optional[int] = Query(None, description="Filter by dish status"),
+    course_id: Optional[int] = Query(None, description="Filter by course type"),
+    search: Optional[str] = Query(None, description="Search in title or notes"),
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Exports filtered dishes to Excel (.xlsx) or CSV (.csv)."""
+    query = db.query(Dish).filter(Dish.household_id == current_household.id)
+
+    if status_id:
+        query = query.filter(Dish.status_id == status_id)
+    if course_id:
+        query = query.join(Dish.courses).filter(DishCourse.course_type_id == course_id)
+    if search and search.strip():
+        term = f"%{search.strip()}%"
+        query = query.filter(or_(Dish.title.ilike(term), Dish.notes.ilike(term)))
+
+    dishes = query.order_by(Dish.title.asc()).all()
+    today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+
+    if format.lower() == "xlsx":
+        content = export_dishes_to_xlsx(dishes)
+        media_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        filename = f"piatti_{today_str}.xlsx"
+    else:
+        content = export_dishes_to_csv(dishes)
+        media_type = "text/csv; charset=utf-8"
+        filename = f"piatti_{today_str}.csv"
+
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.get("/import-template")
+def download_import_template(
+    format: str = Query("xlsx", pattern="^(xlsx|csv)$", description="Template format (xlsx or csv)"),
+    current_household: Household = Depends(get_current_household),
+):
+    """Downloads an import template with sample rows and valid headers."""
+    content, media_type, filename = generate_import_template(format)
+    return Response(
+        content=content,
+        media_type=media_type,
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    )
+
+
+@router.post("/import", response_model=DishImportResult)
+async def import_dishes(
+    file: UploadFile = File(...),
+    mode: str = Form("skip", description="'skip' to ignore existing dishes, 'update' to overwrite them"),
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Imports dishes from an uploaded Excel (.xlsx) or CSV (.csv) file."""
+    if mode not in ("skip", "update"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Modalità di import non valida. Utilizzare 'skip' o 'update'."
+        )
+
+    file_bytes = await file.read()
+    filename = file.filename or "import.xlsx"
+
+    result = import_dishes_from_bytes(
+        db=db,
+        household_id=current_household.id,
+        file_bytes=file_bytes,
+        filename=filename,
+        mode=mode
+    )
+    return result
 
 
 @router.get("/{dish_id}", response_model=DishResponse)

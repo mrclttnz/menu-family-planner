@@ -41,12 +41,13 @@
 | `S6` | Meal Calendar & Smart Preference/Attendance Compatibility Alerts | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S7` | Mobile Dashboard & Kitchen Overview (React SPA) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S8` | Usability & Planning Extensions (Alternative Dishes, Meal Notes, Multi-Views, Quick Create, Meal Ratings) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S9` | Dish Catalog Import & Export (Excel & CSV) ([#2](https://github.com/mrclttnz/menu-family-planner/issues/2)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
 - [x] **Gate 2 (Architecture & Threat Model Approved)**: Decoupled FastAPI + React SPA with SQLite/Postgres and Option 1 (`favorite` / `neutral` / `dislike`).
 - [x] **Gate 3 (DB Schema & Modules Approved)**: Normalized `dish_status_lookups`, dynamic daily `meal_types`, and exception-based attendance (present by default).
-- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 27 automated tests passing with 100% success rate in `backend/tests/`.
+- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 33 automated tests passing with 100% success rate in `backend/tests/` (including 6 import/export tests).
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).

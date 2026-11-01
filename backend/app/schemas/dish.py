@@ -94,3 +94,17 @@ class DishResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class DishImportRowError(BaseModel):
+    row: int
+    dish_title: Optional[str] = None
+    error: str
+
+
+class DishImportResult(BaseModel):
+    total_rows: int
+    created: int
+    updated: int
+    skipped: int
+    errors: List[DishImportRowError]

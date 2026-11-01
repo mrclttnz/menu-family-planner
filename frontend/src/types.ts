@@ -155,3 +155,18 @@ export interface MealSlotAttendance {
   total_household_members: number;
   members: MemberAttendanceSummary[];
 }
+
+export interface DishImportRowError {
+  row: number;
+  dish_title?: string;
+  error: string;
+}
+
+export interface DishImportResult {
+  total_rows: number;
+  created: number;
+  updated: number;
+  skipped: number;
+  errors: DishImportRowError[];
+}
+
