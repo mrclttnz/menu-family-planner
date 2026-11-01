@@ -85,12 +85,17 @@ Planning daily meals for a family is a recurring source of friction and mental e
   - Dish selection modal with course filter chips and fast substring text search across titles and notes.
   - Inline creation of new dishes directly within the meal assignment modal with default status `'OK'` (`D001`) and optional source type (`D002`).
   - Removal of unused meal types from the current calendar view (`P009`).
+- **`FR-13` Dish Catalog Import & Export in Excel, CSV & JSON (`D003` / Issue #2)**:
+  - Dynamic export of all or currently filtered dishes in `.xlsx`, `.csv` (RFC 4180 with UTF-8 BOM), or `.json` formats.
+  - Standardized canonical English headers/keys across all formats (`title`, `description`, `notes`, `status`, `source_type`, `courses`, `source_reference`, `source_url`).
+  - Flexible multi-course parsing supporting bracketed lists (e.g. `["Secondo", "Piatto unico"]`), simple strings, or comma-separated values.
+  - Pre-validation of mandatory fields (`title`, `status`, `courses`) with row-by-row error reporting and duplicate conflict options (`skip` vs `update`).
+  - Active defense against spreadsheet formula injection (`=`, `+`, `-`, `@`) and payload size limits (5 MB).
 
-### 2.2 Should-Have / Backlog (Tracked in `docs/suggerimenti.md`)
-- `G003`: Multi-language UI support (Italian / English localization).
-- `D003`: Excel / CSV import and export for the dish catalog.
-- `A001`: Guest diner support (temporary non-family diners for a meal).
-- `P001`: Automated weekly menu suggestions engine based on attendance, seasonal ingredients, and past rotation frequency.
+### 2.2 Should-Have / Backlog (Tracked in `docs/archive/suggerimenti.md` & GitHub Issues)
+- `G003`: Multi-language UI support (Italian / English localization) — *[Issue #1]*.
+- `A001`: Guest diner support (temporary non-family diners for a meal) — *[Issue #3]*.
+- `P001`: Automated weekly menu suggestions engine based on attendance, seasonal ingredients, and past rotation frequency — *[Issue #4]*.
 - Automated grocery list generator aggregated from planned dishes.
 
 ### 2.3 Could-Have (Future Horizon v2.0+)
@@ -163,6 +168,15 @@ Planning daily meals for a family is a recurring source of friction and mental e
 - **Story**: As any family member, I want to open the web app on my phone and immediately see today's and this week's menu with zero cognitive clutter.
 - **Acceptance Criteria**:
   1. **Happy Path**: *Given* a smartphone viewport (e.g. 375px width), *When* opening the dashboard, *Then* "I pasti di oggi" (Pranzo e Cena) are prominently displayed with quick attendance badges and one-tap access to recipe sources.
+
+### `US-17`: Dish Catalog Import & Export (Excel, CSV, JSON)
+- **Story**: As a meal planner or cook, I want to export our dishes to Excel, CSV, or JSON and import recipes from external files, so that I can easily migrate, back up, or mass-populate our family catalog.
+- **Acceptance Criteria**:
+  1. **Filtered Export**: *Given* active search query, category, or status filters, *When* clicking Export, *Then* the downloaded file (`.xlsx`, `.csv`, or `.json`) contains all and only the matching dishes.
+  2. **English Field Standardization**: *Given* any export format or template, *Then* column headers and keys are consistently in English (`title`, `description`, `notes`, `status`, `source_type`, `courses`, `source_reference`, `source_url`).
+  3. **Multi-Course Representation**: *Given* dishes with multiple courses, *When* exported, *Then* courses are formatted as a JSON array string (`["Secondo", "Piatto unico"]`) or native JSON array, and flexibly parsed on import.
+  4. **Validation & Duplicate Modes**: *Given* an import file, *When* processing, *Then* missing mandatory fields (`title`, `status`, `courses`) are reported per row without terminating execution, and duplicate dishes are handled according to user strategy (`skip` or `update`).
+  5. **Security (Shift-Left)**: *Given* text fields starting with spreadsheet formula triggers (`=, +, -, @`), *When* exporting or importing, *Then* formulas are neutralized to prevent CSV injection vulnerabilities.
 
 ---
 

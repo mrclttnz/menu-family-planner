@@ -129,7 +129,8 @@ menu-design-2/
 │   │   │   └── calendar.py       # Multi-day meal plan & compatibility checks
 │   │   ├── services/             # Business Logic
 │   │   │   ├── compatibility.py  # Dislike vs. attendance warning engine
-│   │   │   └── seed_defaults.py  # Seeds default taxonomies on household creation
+│   │   │   ├── seed_defaults.py  # Seeds default taxonomies on household creation
+│   │   │   └── dishes_import_export.py # Excel, CSV & JSON import/export with formula injection defense
 │   │   └── main.py               # FastAPI factory, CORS, exception handlers
 │   ├── alembic/                  # Alembic DB Migrations
 │   ├── tests/                    # Pytest test suite
@@ -204,6 +205,9 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 | `/dishes/{id}` | `PUT` | Required | Update dish details and assigned courses |
 | `/dishes/{id}` | `DELETE`| Required | Delete dish |
 | `/dishes/{id}/notes` | `GET` | Required | Retrieve historical feedback and notes logged for this dish across past planned meals |
+| `/dishes/export` | `GET` | Required | Export filtered dishes to `.xlsx`, `.csv` (UTF-8 BOM), or `.json` (`?format=xlsx\|csv\|json&status_id=&course_id=&search=`) |
+| `/dishes/import-template` | `GET` | Required | Download sample template file with canonical English headers (`?format=xlsx\|csv\|json`) |
+| `/dishes/import` | `POST` | Required | Multi-part upload (`file`, `mode: skip\|update`) importing dishes into household catalog with validation report |
 
 ### 5.5 Member Dish Preferences
 | Endpoint | Method | Auth | Description |
@@ -248,6 +252,7 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 - All request payloads strictly parsed and validated using **Pydantic v2**. Extra fields rejected (`extra = "forbid"`).
 - All database queries executed via **SQLAlchemy ORM** parameterized queries. Zero raw string concatenation in SQL.
 - URLs in recipe sources validated for valid protocols (`http://` or `https://`) to prevent `javascript:` XSS vectors.
+- **Spreadsheet / CSV Formula Injection Defense**: All exported cells starting with formula execution characters (`=`, `+`, `-`, `@`, `\t`, `\r`) are sanitized by prepending a single quote `'`. Imported fields are sanitized and file upload size is strictly capped at 5 MB.
 
 ### 6.4 Security Headers & CORS
 - CORS configured to strictly allow the configured frontend host (e.g. `http://localhost:5173` in dev, specific domain in prod).
