@@ -22,6 +22,8 @@ import {
   StickyNote,
   X,
   Users,
+  UserX,
+  Check,
   Meh,
   ThumbsUp,
   ThumbsDown,
@@ -50,6 +52,7 @@ interface CalendarViewProps {
   onDeleteSlot: (slotId: number) => void
   onDeleteMealTypeSlots?: (mealTypeId: number) => Promise<void>
   onUpdateSlotNotes?: (slotId: number, notes: string | null) => Promise<void>
+  onSaveSlotAttendance?: (slotId: number, absentMemberIds: number[]) => Promise<void>
   onAssignDish: (slotId: number, dishId: number, assignedMemberIds?: number[]) => void
   onCreateDish?: (payload: {
     title: string
@@ -82,6 +85,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onDeleteSlot,
   onDeleteMealTypeSlots,
   onUpdateSlotNotes,
+  onSaveSlotAttendance,
   onAssignDish,
   onCreateDish,
   onRemoveDish,
@@ -133,6 +137,66 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // Meal Slot General Note State (P010)
   const [editingSlotNoteId, setEditingSlotNoteId] = useState<number | null>(null)
   const [editSlotNoteValue, setEditSlotNoteValue] = useState<string>('')
+
+  // Meal Attendance Modal State (Issue #8)
+  const [attendanceModalSlot, setAttendanceModalSlot] = useState<MealSlot | null>(null)
+  const [draftAbsentIds, setDraftAbsentIds] = useState<Set<number>>(new Set())
+  const [isSavingAttendance, setIsSavingAttendance] = useState(false)
+
+  const handleOpenAttendanceModal = (slot: MealSlot) => {
+    setAttendanceModalSlot(slot)
+    setDraftAbsentIds(new Set(slot.absent_member_ids || []))
+  }
+
+  const getAttendanceSummary = (absentMemberIds: number[]) => {
+    const total = members.length
+    if (total === 0) {
+      return { text: '', fullTooltip: t('calendar.all_present'), isAllPresent: true }
+    }
+
+    const absentSet = new Set(absentMemberIds || [])
+    const absentMembers = members.filter((m) => absentSet.has(m.id))
+    const presentMembers = members.filter((m) => !absentSet.has(m.id))
+
+    // 1. Tutti presenti: non si scrive nulla, resta solo l'icona
+    if (absentMembers.length === 0) {
+      return {
+        text: '',
+        fullTooltip: t('calendar.all_present'),
+        isAllPresent: true,
+      }
+    }
+
+    // Se nessun commensale è presente
+    if (presentMembers.length === 0) {
+      const text = t('calendar.no_diners')
+      return {
+        text,
+        fullTooltip: text,
+        isAllPresent: false,
+      }
+    }
+
+    // 2. Se presenti < assenti: "solo Tizio" o "solo Tizio, Caio"
+    if (presentMembers.length < absentMembers.length) {
+      const names = presentMembers.map((m) => m.name).join(', ')
+      const text = t('calendar.attendance_only', { names })
+      return {
+        text,
+        fullTooltip: text,
+        isAllPresent: false,
+      }
+    }
+
+    // 3. Se assenti <= presenti: "no Tizio" o "no Tizio, Caio"
+    const names = absentMembers.map((m) => m.name).join(', ')
+    const text = t('calendar.attendance_no', { names })
+    return {
+      text,
+      fullTooltip: text,
+      isAllPresent: false,
+    }
+  }
 
   const handleStartEditSlotNote = (slotId: number, currentNote?: string) => {
     setEditingSlotNoteId(slotId)
@@ -547,81 +611,92 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               ) : null}
 
                               {slot.dishes.length === 0 ? (
-                                <div className="flex items-center space-x-0.5">
-                                  <button
-                                    onClick={() => handleOpenAssignModal(slot.id)}
-                                    className="flex-1 text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                    title={t('calendar.add_dish_tooltip')}
-                                  >
-                                    <Plus className="w-2.5 h-2.5" />
-                                    <span>{t('calendar.btn_dish')}</span>
-                                  </button>
-                                  {!slot.notes && (
-                                    <button
-                                      onClick={() => handleStartEditSlotNote(slot.id, '')}
-                                      className="px-1 text-center py-1 text-[10px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                      title={t('calendar.add_note_tooltip')}
-                                    >
-                                      <Plus className="w-2.5 h-2.5" />
-                                      <span>{t('calendar.btn_note')}</span>
-                                    </button>
-                                  )}
-                                </div>
+                                <button
+                                  onClick={() => handleOpenAssignModal(slot.id)}
+                                  className="w-full text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
+                                  title={t('calendar.add_dish_tooltip')}
+                                >
+                                  <Plus className="w-2.5 h-2.5" />
+                                  <span>{t('calendar.btn_dish')}</span>
+                                </button>
                               ) : (
-                                <>
-                                  {slot.dishes.map((d) => {
-                                    const hasAssignedMembers =
-                                      d.assigned_member_ids && d.assigned_member_ids.length > 0
-                                    const assignedList = hasAssignedMembers
-                                      ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
-                                      : []
-                                    const namesStr = assignedList.map((m) => m.name).join(', ')
+                                slot.dishes.map((d) => {
+                                  const hasAssignedMembers =
+                                    d.assigned_member_ids && d.assigned_member_ids.length > 0
+                                  const assignedList = hasAssignedMembers
+                                    ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
+                                    : []
+                                  const namesStr = assignedList.map((m) => m.name).join(', ')
 
-                                    return (
-                                      <div
-                                        key={d.id}
-                                        className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
-                                      >
-                                        <div className="truncate pr-1 text-[11px] leading-snug">
-                                          <span className="font-medium text-slate-800">• {d.dish_title}</span>
-                                          {hasAssignedMembers && (
-                                            <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap">
-                                              ({namesStr})
-                                            </span>
-                                          )}
-                                        </div>
-                                        <button
-                                          onClick={() => onRemoveDish(slot.id, d.dish_id)}
-                                          title={t('calendar.remove_dish_tooltip')}
-                                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
-                                        >
-                                          ✕
-                                        </button>
-                                      </div>
-                                    )
-                                  })}
-                                  <div className="flex items-center space-x-0.5 pt-0.5">
-                                    <button
-                                      onClick={() => handleOpenAssignModal(slot.id)}
-                                      className="flex-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                      title={t('calendar.add_another_dish_tooltip')}
+                                  return (
+                                    <div
+                                      key={d.id}
+                                      className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
                                     >
-                                      <Plus className="w-2.5 h-2.5" />
-                                      <span>{t('calendar.btn_another_dish')}</span>
-                                    </button>
-                                    {!slot.notes && (
+                                      <div className="truncate pr-1 text-[11px] leading-snug">
+                                        <span className="font-medium text-slate-800">• {d.dish_title}</span>
+                                        {hasAssignedMembers && (
+                                          <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap">
+                                            ({namesStr})
+                                          </span>
+                                        )}
+                                      </div>
                                       <button
-                                        onClick={() => handleStartEditSlotNote(slot.id, '')}
-                                        className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                        title={t('calendar.add_note_tooltip')}
+                                        onClick={() => onRemoveDish(slot.id, d.dish_id)}
+                                        title={t('calendar.remove_dish_tooltip')}
+                                        className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
                                       >
-                                        <Plus className="w-2.5 h-2.5" />
-                                        <span>{t('calendar.btn_note')}</span>
+                                        ✕
                                       </button>
-                                    )}
-                                  </div>
-                                </>
+                                    </div>
+                                  )
+                                })
                               )}
+
+                              {/* Bottom row of cell: Attendance on lower-left, actions on right */}
+                              {(() => {
+                                const attSummary = getAttendanceSummary(slot.absent_member_ids)
+                                return (
+                                  <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => handleOpenAttendanceModal(slot)}
+                                      className="flex items-center space-x-1 text-slate-500 hover:text-brand-700 hover:bg-slate-100/80 px-1 py-0.5 rounded transition-colors min-w-0 max-w-[62%] truncate group text-left cursor-pointer"
+                                      title={attSummary.fullTooltip || t('calendar.manage_attendance_tooltip')}
+                                    >
+                                      <Users className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-brand-600" />
+                                      {attSummary.text ? (
+                                        <span className="truncate text-[9px] font-medium text-slate-600 group-hover:text-brand-700">
+                                          {attSummary.text}
+                                        </span>
+                                      ) : null}
+                                    </button>
+
+                                    <div className="flex items-center space-x-0.5 flex-shrink-0">
+                                      {slot.dishes.length > 0 && (
+                                        <button
+                                          onClick={() => handleOpenAssignModal(slot.id)}
+                                          className="text-center py-0.5 px-1 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center space-x-0.5"
+                                          title={t('calendar.add_another_dish_tooltip')}
+                                        >
+                                          <Plus className="w-2.5 h-2.5" />
+                                          <span>{t('calendar.btn_another_dish')}</span>
+                                        </button>
+                                      )}
+                                      {!slot.notes && (
+                                        <button
+                                          onClick={() => handleStartEditSlotNote(slot.id, '')}
+                                          className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center space-x-0.5"
+                                          title={t('calendar.add_note_tooltip')}
+                                        >
+                                          <Plus className="w-2.5 h-2.5" />
+                                          <span>{t('calendar.btn_note')}</span>
+                                        </button>
+                                      )}
+                                    </div>
+                                  </div>
+                                )
+                              })()}
                             </div>
                           ) : (
                             <button
@@ -782,81 +857,92 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 ) : null}
 
                                 {slot.dishes.length === 0 ? (
-                                  <div className="flex items-center space-x-0.5">
-                                    <button
-                                      onClick={() => handleOpenAssignModal(slot.id)}
-                                      className="flex-1 text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                      title={t('calendar.add_dish_tooltip')}
-                                    >
-                                      <Plus className="w-2.5 h-2.5" />
-                                      <span>{t('calendar.btn_dish')}</span>
-                                    </button>
-                                    {!slot.notes && (
-                                      <button
-                                        onClick={() => handleStartEditSlotNote(slot.id, '')}
-                                        className="px-1 text-center py-1 text-[10px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                        title={t('calendar.add_note_tooltip')}
-                                      >
-                                        <Plus className="w-2.5 h-2.5" />
-                                        <span>{t('calendar.btn_note')}</span>
-                                      </button>
-                                    )}
-                                  </div>
+                                  <button
+                                    onClick={() => handleOpenAssignModal(slot.id)}
+                                    className="w-full text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
+                                    title={t('calendar.add_dish_tooltip')}
+                                  >
+                                    <Plus className="w-2.5 h-2.5" />
+                                    <span>{t('calendar.btn_dish')}</span>
+                                  </button>
                                 ) : (
-                                  <>
-                                    {slot.dishes.map((d) => {
-                                      const hasAssignedMembers =
-                                        d.assigned_member_ids && d.assigned_member_ids.length > 0
-                                      const assignedList = hasAssignedMembers
-                                        ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
-                                        : []
-                                      const namesStr = assignedList.map((m) => m.name).join(', ')
+                                  slot.dishes.map((d) => {
+                                    const hasAssignedMembers =
+                                      d.assigned_member_ids && d.assigned_member_ids.length > 0
+                                    const assignedList = hasAssignedMembers
+                                      ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
+                                      : []
+                                    const namesStr = assignedList.map((m) => m.name).join(', ')
 
-                                      return (
-                                        <div
-                                          key={d.id}
-                                          className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
-                                        >
-                                          <div className="truncate pr-1 text-[11px] leading-snug">
-                                            <span className="font-medium text-slate-800">• {d.dish_title}</span>
-                                            {hasAssignedMembers && (
-                                              <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap">
-                                                ({namesStr})
-                                              </span>
-                                            )}
-                                          </div>
-                                          <button
-                                            onClick={() => onRemoveDish(slot.id, d.dish_id)}
-                                            title={t('calendar.remove_dish_tooltip')}
-                                            className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
-                                          >
-                                            ✕
-                                          </button>
-                                        </div>
-                                      )
-                                    })}
-                                    <div className="flex items-center space-x-0.5 pt-0.5">
-                                      <button
-                                        onClick={() => handleOpenAssignModal(slot.id)}
-                                        className="flex-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                        title={t('calendar.add_another_dish_tooltip')}
+                                    return (
+                                      <div
+                                        key={d.id}
+                                        className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
                                       >
-                                        <Plus className="w-2.5 h-2.5" />
-                                        <span>{t('calendar.btn_another_dish')}</span>
-                                      </button>
-                                      {!slot.notes && (
+                                        <div className="truncate pr-1 text-[11px] leading-snug">
+                                          <span className="font-medium text-slate-800">• {d.dish_title}</span>
+                                          {hasAssignedMembers && (
+                                            <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap">
+                                              ({namesStr})
+                                            </span>
+                                          )}
+                                        </div>
                                         <button
-                                          onClick={() => handleStartEditSlotNote(slot.id, '')}
-                                          className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                          title={t('calendar.add_note_tooltip')}
+                                          onClick={() => onRemoveDish(slot.id, d.dish_id)}
+                                          title={t('calendar.remove_dish_tooltip')}
+                                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
                                         >
-                                          <Plus className="w-2.5 h-2.5" />
-                                          <span>{t('calendar.btn_note')}</span>
+                                          ✕
                                         </button>
-                                      )}
-                                    </div>
-                                  </>
+                                      </div>
+                                    )
+                                  })
                                 )}
+
+                                {/* Bottom row of cell: Attendance on lower-left, actions on right */}
+                                {(() => {
+                                  const attSummary = getAttendanceSummary(slot.absent_member_ids)
+                                  return (
+                                    <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleOpenAttendanceModal(slot)}
+                                        className="flex items-center space-x-1 text-slate-500 hover:text-brand-700 hover:bg-slate-100/80 px-1 py-0.5 rounded transition-colors min-w-0 max-w-[62%] truncate group text-left cursor-pointer"
+                                        title={attSummary.fullTooltip || t('calendar.manage_attendance_tooltip')}
+                                      >
+                                        <Users className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-brand-600" />
+                                        {attSummary.text ? (
+                                          <span className="truncate text-[9px] font-medium text-slate-600 group-hover:text-brand-700">
+                                            {attSummary.text}
+                                          </span>
+                                        ) : null}
+                                      </button>
+
+                                      <div className="flex items-center space-x-0.5 flex-shrink-0">
+                                        {slot.dishes.length > 0 && (
+                                          <button
+                                            onClick={() => handleOpenAssignModal(slot.id)}
+                                            className="text-center py-0.5 px-1 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center space-x-0.5"
+                                            title={t('calendar.add_another_dish_tooltip')}
+                                          >
+                                            <Plus className="w-2.5 h-2.5" />
+                                            <span>{t('calendar.btn_another_dish')}</span>
+                                          </button>
+                                        )}
+                                        {!slot.notes && (
+                                          <button
+                                            onClick={() => handleStartEditSlotNote(slot.id, '')}
+                                            className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center space-x-0.5"
+                                            title={t('calendar.add_note_tooltip')}
+                                          >
+                                            <Plus className="w-2.5 h-2.5" />
+                                            <span>{t('calendar.btn_note')}</span>
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })()}
                               </div>
                             ) : (
                               <button
@@ -935,9 +1021,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         <span className="font-bold text-[10px] uppercase px-1.5 py-0.2 rounded-full bg-slate-100 text-slate-700">
                           {getLocalizedMealTypeName(slot.meal_type, t)}
                         </span>
-                        <span className="text-[10px] text-slate-400 font-medium">
-                          {slot.attendee_count} {t('today.at_table')}
-                        </span>
+                        {(() => {
+                          const attSummary = getAttendanceSummary(slot.absent_member_ids)
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenAttendanceModal(slot)}
+                              className="flex items-center space-x-1 text-[10px] text-slate-500 hover:text-brand-700 bg-slate-100/80 hover:bg-brand-50 border border-slate-200/80 px-1.5 py-0.5 rounded-full transition-colors group cursor-pointer"
+                              title={attSummary.fullTooltip || t('calendar.manage_attendance_tooltip')}
+                            >
+                              <Users className="w-3 h-3 text-slate-500 group-hover:text-brand-600" />
+                              {attSummary.text && (
+                                <span className="font-semibold text-[10px] text-slate-600 group-hover:text-brand-700">
+                                  {attSummary.text}
+                                </span>
+                              )}
+                            </button>
+                          )
+                        })()}
                       </div>
 
                       <button
@@ -1595,6 +1696,138 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* P011 / Issue #8: Meal Attendance Modal */}
+      {attendanceModalSlot && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl border border-slate-200 max-w-md w-full overflow-hidden animate-in fade-in duration-150">
+            {/* Modal Header */}
+            <div className="px-4 py-3 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center flex-shrink-0">
+                  <Users className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-sm text-slate-900">
+                    {t('calendar.manage_attendance_title')}
+                  </h3>
+                  <p className="text-[11px] text-slate-500">
+                    {t('calendar.manage_attendance_subtitle', {
+                      meal_type: getLocalizedMealTypeName(attendanceModalSlot.meal_type, t),
+                      date: new Intl.DateTimeFormat(currentLocale, {
+                        weekday: 'short',
+                        day: 'numeric',
+                        month: 'short',
+                      }).format(parseDate(attendanceModalSlot.date)),
+                    })}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setAttendanceModalSlot(null)}
+                className="text-slate-400 hover:text-slate-600 p-1 rounded-md transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-4 space-y-3">
+              <p className="text-xs text-slate-600">
+                {t('calendar.manage_attendance_hint')}
+              </p>
+
+              {/* Diners Attendance Pills (Consistent with TodayView) */}
+              <div className="flex flex-wrap gap-2 py-1">
+                {members.map((m) => {
+                  const isAbsent = draftAbsentIds.has(m.id)
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => {
+                        const next = new Set(draftAbsentIds)
+                        if (isAbsent) {
+                          next.delete(m.id)
+                        } else {
+                          next.add(m.id)
+                        }
+                        setDraftAbsentIds(next)
+                      }}
+                      className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer ${
+                        !isAbsent
+                          ? 'bg-emerald-50 text-emerald-800 border border-emerald-300 hover:bg-emerald-100 shadow-2xs'
+                          : 'bg-slate-100 text-slate-400 line-through border border-dashed border-slate-300 hover:bg-slate-200/70'
+                      }`}
+                    >
+                      <span
+                        className="w-2 h-2 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: m.avatar_color || '#3B82F6' }}
+                      />
+                      <span>{m.name}</span>
+                      {isAbsent ? (
+                        <UserX className="w-3.5 h-3.5 text-slate-400" />
+                      ) : (
+                        <Check className="w-3.5 h-3.5 text-emerald-600" />
+                      )}
+                    </button>
+                  )
+                })}
+              </div>
+
+              {/* Live Preview of Attendance Summary */}
+              {(() => {
+                const draftSummary = getAttendanceSummary(Array.from(draftAbsentIds))
+                return (
+                  <div className="mt-2 p-2.5 bg-slate-50 rounded-md border border-slate-200/80 flex items-center space-x-2 text-xs">
+                    <span className="text-slate-500 font-medium">
+                      {t('calendar.attendance_summary_label')}:
+                    </span>
+                    <div className="flex items-center space-x-1.5 font-bold text-slate-800">
+                      <Users className="w-3.5 h-3.5 text-slate-600" />
+                      <span>{draftSummary.text || t('calendar.all_present')}</span>
+                    </div>
+                  </div>
+                )
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-4 py-3 bg-slate-50 border-t border-slate-200 flex items-center justify-end space-x-2">
+              <button
+                type="button"
+                onClick={() => setAttendanceModalSlot(null)}
+                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
+              >
+                {t('calendar.cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={isSavingAttendance}
+                onClick={async () => {
+                  if (!onSaveSlotAttendance || !attendanceModalSlot) {
+                    setAttendanceModalSlot(null)
+                    return
+                  }
+                  try {
+                    setIsSavingAttendance(true)
+                    await onSaveSlotAttendance(attendanceModalSlot.id, Array.from(draftAbsentIds))
+                    setAttendanceModalSlot(null)
+                  } catch (err) {
+                    console.error('Failed to save attendance:', err)
+                  } finally {
+                    setIsSavingAttendance(false)
+                  }
+                }}
+                className="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 rounded-md transition-colors shadow-2xs cursor-pointer"
+              >
+                {isSavingAttendance ? '...' : t('calendar.save_attendance')}
+              </button>
+            </div>
           </div>
         </div>
       )}

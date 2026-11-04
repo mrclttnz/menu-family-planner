@@ -243,6 +243,12 @@ Per eseguire un dump sicuro del database sul QNAP:
 docker compose -f docker-compose.prod.yml exec -t postgres pg_dump -U menu_user menu_design > /share/Container/menu-design/backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
+Per eseguire il backup schedulato, farlo da utente admin e inserire nel suo crontab una riga come questa
+```bash
+0 3 * * * cd /share/CACHEDEV1_DATA/Container/menu-design && /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker compose -f docker-compose.prod.yml exec -t postgres pg_dump -U menu_user menu_design > /share/Container/menu-design/db_backup/backup_$(date +%Y%m%d_%H%M%S).sql
+```
+
+
 ### Riavvio o Stop dello Stack
 ```bash
 # Riavvia l'intero stack

@@ -44,6 +44,7 @@ The testing strategy ensures high test confidence without brittle mocks:
 | **`US-17` Duplicate Conflict Resolution** | `backend/tests/test_dishes_import_export.py` | Verifying skip mode preserves existing dish vs update mode overwriting attributes. | **PASS** |
 | **`US-17` Row Error Reporting** | `backend/tests/test_dishes_import_export.py` | Reporting missing title, invalid status, and missing course types per row. | **PASS** |
 | **`US-17` Formula Injection Sanitization** | `backend/tests/test_dishes_import_export.py` | Verifying formula triggers (=, +, -, @) are neutralized on export and import. | **PASS** |
+| **`US-18` Meal Planner Attendance Indicator & Modal (`S11` / Issue #8)** | `frontend/` build & UI validation | Concise `Users` icon + textual summary ("solo...", "no...") in lower-left cell corner across matrix views (`compact_h`, `compact_v`) and slot header (`detailed`); interactive attendance modal matching `TodayView` styling with live preview, batch toggle diff, and save/cancel. | **PASS** |
 | **`US-07` Frontend SPA Verification** | `frontend/` build pipeline | TypeScript compile (`tsc`), JSX bundling with Vite, production assets generated without errors, static mount verified on FastAPI. | **PASS** |
 
 ---

@@ -143,6 +143,37 @@ export function App() {
     }
   }
 
+  // Save Slot Attendance (Batch update based on absent_member_ids diff)
+  const handleSaveSlotAttendance = async (slotId: number, targetAbsentIds: number[]) => {
+    try {
+      const slot = calendarSlots.find((s) => s.id === slotId)
+      if (!slot) return
+
+      const prevAbsentSet = new Set(slot.absent_member_ids || [])
+      const targetAbsentSet = new Set(targetAbsentIds)
+
+      // Find members whose attendance state changed
+      const changes: Promise<any>[] = []
+      for (const m of members) {
+        const wasAbsent = prevAbsentSet.has(m.id)
+        const willBeAbsent = targetAbsentSet.has(m.id)
+        if (wasAbsent !== willBeAbsent) {
+          // targetState: true = clear absence, false = record absence exception
+          changes.push(api.toggleAttendance(slotId, m.id, !willBeAbsent))
+        }
+      }
+
+      if (changes.length > 0) {
+        await Promise.all(changes)
+        const updatedCalendar = await api.getCalendar(startDate, endDate)
+        setCalendarSlots(updatedCalendar)
+      }
+    } catch (err) {
+      console.error('Failed to update slot attendance:', err)
+      throw err
+    }
+  }
+
   // Assign Dish to Slot (supports alternative dishes with assigned_member_ids)
   const handleAssignDish = async (slotId: number, dishId?: number, assignedMemberIds?: number[]) => {
     if (!dishId) {
@@ -407,6 +438,7 @@ export function App() {
             onDeleteSlot={handleDeleteSlot}
             onDeleteMealTypeSlots={handleDeleteMealTypeSlots}
             onUpdateSlotNotes={handleUpdateSlotNotes}
+            onSaveSlotAttendance={handleSaveSlotAttendance}
             onAssignDish={handleAssignDish}
             onCreateDish={handleCreateDish}
             onRemoveDish={handleRemoveDish}

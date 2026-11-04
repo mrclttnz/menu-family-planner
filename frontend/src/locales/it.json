@@ -137,7 +137,17 @@
     "alternative_dish_help": "Assegna solo a specifici commensali",
     "assign": "Assegna",
     "cancel": "Annulla",
-    "select_diners": "Seleziona commensali:"
+    "select_diners": "Seleziona commensali:",
+    "attendance_only": "solo {{names}}",
+    "attendance_no": "no {{names}}",
+    "all_present": "Tutti presenti",
+    "no_diners": "Nessun presente",
+    "manage_attendance_title": "Presenze al pasto",
+    "manage_attendance_subtitle": "{{meal_type}} • {{date}}",
+    "manage_attendance_tooltip": "Gestisci presenze al pasto",
+    "manage_attendance_hint": "Tocca un commensale per alternare tra presente e assente:",
+    "attendance_summary_label": "Risultato",
+    "save_attendance": "Salva presenze"
   },
   "dishes": {
     "catalog_title": "Catalogo Ricette",

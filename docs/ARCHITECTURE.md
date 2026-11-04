@@ -273,6 +273,7 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 The attendance evaluation operates on an **Exception-Based Model**: every household member is assumed **Present by default** unless explicitly flagged as absent for that meal slot.
 
 When scheduling or querying a meal slot:
+### 7.1 Compatibility Evaluation Algorithm
 ```python
 def check_meal_compatibility(meal_slot: MealSlot, all_household_members: list[Member], scheduled_dish: Dish) -> CompatibilityResult:
     # 1. Determine attending members (All members minus explicit recorded absences)
@@ -309,3 +310,14 @@ def check_meal_compatibility(meal_slot: MealSlot, all_household_members: list[Me
     else:
         return CompatibilityResult(status="OK", severity="info")
 ```
+
+### 7.2 Meal Planner Diner Attendance Presentation & Exception UX (Slice S11 / Issue #8)
+
+In the weekly planner (`CalendarView.tsx`), attendance is indicated directly inside meal slots across all three layout modes (`compact_h`, `compact_v`, `detailed`):
+- **Concise Cell Indicator**: Placed in the lower-left corner of each cell. Uses a static `Users` icon accompanied by a human-friendly summary:
+  - *All Present*: only the `Users` icon is rendered (zero clutter).
+  - *Present < Absent*: displays `"solo {names}"` (e.g. `"solo Tizio"`).
+  - *Absent $\le$ Present* (with absences): displays `"no {names}"` (e.g. `"no Caio"`).
+  - *Zero Present*: displays `"Nessun presente"` / `"Nobody present"`.
+- **Constraint Handling**: In compact horizontal and vertical grids, the indicator uses strict CSS truncation (`truncate`, `max-w-[62%]`) so that variable-length family names never deform matrix cell height or width.
+- **Attendance Modal & Synchronization**: Clicking the indicator opens an attendance dialog rendering diner pills identical to `TodayView.tsx` (avatar color, active vs. strikethrough absence state with `UserX`). Modifying attendance operates on local state until the user confirms with "Salva", which dispatches individual attendance toggles via `PUT /api/v1/attendance/{slot_id}/members/{member_id}` and re-evaluates calendar slot compatibility alerts in a single refresh.

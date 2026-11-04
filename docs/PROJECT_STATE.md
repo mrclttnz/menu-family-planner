@@ -43,6 +43,7 @@
 | `S8` | Usability & Planning Extensions (Alternative Dishes, Meal Notes, Multi-Views, Quick Create, Meal Ratings) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S9` | Dish Catalog Import & Export (Excel, CSV, JSON) ([#2](https://github.com/mrclttnz/menu-family-planner/issues/2)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S10` | Multi-language Support (i18n: IT/EN) ([#1](https://github.com/mrclttnz/menu-family-planner/issues/1)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S11` | Meal Planner Attendance Indicator & Modal ([#8](https://github.com/mrclttnz/menu-family-planner/issues/8)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.

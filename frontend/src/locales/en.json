@@ -137,7 +137,17 @@
     "alternative_dish_help": "Assign to specific diners only",
     "assign": "Assign",
     "cancel": "Cancel",
-    "select_diners": "Select diners:"
+    "select_diners": "Select diners:",
+    "attendance_only": "only {{names}}",
+    "attendance_no": "no {{names}}",
+    "all_present": "All present",
+    "no_diners": "Nobody present",
+    "manage_attendance_title": "Meal Attendance",
+    "manage_attendance_subtitle": "{{meal_type}} • {{date}}",
+    "manage_attendance_tooltip": "Manage meal attendance",
+    "manage_attendance_hint": "Click a diner to toggle between present and absent:",
+    "attendance_summary_label": "Result",
+    "save_attendance": "Save attendance"
   },
   "dishes": {
     "catalog_title": "Recipe Catalog",
