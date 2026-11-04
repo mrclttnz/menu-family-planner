@@ -536,7 +536,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   className="w-full flex items-center justify-center space-x-1.5 py-1 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-[11px] font-medium text-slate-600 hover:text-brand-700 transition-colors"
                 >
                   <MessageSquare className="w-3 h-3 text-brand-600" />
-                  <span>Storico note dai pasti</span>
+                  <span>{t('dishes.meal_notes_history')}</span>
                 </button>
               </div>
 
@@ -544,10 +544,10 @@ export const DishesView: React.FC<DishesViewProps> = ({
               <div className="pt-1.5 border-t border-slate-100 space-y-1">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                    Gradimento commensali:
+                    {t('dishes.diners_preference_label')}
                   </span>
                   <span className="text-[9px] text-slate-400">
-                    👍 Piace | 😐 Ok | 👎 No
+                    {t('dishes.diners_preference_legend')}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -570,7 +570,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                           <span className="text-slate-700 font-medium text-[11px] truncate">{pref.member_name}</span>
                           {isDisliked && (
                             <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
-                              Non piace
+                              {t('dishes.pref_dislike')}
                             </span>
                           )}
                         </div>
@@ -580,7 +580,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onSetPreference(dish.id, pref.member_id, 'favorite')}
-                            title={`${pref.member_name}: Piace molto`}
+                            title={t('dishes.pref_favorite_tooltip', { name: pref.member_name })}
                             className={`px-1.5 py-0.5 flex items-center transition-colors ${
                               isFavorite
                                 ? 'bg-pink-100 text-pink-700 font-bold'
@@ -593,7 +593,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onSetPreference(dish.id, pref.member_id, 'neutral')}
-                            title={`${pref.member_name}: Neutro / Ok`}
+                            title={t('dishes.pref_neutral_tooltip', { name: pref.member_name })}
                             className={`px-1.5 py-0.5 flex items-center transition-colors ${
                               pref.rating === 'neutral'
                                 ? 'bg-emerald-100 text-emerald-800 font-bold'
@@ -606,7 +606,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                           <button
                             type="button"
                             onClick={() => onSetPreference(dish.id, pref.member_id, 'dislike')}
-                            title={`${pref.member_name}: NON piace a questo commensale`}
+                            title={t('dishes.pref_dislike_tooltip', { name: pref.member_name })}
                             className={`px-1.5 py-0.5 flex items-center space-x-0.5 transition-colors ${
                               isDisliked
                                 ? 'bg-rose-600 text-white font-bold'
@@ -614,7 +614,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                             }`}
                           >
                             <ThumbsDown className="w-3 h-3" />
-                            <span className="text-[9px] font-bold">Non piace</span>
+                            <span className="text-[9px] font-bold">{t('dishes.pref_dislike')}</span>
                           </button>
                         </div>
                       </div>
@@ -780,9 +780,9 @@ export const DishesView: React.FC<DishesViewProps> = ({
                 <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200/80 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-semibold text-slate-700 uppercase tracking-wider block">
-                      Gradimento commensali (Piaciuto o No):
+                      {t('dishes.diners_preference_modal_title')}
                     </span>
-                    <span className="text-[10px] text-slate-400">Salvataggio immediato</span>
+                    <span className="text-[10px] text-slate-400">{t('dishes.instant_save')}</span>
                   </div>
                   <div className="space-y-1">
                     {editingDish.preferences.map((pref) => {
@@ -803,7 +803,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                             <span className="font-medium text-slate-800">{pref.member_name}</span>
                             {isDisliked && (
                               <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-1 py-0.2 rounded">
-                                Non piace
+                                {t('dishes.pref_dislike')}
                               </span>
                             )}
                           </div>
@@ -819,7 +819,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                               }`}
                             >
                               <ThumbsUp className="w-3 h-3" />
-                              <span>Piace</span>
+                              <span>{t('dishes.pref_favorite_btn')}</span>
                             </button>
                             <button
                               type="button"
@@ -834,7 +834,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                               }`}
                             >
                               <Meh className="w-3 h-3" />
-                              <span>Ok</span>
+                              <span>{t('dishes.pref_neutral_btn')}</span>
                             </button>
                             <button
                               type="button"
@@ -849,7 +849,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                               }`}
                             >
                               <ThumbsDown className="w-3 h-3" />
-                              <span className="font-bold">Non piace</span>
+                              <span className="font-bold">{t('dishes.pref_dislike')}</span>
                             </button>
                           </div>
                         </div>
@@ -888,7 +888,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4 text-brand-600" />
                 <h3 className="font-bold text-sm sm:text-base text-slate-900 truncate">
-                  Note dai pasti: {historyDish.title}
+                  {t('dishes.history_notes_title', { title: historyDish.title })}
                 </h3>
               </div>
               <button
@@ -906,10 +906,10 @@ export const DishesView: React.FC<DishesViewProps> = ({
                 </div>
               ) : historyNotes.length === 0 ? (
                 <p className="text-xs text-slate-400 text-center py-6">
-                  Nessuna nota inserita per questo piatto nei pasti passati.
+                  {t('dishes.no_history_notes')}
                   <br />
                   <span className="text-[11px] text-slate-400 mt-1 block">
-                    Puoi inserire note dal "Piano Pasti" o da "Oggi a Tavola" ogni volta che viene consumato!
+                    {t('dishes.no_history_notes_help')}
                   </span>
                 </p>
               ) : (
@@ -933,9 +933,9 @@ export const DishesView: React.FC<DishesViewProps> = ({
               <button
                 type="button"
                 onClick={() => setHistoryDish(null)}
-                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700"
+                className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 cursor-pointer"
               >
-                Chiudi
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -1174,7 +1174,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   }}
                   className="px-4 py-1.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer"
                 >
-                  Chiudi
+                  {t('common.close')}
                 </button>
               ) : (
                 <>
@@ -1184,7 +1184,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                     disabled={isImporting}
                     className="px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
                   >
-                    Annulla
+                    {t('common.cancel')}
                   </button>
                   <button
                     type="button"
@@ -1195,12 +1195,12 @@ export const DishesView: React.FC<DishesViewProps> = ({
                     {isImporting ? (
                       <>
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                        <span>Importazione in corso...</span>
+                        <span>{t('dishes.importing')}</span>
                       </>
                     ) : (
                       <>
                         <FileCheck className="w-3.5 h-3.5" />
-                        <span>Avvia Importazione</span>
+                        <span>{t('dishes.import_btn_start')}</span>
                       </>
                     )}
                   </button>

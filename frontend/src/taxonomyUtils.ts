@@ -30,3 +30,26 @@ export function getLocalizedSourceName(sourceName: string, t: TFunction): string
   const translated = t(key)
   return translated && translated !== key ? translated : sourceName
 }
+
+export function getLocalizedCompatibilityMessage(
+  comp: {
+    status?: string
+    message?: string
+    disliking_members?: { member_id: number; name: string }[]
+    loving_members?: { member_id: number; name: string }[]
+  },
+  t: TFunction
+): string {
+  if (comp.status === 'warning') {
+    const names = comp.disliking_members?.map((m) => m.name).join(', ') || ''
+    return t('common.compatibility_warning', { names })
+  }
+  if (comp.status === 'hit') {
+    return t('common.compatibility_hit')
+  }
+  if (comp.status === 'ok') {
+    return t('common.compatibility_ok')
+  }
+  return comp.message || ''
+}
+

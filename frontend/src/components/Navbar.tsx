@@ -1,7 +1,19 @@
-import React from 'react'
-import { Utensils, Calendar, BookOpen, Users, LogOut, Globe } from 'lucide-react'
+import React, { useState, useRef, useEffect } from 'react'
+import { Utensils, Calendar, BookOpen, Users, LogOut, Globe, ChevronDown, Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Household } from '../types'
+
+interface LanguageOption {
+  code: string
+  label: string
+  shortLabel: string
+  flag: string
+}
+
+const SUPPORTED_LANGUAGES: LanguageOption[] = [
+  { code: 'it', label: 'Italiano', shortLabel: 'IT', flag: '🇮🇹' },
+  { code: 'en', label: 'English', shortLabel: 'EN', flag: '🇬🇧' },
+]
 
 interface NavbarProps {
   household: Household | null
@@ -17,12 +29,28 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout,
 }) => {
   const { t, i18n } = useTranslation()
-  const currentLang = i18n.language && i18n.language.startsWith('en') ? 'en' : 'it'
+  const [isLangMenuOpen, setIsLangMenuOpen] = useState(false)
+  const langMenuRef = useRef<HTMLDivElement>(null)
 
-  const handleToggleLanguage = () => {
-    const nextLang = currentLang === 'it' ? 'en' : 'it'
-    i18n.changeLanguage(nextLang)
-    localStorage.setItem('menu_design_language', nextLang)
+  const currentLang = i18n.language && i18n.language.startsWith('en') ? 'en' : 'it'
+  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0]
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setIsLangMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  const handleSelectLanguage = (langCode: string) => {
+    i18n.changeLanguage(langCode)
+    localStorage.setItem('menu_design_language', langCode)
+    setIsLangMenuOpen(false)
   }
 
   return (
@@ -97,15 +125,46 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Actions: Language & Logout */}
           <div className="flex items-center space-x-1.5">
-            {/* Language Switcher */}
-            <button
-              onClick={handleToggleLanguage}
-              className="flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-semibold border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors"
-              title={currentLang === 'it' ? 'Passa alla lingua inglese (Switch to English)' : 'Switch to Italian (Passa all\'italiano)'}
-            >
-              <Globe className="w-3 h-3 text-slate-500" />
-              <span>{currentLang === 'it' ? 'EN' : 'IT'}</span>
-            </button>
+            {/* Language Switcher Dropdown (scalable for N languages, shows active language) */}
+            <div className="relative" ref={langMenuRef}>
+              <button
+                type="button"
+                onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
+                className="flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-semibold border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                title={t('nav.select_language')}
+              >
+                <Globe className="w-3 h-3 text-slate-500" />
+                <span className="font-bold">{currentLangObj.shortLabel}</span>
+                <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform ${isLangMenuOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {isLangMenuOpen && (
+                <div className="absolute right-0 mt-1 w-36 bg-white rounded-md shadow-lg border border-slate-200 py-1 z-50">
+                  <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    {t('nav.language')}
+                  </div>
+                  {SUPPORTED_LANGUAGES.map((lang) => {
+                    const isSelected = currentLang === lang.code
+                    return (
+                      <button
+                        key={lang.code}
+                        type="button"
+                        onClick={() => handleSelectLanguage(lang.code)}
+                        className={`w-full text-left px-2.5 py-1.5 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors cursor-pointer ${
+                          isSelected ? 'text-brand-700 font-bold bg-brand-50/60' : 'text-slate-700 font-medium'
+                        }`}
+                      >
+                        <span className="flex items-center space-x-1.5">
+                          <span>{lang.flag}</span>
+                          <span>{lang.label}</span>
+                        </span>
+                        {isSelected && <Check className="w-3.5 h-3.5 text-brand-600" />}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={onLogout}

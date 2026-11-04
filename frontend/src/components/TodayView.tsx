@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MealSlot, Member, Dish } from '../types'
-import { getLocalizedMealTypeName } from '../taxonomyUtils'
+import { getLocalizedMealTypeName, getLocalizedCompatibilityMessage } from '../taxonomyUtils'
 import {
   AlertTriangle,
   Star,
@@ -200,14 +200,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           {comp.status === 'warning' && (
                             <div className="flex items-center space-x-1 p-1 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[11px]">
                               <AlertTriangle className="w-3 h-3 flex-shrink-0 text-amber-600" />
-                              <span className="font-medium">{comp.message}</span>
+                              <span className="font-medium">{getLocalizedCompatibilityMessage(comp, t)}</span>
                             </div>
                           )}
 
                           {comp.status === 'hit' && (
                             <div className="flex items-center space-x-1 p-1 rounded bg-pink-50 border border-pink-200 text-pink-800 text-[11px]">
                               <Star className="w-3 h-3 flex-shrink-0 text-pink-600 fill-pink-500" />
-                              <span className="font-medium">{comp.message}</span>
+                              <span className="font-medium">{getLocalizedCompatibilityMessage(comp, t)}</span>
                             </div>
                           )}
 

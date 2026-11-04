@@ -2,7 +2,12 @@ import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MealSlot, Member, MealType, Dish, CourseType, DishStatus } from '../types'
 import { formatDate, parseDate } from '../dateUtils'
-import { getLocalizedMealTypeName, getLocalizedStatusName, getLocalizedCourseName } from '../taxonomyUtils'
+import {
+  getLocalizedMealTypeName,
+  getLocalizedStatusName,
+  getLocalizedCourseName,
+  getLocalizedCompatibilityMessage,
+} from '../taxonomyUtils'
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -311,10 +316,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center space-x-1.5">
             <CalendarIcon className="w-4 h-4 text-brand-600" />
-            <span>Pianificatore Pasti</span>
+            <span>{t('calendar.title')}</span>
           </h2>
           <p className="text-[11px] text-slate-500">
-            Pianifica e personalizza i pasti della settimana per tutta la famiglia
+            {t('calendar.subtitle')}
           </p>
         </div>
 
@@ -491,7 +496,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     autoFocus
                                     value={editSlotNoteValue}
                                     onChange={(e) => setEditSlotNoteValue(e.target.value)}
-                                    placeholder="Nota pasto..."
+                                    placeholder={t('calendar.slot_notes_placeholder')}
                                     className="w-full min-w-0 px-1 py-0.2 text-[9px] rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                                     onKeyDown={(e) => {
                                       if (e.key === 'Enter') {
@@ -521,7 +526,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 <div
                                   className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
                                   onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
-                                  title="Clicca per modificare la nota"
+                                  title={t('calendar.edit_note_tooltip')}
                                 >
                                   <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
                                     <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
@@ -533,7 +538,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                       e.stopPropagation()
                                       handleDeleteSlotNote(slot.id)
                                     }}
-                                    title="Elimina nota pasto"
+                                    title={t('calendar.delete_note_title')}
                                     className="opacity-0 group-hover:opacity-100 text-amber-700 hover:text-rose-600 text-[9px] px-0.5 flex-shrink-0 transition-opacity"
                                   >
                                     ✕
@@ -546,19 +551,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   <button
                                     onClick={() => handleOpenAssignModal(slot.id)}
                                     className="flex-1 text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                    title="Aggiungi piatto a questo pasto"
+                                    title={t('calendar.add_dish_tooltip')}
                                   >
                                     <Plus className="w-2.5 h-2.5" />
-                                    <span>Piatto</span>
+                                    <span>{t('calendar.btn_dish')}</span>
                                   </button>
                                   {!slot.notes && (
                                     <button
                                       onClick={() => handleStartEditSlotNote(slot.id, '')}
                                       className="px-1 text-center py-1 text-[10px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                      title="Aggiungi nota per questo pasto"
+                                      title={t('calendar.add_note_tooltip')}
                                     >
                                       <Plus className="w-2.5 h-2.5" />
-                                      <span>Nota</span>
+                                      <span>{t('calendar.btn_note')}</span>
                                     </button>
                                   )}
                                 </div>
@@ -587,7 +592,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                         </div>
                                         <button
                                           onClick={() => onRemoveDish(slot.id, d.dish_id)}
-                                          title="Rimuovi piatto"
+                                          title={t('calendar.remove_dish_tooltip')}
                                           className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
                                         >
                                           ✕
@@ -599,19 +604,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     <button
                                       onClick={() => handleOpenAssignModal(slot.id)}
                                       className="flex-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                      title="Aggiungi altro piatto"
+                                      title={t('calendar.add_another_dish_tooltip')}
                                     >
                                       <Plus className="w-2.5 h-2.5" />
-                                      <span>Altro</span>
+                                      <span>{t('calendar.btn_another_dish')}</span>
                                     </button>
                                     {!slot.notes && (
                                       <button
                                         onClick={() => handleStartEditSlotNote(slot.id, '')}
                                         className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                        title="Aggiungi nota per questo pasto"
+                                        title={t('calendar.add_note_tooltip')}
                                       >
                                         <Plus className="w-2.5 h-2.5" />
-                                        <span>Nota</span>
+                                        <span>{t('calendar.btn_note')}</span>
                                       </button>
                                     )}
                                   </div>
@@ -622,7 +627,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             <button
                               onClick={() => onAddCustomSlot(dateStr, mt.id)}
                               className="w-full h-full min-h-[32px] flex items-center justify-center text-[10px] text-slate-300 hover:text-brand-600 hover:bg-slate-50 rounded transition-colors"
-                              title={`Aggiungi ${mt.name} per questo giorno`}
+                              title={t('calendar.add_slot_for_day', { name: getLocalizedMealTypeName(mt, t) })}
                             >
                               <Plus className="w-3 h-3" />
                             </button>
@@ -644,7 +649,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
                   <th className="w-28 sm:w-36 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
-                    Giorno
+                    {t('calendar.day_col')}
                   </th>
                   {activeMealTypes.map((mt) => (
                     <th
@@ -700,10 +705,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           <button
                             onClick={() => setSelectedMealTypeForDate(dateStr)}
                             className="mt-1.5 flex items-center space-x-0.5 text-[9px] text-slate-500 hover:text-brand-600 border border-slate-200 bg-white hover:bg-slate-50 px-1.5 py-0.5 rounded transition-colors"
-                            title={`+ Pasto (${dayShort} ${dayNum})`}
+                            title={`+ ${t('calendar.btn_meal')} (${dayShort} ${dayNum})`}
                           >
                             <Plus className="w-2.5 h-2.5" />
-                            <span>Pasto</span>
+                            <span>{t('calendar.btn_meal')}</span>
                           </button>
                         </div>
                       </td>
@@ -726,7 +731,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                       autoFocus
                                       value={editSlotNoteValue}
                                       onChange={(e) => setEditSlotNoteValue(e.target.value)}
-                                      placeholder="Nota pasto..."
+                                      placeholder={t('calendar.slot_notes_placeholder')}
                                       className="w-full min-w-0 px-1 py-0.2 text-[9px] rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
@@ -756,7 +761,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   <div
                                     className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
                                     onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
-                                    title="Clicca per modificare la nota"
+                                    title={t('calendar.edit_note_tooltip')}
                                   >
                                     <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
                                       <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
@@ -768,7 +773,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                         e.stopPropagation()
                                         handleDeleteSlotNote(slot.id)
                                       }}
-                                      title="Elimina nota pasto"
+                                      title={t('calendar.delete_note_title')}
                                       className="opacity-0 group-hover:opacity-100 text-amber-700 hover:text-rose-600 text-[9px] px-0.5 flex-shrink-0 transition-opacity"
                                     >
                                       ✕
@@ -781,19 +786,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                     <button
                                       onClick={() => handleOpenAssignModal(slot.id)}
                                       className="flex-1 text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                      title="Aggiungi piatto a questo pasto"
+                                      title={t('calendar.add_dish_tooltip')}
                                     >
                                       <Plus className="w-2.5 h-2.5" />
-                                      <span>Piatto</span>
+                                      <span>{t('calendar.btn_dish')}</span>
                                     </button>
                                     {!slot.notes && (
                                       <button
                                         onClick={() => handleStartEditSlotNote(slot.id, '')}
                                         className="px-1 text-center py-1 text-[10px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                        title="Aggiungi nota per questo pasto"
+                                        title={t('calendar.add_note_tooltip')}
                                       >
                                         <Plus className="w-2.5 h-2.5" />
-                                        <span>Nota</span>
+                                        <span>{t('calendar.btn_note')}</span>
                                       </button>
                                     )}
                                   </div>
@@ -822,7 +827,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                           </div>
                                           <button
                                             onClick={() => onRemoveDish(slot.id, d.dish_id)}
-                                            title="Rimuovi piatto"
+                                            title={t('calendar.remove_dish_tooltip')}
                                             className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity"
                                           >
                                             ✕
@@ -834,19 +839,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                       <button
                                         onClick={() => handleOpenAssignModal(slot.id)}
                                         className="flex-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                        title="Aggiungi altro piatto"
+                                        title={t('calendar.add_another_dish_tooltip')}
                                       >
                                         <Plus className="w-2.5 h-2.5" />
-                                        <span>Altro</span>
+                                        <span>{t('calendar.btn_another_dish')}</span>
                                       </button>
                                       {!slot.notes && (
                                         <button
                                           onClick={() => handleStartEditSlotNote(slot.id, '')}
                                           className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center justify-center space-x-0.5"
-                                          title="Aggiungi nota per questo pasto"
+                                          title={t('calendar.add_note_tooltip')}
                                         >
                                           <Plus className="w-2.5 h-2.5" />
-                                          <span>Nota</span>
+                                          <span>{t('calendar.btn_note')}</span>
                                         </button>
                                       )}
                                     </div>
@@ -857,7 +862,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               <button
                                 onClick={() => onAddCustomSlot(dateStr, mt.id)}
                                 className="w-full h-full min-h-[32px] flex items-center justify-center text-[10px] text-slate-300 hover:text-brand-600 hover:bg-slate-50 rounded transition-colors"
-                                title={`Aggiungi ${mt.name} per questo giorno`}
+                                title={t('calendar.add_slot_for_day', { name: getLocalizedMealTypeName(mt, t) })}
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
@@ -904,7 +909,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   <span className="font-bold capitalize text-xs sm:text-sm">{dayTitle}</span>
                   {isToday && (
                     <span className="bg-brand-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase">
-                      Oggi
+                      {t('calendar.today_badge')}
                     </span>
                   )}
                 </div>
@@ -914,7 +919,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   className="flex items-center space-x-1 text-[10px] font-medium text-slate-600 hover:text-brand-600 bg-white border border-slate-200 px-2 py-0.5 rounded transition-colors"
                 >
                   <Plus className="w-2.5 h-2.5" />
-                  <span>Aggiungi pasto</span>
+                  <span>{t('calendar.add_meal_slot')}</span>
                 </button>
               </div>
 
@@ -952,7 +957,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           autoFocus
                           value={editSlotNoteValue}
                           onChange={(e) => setEditSlotNoteValue(e.target.value)}
-                          placeholder="Es. Pranzo dalla nonna, cena fuori..."
+                          placeholder={t('calendar.slot_notes_placeholder_example')}
                           className="flex-1 px-1.5 py-0.5 text-xs rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -968,7 +973,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           onClick={() => handleSaveSlotNote(slot.id)}
                           className="px-2 py-0.5 bg-amber-600 text-white font-medium text-xs rounded hover:bg-amber-700"
                         >
-                          Salva
+                          {t('common.save')}
                         </button>
                         <button
                           type="button"
@@ -982,7 +987,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       <div
                         className="group relative flex items-start justify-between p-1.5 rounded bg-amber-50/80 border border-amber-200/90 text-amber-900 text-xs shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
                         onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
-                        title="Clicca per modificare la nota del pasto"
+                        title={t('calendar.edit_note_tooltip')}
                       >
                         <div className="flex items-start space-x-1.5 pr-2">
                           <StickyNote className="w-3.5 h-3.5 text-amber-700 flex-shrink-0 mt-0.5" />
@@ -994,7 +999,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             e.stopPropagation()
                             handleDeleteSlotNote(slot.id)
                           }}
-                          title="Elimina nota pasto"
+                          title={t('calendar.delete_note_title')}
                           className="opacity-0 group-hover:opacity-100 text-amber-600 hover:text-rose-600 hover:bg-amber-200/50 p-0.5 rounded transition-opacity"
                         >
                           <X className="w-3 h-3" />
@@ -1006,7 +1011,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="space-y-1.5 flex-1">
                       {slot.dishes.length === 0 ? (
                         <p className="text-[10px] text-slate-400 italic py-1">
-                          Nessun piatto pianificato.
+                          {t('calendar.no_dishes_planned')}
                         </p>
                       ) : (
                         slot.dishes.map((d) => {
@@ -1030,14 +1035,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                   {/* P002: Badge for alternative dish */}
                                   {hasAssignedMembers && (
                                     <div className="text-[9px] text-amber-800 font-medium bg-amber-50 border border-amber-200 px-1 py-0.2 rounded mt-0.5 inline-block">
-                                      Per: {assignedMembersList.map((m) => m.name).join(', ')}
+                                      {t('calendar.for_diners', { names: assignedMembersList.map((m) => m.name).join(', ') })}
                                     </div>
                                   )}
                                 </div>
                                 <button
                                   onClick={() => onRemoveDish(slot.id, d.dish_id)}
                                   className="text-slate-400 hover:text-rose-500 text-xs px-1"
-                                  title="Rimuovi"
+                                  title={t('common.delete')}
                                 >
                                   ✕
                                 </button>
@@ -1047,21 +1052,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               {d.compatibility.status === 'warning' && (
                                 <div className="flex items-center space-x-1 text-amber-800 font-medium bg-amber-50 p-1 rounded text-[10px]">
                                   <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0 text-amber-600" />
-                                  <span>{d.compatibility.message}</span>
+                                  <span>{getLocalizedCompatibilityMessage(d.compatibility, t)}</span>
                                 </div>
                               )}
 
                               {d.compatibility.status === 'hit' && (
                                 <div className="flex items-center space-x-1 text-pink-700 font-medium bg-pink-50 p-1 rounded text-[10px]">
                                   <Star className="w-2.5 h-2.5 flex-shrink-0 fill-pink-500" />
-                                  <span>{d.compatibility.message}</span>
+                                  <span>{getLocalizedCompatibilityMessage(d.compatibility, t)}</span>
                                 </div>
                               )}
 
                               {d.compatibility.status === 'ok' && !d.compatibility.is_conflict && (
                                 <div className="flex items-center space-x-1 text-emerald-600 text-[10px]">
                                   <CheckCircle className="w-2.5 h-2.5" />
-                                  <span>Gradito</span>
+                                  <span>{t('calendar.dish_liked')}</span>
                                 </div>
                               )}
 
@@ -1069,7 +1074,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                               <div className="pt-1 border-t border-slate-200/60 space-y-0.5">
                                 <div className="flex items-center justify-between text-[9px] text-slate-400">
                                   <span className="font-semibold uppercase tracking-wider">
-                                    Voto pasto (👍 / 😐 / 👎):
+                                    {t('calendar.meal_rating_label')}
                                   </span>
                                 </div>
                                 <div className="flex flex-wrap gap-1">
@@ -1150,7 +1155,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 <div className="flex items-center justify-between text-[9px] text-slate-400">
                                   <span className="flex items-center space-x-1">
                                     <MessageSquare className="w-2.5 h-2.5" />
-                                    <span>Note ({d.notes_list?.length || 0}):</span>
+                                    <span>{t('calendar.notes_count', { count: d.notes_list?.length || 0 })}</span>
                                   </span>
                                   {!isAddingNote && (
                                     <button
@@ -1161,7 +1166,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                       }}
                                       className="text-brand-600 hover:text-brand-700 font-medium"
                                     >
-                                      + Nota
+                                      {t('calendar.add_note')}
                                     </button>
                                   )}
                                 </div>
@@ -1178,7 +1183,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                           type="button"
                                           onClick={() => onDeleteSlotDishNote(slot.id, d.dish_id, n.id)}
                                           className="text-slate-400 hover:text-rose-500 ml-1 p-0.5"
-                                          title="Elimina nota"
+                                          title={t('calendar.delete_note_title')}
                                         >
                                           <X className="w-2.5 h-2.5" />
                                         </button>
@@ -1194,7 +1199,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                       autoFocus
                                       value={noteText}
                                       onChange={(e) => setNoteText(e.target.value)}
-                                      placeholder="Nota pasto..."
+                                      placeholder={t('calendar.slot_notes_placeholder')}
                                       className="flex-1 px-1.5 py-0.5 text-[10px] rounded border border-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500"
                                       onKeyDown={(e) => {
                                         if (e.key === 'Enter') {
@@ -1208,7 +1213,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                       onClick={() => handleSaveNote(slot.id, d.dish_id)}
                                       className="px-2 py-0.5 bg-brand-600 text-white font-medium text-[10px] rounded hover:bg-brand-700"
                                     >
-                                      Salva
+                                      {t('common.save')}
                                     </button>
                                     <button
                                       type="button"
@@ -1232,16 +1237,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         className="flex-1 py-1 bg-slate-50 hover:bg-slate-100 text-brand-700 font-medium text-xs rounded border border-slate-200/80 transition-colors flex items-center justify-center space-x-1"
                       >
                         <Plus className="w-3 h-3" />
-                        <span>Scegli piatto</span>
+                        <span>{t('calendar.choose_dish')}</span>
                       </button>
                       {!slot.notes && (
                         <button
                           onClick={() => handleStartEditSlotNote(slot.id, '')}
                           className="py-1 px-2.5 bg-slate-50 hover:bg-amber-50 text-amber-800 font-medium text-xs rounded border border-slate-200/80 hover:border-amber-300 transition-colors flex items-center justify-center space-x-1"
-                          title="Aggiungi una nota relativa al pasto"
+                          title={t('calendar.add_note_tooltip')}
                         >
                           <Plus className="w-3 h-3 text-amber-600" />
-                          <span>Nota</span>
+                          <span>{t('calendar.btn_note')}</span>
                         </button>
                       )}
                     </div>
@@ -1441,7 +1446,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     rows={2}
                     value={newDishNotes}
                     onChange={(e) => setNewDishNotes(e.target.value)}
-                    placeholder="Note sulla preparazione, ingredienti o varianti..."
+                    placeholder={t('dishes.dish_description_placeholder')}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden resize-none"
                   />
                 </div>
@@ -1534,8 +1539,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="text-center py-6 px-4 space-y-2">
                       <p className="text-xs text-slate-500">
                         {dishSearch.trim()
-                          ? `Nessun piatto trovato per "${dishSearch}".`
-                          : 'Nessun piatto corrisponde ai filtri selezionati.'}
+                          ? t('calendar.no_dishes_for_query', { query: dishSearch })
+                          : t('calendar.no_dishes_matched')}
                       </p>
                       {onCreateDish && (
                         <button
@@ -1546,8 +1551,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           <Plus className="w-3.5 h-3.5" />
                           <span>
                             {dishSearch.trim()
-                              ? `Crea "${dishSearch}" come nuovo piatto`
-                              : 'Crea un nuovo piatto'}
+                              ? t('calendar.create_dish_as_new', { name: dishSearch })
+                              : t('calendar.create_new_dish')}
                           </span>
                         </button>
                       )}
