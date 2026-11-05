@@ -2,7 +2,7 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Verified — All 34 Automated Tests Passing  
+> **Status**: Verified — All 35 Automated Tests Passing  
 > **Author**: Bottega QA Engineer (`qa-engineer`)
 
 ---
@@ -45,6 +45,7 @@ The testing strategy ensures high test confidence without brittle mocks:
 | **`US-17` Row Error Reporting** | `backend/tests/test_dishes_import_export.py` | Reporting missing title, invalid status, and missing course types per row. | **PASS** |
 | **`US-17` Formula Injection Sanitization** | `backend/tests/test_dishes_import_export.py` | Verifying formula triggers (=, +, -, @) are neutralized on export and import. | **PASS** |
 | **`US-18` Meal Planner Attendance Indicator & Modal (`S11` / Issue #8)** | `frontend/` build & UI validation | Concise `Users` icon + textual summary ("solo...", "no...") in lower-left cell corner across matrix views (`compact_h`, `compact_v`) and slot header (`detailed`); interactive attendance modal matching `TodayView` styling with live preview, batch toggle diff, and save/cancel. | **PASS** |
+| **`US-19` Meal Planner Edit Assigned Dish & Diners (`S12` / Issue #9)** | `backend/tests/test_calendar_and_attendance.py`, `frontend/` build | Clickable dish title in all matrix views (`compact_h`, `compact_v`, `detailed`) opening edit modal to modify diner assignment (`PATCH /calendar/slots/{id}/dishes/{dish_id}` or all diners). | **PASS** |
 | **`US-07` Frontend SPA Verification** | `frontend/` build pipeline | TypeScript compile (`tsc`), JSX bundling with Vite, production assets generated without errors, static mount verified on FastAPI. | **PASS** |
 
 ---

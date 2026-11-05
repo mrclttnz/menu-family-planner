@@ -15,6 +15,7 @@
     "search": "Cerca...",
     "yes": "Sì",
     "no": "No",
+    "saving": "Salvataggio...",
     "compatibility_warning": "Attenzione: a {{names}} non piace questo piatto!",
     "compatibility_hit": "⭐ Piatto amato da tutti i commensali a cui è destinato!",
     "compatibility_ok": "Piatto gradito a tavola."
@@ -147,7 +148,13 @@
     "manage_attendance_tooltip": "Gestisci presenze al pasto",
     "manage_attendance_hint": "Tocca un commensale per alternare tra presente e assente:",
     "attendance_summary_label": "Risultato",
-    "save_attendance": "Salva presenze"
+    "save_attendance": "Salva presenze",
+    "edit_dish_assignment_title": "Modifica assegnazione piatto",
+    "edit_dish_assignment_tooltip": "Clicca per modificare i commensali assegnati",
+    "dish_diners_label": "Destinatari del piatto",
+    "assign_all_diners": "Assegna a tutti i presenti",
+    "assigned_to_all_diners": "Questo piatto è servito a tutti i commensali presenti al pasto.",
+    "select_at_least_one_diner": "Seleziona almeno un commensale o assegna il piatto a tutti."
   },
   "dishes": {
     "catalog_title": "Catalogo Ricette",

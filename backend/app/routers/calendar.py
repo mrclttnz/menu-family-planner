@@ -19,6 +19,7 @@ from app.schemas.meal_plan import (
     MealSlotNotesUpdate,
     MealSlotResponse,
     SlotDishCreate,
+    SlotDishUpdate,
     SlotDishResponse,
     SlotDishNoteCreate,
     SlotDishNoteResponse,
@@ -317,6 +318,44 @@ def assign_dish_to_slot(
         db.flush()
 
     # Update assigned members (alternative dish diners)
+    if req.assigned_member_ids is not None:
+        db.query(MealSlotDishMember).filter_by(meal_slot_dish_id=assignment.id).delete()
+        for mid in req.assigned_member_ids:
+            if any(m.id == mid for m in slot.household.members):
+                db.add(MealSlotDishMember(meal_slot_dish_id=assignment.id, member_id=mid))
+
+    db.commit()
+    db.refresh(slot)
+
+    members = db.query(Member).filter(Member.household_id == current_household.id).all()
+    return build_slot_response(slot, members, db)
+
+
+@router.patch("/slots/{slot_id}/dishes/{dish_id}", response_model=MealSlotResponse)
+def update_slot_dish(
+    slot_id: int,
+    dish_id: int,
+    req: SlotDishUpdate,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Update a dish assignment in a meal slot (e.g. modify assigned diners / alternative dish)."""
+    slot = db.query(MealSlot).filter(
+        MealSlot.id == slot_id,
+        MealSlot.household_id == current_household.id
+    ).first()
+    if not slot:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Meal slot not found.")
+
+    assignment = db.query(MealSlotDish).filter_by(meal_slot_id=slot.id, dish_id=dish_id).first()
+    if not assignment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish is not assigned to this meal slot.")
+
+    if req.sort_order is not None:
+        assignment.sort_order = req.sort_order
+    if req.notes is not None:
+        assignment.notes = req.notes.strip() if req.notes.strip() else None
+
     if req.assigned_member_ids is not None:
         db.query(MealSlotDishMember).filter_by(meal_slot_dish_id=assignment.id).delete()
         for mid in req.assigned_member_ids:

@@ -382,3 +382,69 @@ def test_meal_slot_notes_p010(client, auth_headers):
     assert res_null.json()["notes"] is None
 
 
+def test_update_slot_dish_assigned_members_issue_9(client, auth_headers):
+    """Test modifying assigned diners for a scheduled dish in a meal slot (Issue #9)."""
+    # 1. Setup members
+    m_marco = client.post("/api/v1/members", headers=auth_headers, json={"name": "Marco"}).json()
+    m_sara = client.post("/api/v1/members", headers=auth_headers, json={"name": "Sara"}).json()
+    m_leo = client.post("/api/v1/members", headers=auth_headers, json={"name": "Leo", "is_child": True}).json()
+
+    # 2. Setup dish
+    res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    status_id = res_statuses.json()[0]["id"]
+    res_courses = client.get("/api/v1/taxonomies/courses", headers=auth_headers)
+    course_id = res_courses.json()[0]["id"]
+
+    dish = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Pasta al pesto",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    }).json()
+
+    # 3. Schedule dish for today's lunch
+    today = date.today().isoformat()
+    res_cal = client.get(f"/api/v1/calendar?start_date={today}&end_date={today}", headers=auth_headers)
+    slots = res_cal.json()
+    lunch_slot = next(s for s in slots if s["meal_type"]["code"] == "lunch")
+
+    res_assign = client.post(
+        f"/api/v1/calendar/slots/{lunch_slot['id']}/dishes",
+        headers=auth_headers,
+        json={"dish_id": dish["id"]}
+    )
+    assert res_assign.status_code == 200
+    assigned_dish = next(d for d in res_assign.json()["dishes"] if d["dish_id"] == dish["id"])
+    assert assigned_dish["assigned_member_ids"] == []
+
+    # 4. Update dish assignment to specific diner: only Leo (Issue #9)
+    res_patch1 = client.patch(
+        f"/api/v1/calendar/slots/{lunch_slot['id']}/dishes/{dish['id']}",
+        headers=auth_headers,
+        json={"assigned_member_ids": [m_leo["id"]]}
+    )
+    assert res_patch1.status_code == 200
+    patched_dish1 = next(d for d in res_patch1.json()["dishes"] if d["dish_id"] == dish["id"])
+    assert patched_dish1["assigned_member_ids"] == [m_leo["id"]]
+
+    # 5. Update dish assignment to two diners: Leo and Sara
+    res_patch2 = client.patch(
+        f"/api/v1/calendar/slots/{lunch_slot['id']}/dishes/{dish['id']}",
+        headers=auth_headers,
+        json={"assigned_member_ids": [m_leo["id"], m_sara["id"]]}
+    )
+    assert res_patch2.status_code == 200
+    patched_dish2 = next(d for d in res_patch2.json()["dishes"] if d["dish_id"] == dish["id"])
+    assert set(patched_dish2["assigned_member_ids"]) == {m_leo["id"], m_sara["id"]}
+
+    # 6. Revert back to all diners by providing empty list []
+    res_patch3 = client.patch(
+        f"/api/v1/calendar/slots/{lunch_slot['id']}/dishes/{dish['id']}",
+        headers=auth_headers,
+        json={"assigned_member_ids": []}
+    )
+    assert res_patch3.status_code == 200
+    patched_dish3 = next(d for d in res_patch3.json()["dishes"] if d["dish_id"] == dish["id"])
+    assert patched_dish3["assigned_member_ids"] == []
+
+
+

@@ -189,6 +189,18 @@ export function App() {
     }
   }
 
+  // Update Slot Dish Diners / Alternative Dish (Issue #9)
+  const handleUpdateSlotDish = async (slotId: number, dishId: number, assignedMemberIds?: number[]) => {
+    try {
+      await api.updateSlotDish(slotId, dishId, { assigned_member_ids: assignedMemberIds })
+      const updatedCalendar = await api.getCalendar(startDate, endDate)
+      setCalendarSlots(updatedCalendar)
+    } catch (err) {
+      console.error('Failed to update slot dish:', err)
+      throw err
+    }
+  }
+
   // Remove Dish from Slot
   const handleRemoveDish = async (slotId: number, dishId: number) => {
     try {
@@ -440,6 +452,7 @@ export function App() {
             onUpdateSlotNotes={handleUpdateSlotNotes}
             onSaveSlotAttendance={handleSaveSlotAttendance}
             onAssignDish={handleAssignDish}
+            onUpdateSlotDish={handleUpdateSlotDish}
             onCreateDish={handleCreateDish}
             onRemoveDish={handleRemoveDish}
             onAddSlotDishNote={handleAddSlotDishNote}

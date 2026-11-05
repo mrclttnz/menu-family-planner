@@ -232,6 +232,15 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  updateSlotDish: (
+    slotId: number,
+    dishId: number,
+    payload: { sort_order?: number; notes?: string; assigned_member_ids?: number[] }
+  ) =>
+    request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
   removeDishFromSlot: (slotId: number, dishId: number) =>
     request<MealSlot>(`/calendar/slots/${slotId}/dishes/${dishId}`, {
       method: 'DELETE',

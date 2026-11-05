@@ -230,6 +230,7 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 | `/calendar/slots/{id}` | `DELETE`| Required | Remove a meal slot for a day (e.g. eliminate Lunch on Brunch day) |
 | `/calendar/slots/{id}/notes` | `PATCH` | Required | Update or clear the general meal slot note (e.g. "Pranzo dalla nonna", `P010`) |
 | `/calendar/slots/{id}/dishes` | `POST` | Required | Assign dish to slot: `{ dish_id, sort_order?, notes?, assigned_member_ids?: int[] }` (supports alternative dishes `P002`) |
+| `/calendar/slots/{id}/dishes/{dish_id}` | `PATCH` | Required | Update dish assignment in meal slot (e.g. modify assigned diners / alternative dish `Issue #9`): `{ sort_order?, notes?, assigned_member_ids?: int[] }` |
 | `/calendar/slots/{id}/dishes/{dish_id}` | `DELETE`| Required | Remove dish from meal slot |
 | `/calendar/slots/{id}/dishes/{dish_id}/notes` | `POST` | Required | Add timestamped feedback note to dish consumed in this meal slot |
 | `/calendar/slots/{id}/dishes/{dish_id}/notes/{note_id}` | `DELETE` | Required | Delete feedback note from dish consumed in this meal slot |

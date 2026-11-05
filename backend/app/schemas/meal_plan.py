@@ -49,6 +49,14 @@ class SlotDishCreate(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
+class SlotDishUpdate(BaseModel):
+    sort_order: Optional[int] = Field(None, description="Serving order (1=Primo, 2=Secondo, etc.)")
+    notes: Optional[str] = Field(None, max_length=255)
+    assigned_member_ids: Optional[List[int]] = Field(None, description="Specific diners for alternative dishes; empty list [] means all attending")
+
+    model_config = ConfigDict(extra="forbid")
+
+
 class SlotDishResponse(BaseModel):
     id: int
     dish_id: int

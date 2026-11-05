@@ -15,6 +15,7 @@
     "search": "Search...",
     "yes": "Yes",
     "no": "No",
+    "saving": "Saving...",
     "compatibility_warning": "Warning: {{names}} does not like this dish!",
     "compatibility_hit": "⭐ Dish loved by all diners it is intended for!",
     "compatibility_ok": "Dish liked at the table."
@@ -147,7 +148,13 @@
     "manage_attendance_tooltip": "Manage meal attendance",
     "manage_attendance_hint": "Click a diner to toggle between present and absent:",
     "attendance_summary_label": "Result",
-    "save_attendance": "Save attendance"
+    "save_attendance": "Save attendance",
+    "edit_dish_assignment_title": "Edit dish assignment",
+    "edit_dish_assignment_tooltip": "Click to edit assigned diners",
+    "dish_diners_label": "Dish recipients",
+    "assign_all_diners": "Assign to all diners",
+    "assigned_to_all_diners": "This dish is served to all diners attending this meal.",
+    "select_at_least_one_diner": "Select at least one diner or assign dish to everyone."
   },
   "dishes": {
     "catalog_title": "Recipe Catalog",
