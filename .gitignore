@@ -18,6 +18,9 @@ build/
 *.pem
 *.key
 
+# Workfiles
+workfiles/
+
 # Production Configuration Files
 *.prod.yml
 *.prod.yaml
