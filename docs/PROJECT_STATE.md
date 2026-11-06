@@ -45,6 +45,7 @@
 | `S10` | Multi-language Support (i18n: IT/EN) ([#1](https://github.com/mrclttnz/menu-family-planner/issues/1)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S11` | Meal Planner Attendance Indicator & Modal ([#8](https://github.com/mrclttnz/menu-family-planner/issues/8)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S12` | Meal Planner: Edit Assigned Dish & Diners ([#9](https://github.com/mrclttnz/menu-family-planner/issues/9)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S13` | Compact Card View for Dish Catalog ([#10](https://github.com/mrclttnz/menu-family-planner/issues/10)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.

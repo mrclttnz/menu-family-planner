@@ -28,6 +28,8 @@ import {
   AlertTriangle,
   AlertCircle,
   FileCheck,
+  ChevronsRight,
+  ChevronsLeft,
 } from 'lucide-react'
 
 interface DishesViewProps {
@@ -106,6 +108,29 @@ export const DishesView: React.FC<DishesViewProps> = ({
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<DishImportResult | null>(null)
   const [importError, setImportError] = useState<string | null>(null)
+
+  // Compact / Expand Card State (Issue #10)
+  const [expandedDishIds, setExpandedDishIds] = useState<Set<number>>(new Set())
+
+  const handleToggleExpand = (dishId: number) => {
+    setExpandedDishIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(dishId)) {
+        next.delete(dishId)
+      } else {
+        next.add(dishId)
+      }
+      return next
+    })
+  }
+
+  const handleExpandAll = () => {
+    setExpandedDishIds(new Set(filteredDishes.map((d) => d.id)))
+  }
+
+  const handleCollapseAll = () => {
+    setExpandedDishIds(new Set())
+  }
 
   const handleExport = async (format: 'xlsx' | 'csv' | 'json') => {
     setIsExportDropdownOpen(false)
@@ -283,7 +308,30 @@ export const DishesView: React.FC<DishesViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center space-x-1.5 self-start sm:self-auto">
+        <div className="flex items-center space-x-1.5 self-start sm:self-auto flex-wrap gap-y-1.5">
+          {/* Expand / Collapse All (Issue #10) */}
+          <div className="flex items-center rounded-lg border border-slate-200 bg-white p-0.5 shadow-2xs">
+            <button
+              type="button"
+              onClick={handleExpandAll}
+              className="flex items-center space-x-1 px-2 py-1 text-slate-700 hover:text-brand-700 hover:bg-slate-50 text-xs font-semibold rounded transition-colors cursor-pointer"
+              title={t('dishes.btn_expand_all')}
+            >
+              <ChevronsRight className="w-3.5 h-3.5 text-brand-600" />
+              <span>{t('dishes.btn_expand_all')}</span>
+            </button>
+            <div className="h-3.5 w-px bg-slate-200 mx-0.5" />
+            <button
+              type="button"
+              onClick={handleCollapseAll}
+              className="flex items-center space-x-1 px-2 py-1 text-slate-700 hover:text-slate-900 hover:bg-slate-50 text-xs font-semibold rounded transition-colors cursor-pointer"
+              title={t('dishes.btn_collapse_all')}
+            >
+              <ChevronsLeft className="w-3.5 h-3.5 text-slate-500" />
+              <span>{t('dishes.btn_collapse_all')}</span>
+            </button>
+          </div>
+
           {/* Export Dropdown */}
           <div className="relative">
             <button
@@ -440,190 +488,217 @@ export const DishesView: React.FC<DishesViewProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-2.5">
-          {filteredDishes.map((dish) => (
-            <div
-              key={dish.id}
-              className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-2xs overflow-hidden flex flex-col justify-between p-2.5 space-y-2"
-            >
-              <div className="space-y-1.5">
-                {/* Header: Status, Edit & Delete */}
-                <div className="flex items-center justify-between">
-                  <span
-                    className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full uppercase tracking-wider"
-                    style={{
-                      backgroundColor: `${dish.status.color}15`,
-                      color: dish.status.color,
-                    }}
-                  >
-                    {getLocalizedStatusName(dish.status, t)}
-                  </span>
-
-                  <div className="flex items-center space-x-1">
-                    {/* G001/D004: Edit Button */}
-                    <button
-                      onClick={() => handleOpenEdit(dish)}
-                      className="text-slate-400 hover:text-brand-600 p-1 rounded transition-colors"
-                      title={t('common.edit')}
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => onDeleteDish(dish.id)}
-                      className="text-slate-300 hover:text-rose-500 p-1 rounded transition-colors"
-                      title={t('common.delete')}
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Title & Notes */}
-                <div>
-                  <h3 className="font-bold text-slate-900 text-sm leading-snug">{dish.title}</h3>
-                  {dish.description && (
-                    <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
-                      {dish.description}
-                    </p>
-                  )}
-                  {dish.notes && !dish.description && (
-                    <p className="text-[11px] text-slate-400 italic mt-0.5 line-clamp-2">
-                      {dish.notes}
-                    </p>
-                  )}
-                </div>
-
-                {/* Course Badges */}
-                <div className="flex flex-wrap gap-1">
-                  {dish.courses.map((c) => (
+          {filteredDishes.map((dish) => {
+            const isExpanded = expandedDishIds.has(dish.id)
+            return (
+              <div
+                key={dish.id}
+                className="bg-white rounded-lg border border-slate-200 hover:border-slate-300 shadow-2xs overflow-hidden flex flex-col justify-between p-2.5 space-y-2 transition-all"
+              >
+                <div className="space-y-1.5">
+                  {/* Header: Status, Edit & Delete, Expand/Collapse Toggle */}
+                  <div className="flex items-center justify-between">
                     <span
-                      key={c.id}
-                      className="text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded"
+                      className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full uppercase tracking-wider"
+                      style={{
+                        backgroundColor: `${dish.status.color}15`,
+                        color: dish.status.color,
+                      }}
                     >
-                      {getLocalizedCourseName(c.name, t)}
+                      {getLocalizedStatusName(dish.status, t)}
                     </span>
-                  ))}
-                </div>
 
-                {/* Recipe Source Link/Reference */}
-                {(dish.source.source_reference || dish.source.source_url) && (
-                  <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-600">
-                    <div className="flex items-center space-x-1.5 truncate text-[11px]">
-                      <Book className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                      <span className="truncate">
-                        {dish.source.source_reference || (dish.source.source_type_name ? getLocalizedSourceName(dish.source.source_type_name, t) : 'Ricetta')}
-                      </span>
-                    </div>
-
-                    {dish.source.source_url && (
-                      <a
-                        href={dish.source.source_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center space-x-0.5 text-brand-600 hover:text-brand-700 font-semibold ml-1.5 flex-shrink-0 text-[11px]"
+                    <div className="flex items-center space-x-1">
+                      {/* G001/D004: Edit Button */}
+                      <button
+                        onClick={() => handleOpenEdit(dish)}
+                        className="text-slate-400 hover:text-brand-600 p-1 rounded transition-colors"
+                        title={t('common.edit')}
                       >
-                        <span>Link</span>
-                        <ExternalLink className="w-2.5 h-2.5" />
-                      </a>
+                        <Edit2 className="w-3.5 h-3.5" />
+                      </button>
+                      {/* Delete Button */}
+                      <button
+                        onClick={() => onDeleteDish(dish.id)}
+                        className="text-slate-300 hover:text-rose-500 p-1 rounded transition-colors"
+                        title={t('common.delete')}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                      {/* Expand / Collapse Button (Issue #10) */}
+                      <button
+                        type="button"
+                        onClick={() => handleToggleExpand(dish.id)}
+                        className={`flex items-center justify-center px-1.5 py-0.5 rounded text-[11px] font-bold tracking-tight transition-colors cursor-pointer ${
+                          isExpanded
+                            ? 'bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200'
+                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900 border border-slate-200/80'
+                        }`}
+                        title={isExpanded ? t('dishes.btn_collapse_dish') : t('dishes.btn_expand_dish')}
+                      >
+                        <span>{isExpanded ? '<<' : '>>'}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Title & (if expanded) Notes / Description */}
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-sm leading-snug">{dish.title}</h3>
+                    {isExpanded && (
+                      <>
+                        {dish.description && (
+                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                            {dish.description}
+                          </p>
+                        )}
+                        {dish.notes && !dish.description && (
+                          <p className="text-[11px] text-slate-400 italic mt-0.5 line-clamp-2">
+                            {dish.notes}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
-                )}
 
-                {/* J001: Historical Notes Button */}
-                <button
-                  type="button"
-                  onClick={() => handleOpenHistory(dish)}
-                  className="w-full flex items-center justify-center space-x-1.5 py-1 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-[11px] font-medium text-slate-600 hover:text-brand-700 transition-colors"
-                >
-                  <MessageSquare className="w-3 h-3 text-brand-600" />
-                  <span>{t('dishes.meal_notes_history')}</span>
-                </button>
-              </div>
-
-              {/* Per-Member Preferences Matrix */}
-              <div className="pt-1.5 border-t border-slate-100 space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
-                    {t('dishes.diners_preference_label')}
-                  </span>
-                  <span className="text-[9px] text-slate-400">
-                    {t('dishes.diners_preference_legend')}
-                  </span>
-                </div>
-                <div className="space-y-1">
-                  {dish.preferences.map((pref) => {
-                    const isDisliked = pref.rating === 'dislike'
-                    const isFavorite = pref.rating === 'favorite'
-
-                    return (
-                      <div
-                        key={pref.member_id}
-                        className={`flex items-center justify-between text-xs px-1.5 py-0.5 rounded transition-colors ${
-                          isDisliked ? 'bg-rose-50 border border-rose-200' : ''
-                        }`}
+                  {/* Course Badges */}
+                  <div className="flex flex-wrap gap-1">
+                    {dish.courses.map((c) => (
+                      <span
+                        key={c.id}
+                        className="text-[10px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded"
                       >
-                        <div className="flex items-center space-x-1 min-w-0">
-                          <span
-                            className="w-2 h-2 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: pref.avatar_color || '#3B82F6' }}
-                          />
-                          <span className="text-slate-700 font-medium text-[11px] truncate">{pref.member_name}</span>
-                          {isDisliked && (
-                            <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
-                              {t('dishes.pref_dislike')}
+                        {getLocalizedCourseName(c.name, t)}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Attributes visible only when expanded */}
+                  {isExpanded && (
+                    <>
+                      {/* Recipe Source Link/Reference */}
+                      {(dish.source.source_reference || dish.source.source_url) && (
+                        <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 flex items-center justify-between text-xs text-slate-600">
+                          <div className="flex items-center space-x-1.5 truncate text-[11px]">
+                            <Book className="w-3 h-3 text-slate-400 flex-shrink-0" />
+                            <span className="truncate">
+                              {dish.source.source_reference || (dish.source.source_type_name ? getLocalizedSourceName(dish.source.source_type_name, t) : 'Ricetta')}
                             </span>
+                          </div>
+
+                          {dish.source.source_url && (
+                            <a
+                              href={dish.source.source_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center space-x-0.5 text-brand-600 hover:text-brand-700 font-semibold ml-1.5 flex-shrink-0 text-[11px]"
+                            >
+                              <span>Link</span>
+                              <ExternalLink className="w-2.5 h-2.5" />
+                            </a>
                           )}
                         </div>
+                      )}
 
-                        {/* 3-State Toggle: favorite, neutral, dislike */}
-                        <div className="flex rounded border border-slate-200 overflow-hidden bg-slate-50">
-                          <button
-                            type="button"
-                            onClick={() => onSetPreference(dish.id, pref.member_id, 'favorite')}
-                            title={t('dishes.pref_favorite_tooltip', { name: pref.member_name })}
-                            className={`px-1.5 py-0.5 flex items-center transition-colors ${
-                              isFavorite
-                                ? 'bg-pink-100 text-pink-700 font-bold'
-                                : 'text-slate-400 hover:text-pink-600'
-                            }`}
-                          >
-                            <ThumbsUp className={`w-3 h-3 ${isFavorite ? 'fill-pink-500' : ''}`} />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => onSetPreference(dish.id, pref.member_id, 'neutral')}
-                            title={t('dishes.pref_neutral_tooltip', { name: pref.member_name })}
-                            className={`px-1.5 py-0.5 flex items-center transition-colors ${
-                              pref.rating === 'neutral'
-                                ? 'bg-emerald-100 text-emerald-800 font-bold'
-                                : 'text-slate-400 hover:text-emerald-700'
-                            }`}
-                          >
-                            <Meh className="w-3 h-3" />
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() => onSetPreference(dish.id, pref.member_id, 'dislike')}
-                            title={t('dishes.pref_dislike_tooltip', { name: pref.member_name })}
-                            className={`px-1.5 py-0.5 flex items-center space-x-0.5 transition-colors ${
-                              isDisliked
-                                ? 'bg-rose-600 text-white font-bold'
-                                : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
-                            }`}
-                          >
-                            <ThumbsDown className="w-3 h-3" />
-                            <span className="text-[9px] font-bold">{t('dishes.pref_dislike')}</span>
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
+                      {/* J001: Historical Notes Button */}
+                      <button
+                        type="button"
+                        onClick={() => handleOpenHistory(dish)}
+                        className="w-full flex items-center justify-center space-x-1.5 py-1 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200/60 text-[11px] font-medium text-slate-600 hover:text-brand-700 transition-colors"
+                      >
+                        <MessageSquare className="w-3 h-3 text-brand-600" />
+                        <span>{t('dishes.meal_notes_history')}</span>
+                      </button>
+                    </>
+                  )}
                 </div>
+
+                {/* Per-Member Preferences Matrix (visible only when expanded) */}
+                {isExpanded && (
+                  <div className="pt-1.5 border-t border-slate-100 space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider block">
+                        {t('dishes.diners_preference_label')}
+                      </span>
+                      <span className="text-[9px] text-slate-400">
+                        {t('dishes.diners_preference_legend')}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {dish.preferences.map((pref) => {
+                        const isDisliked = pref.rating === 'dislike'
+                        const isFavorite = pref.rating === 'favorite'
+
+                        return (
+                          <div
+                            key={pref.member_id}
+                            className={`flex items-center justify-between text-xs px-1.5 py-0.5 rounded transition-colors ${
+                              isDisliked ? 'bg-rose-50 border border-rose-200' : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-1 min-w-0">
+                              <span
+                                className="w-2 h-2 rounded-full flex-shrink-0"
+                                style={{ backgroundColor: pref.avatar_color || '#3B82F6' }}
+                              />
+                              <span className="text-slate-700 font-medium text-[11px] truncate">{pref.member_name}</span>
+                              {isDisliked && (
+                                <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
+                                  {t('dishes.pref_dislike')}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* 3-State Toggle: favorite, neutral, dislike */}
+                            <div className="flex rounded border border-slate-200 overflow-hidden bg-slate-50">
+                              <button
+                                type="button"
+                                onClick={() => onSetPreference(dish.id, pref.member_id, 'favorite')}
+                                title={t('dishes.pref_favorite_tooltip', { name: pref.member_name })}
+                                className={`px-1.5 py-0.5 flex items-center transition-colors ${
+                                  isFavorite
+                                    ? 'bg-pink-100 text-pink-700 font-bold'
+                                    : 'text-slate-400 hover:text-pink-600'
+                                }`}
+                              >
+                                <ThumbsUp className={`w-3 h-3 ${isFavorite ? 'fill-pink-500' : ''}`} />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => onSetPreference(dish.id, pref.member_id, 'neutral')}
+                                title={t('dishes.pref_neutral_tooltip', { name: pref.member_name })}
+                                className={`px-1.5 py-0.5 flex items-center transition-colors ${
+                                  pref.rating === 'neutral'
+                                    ? 'bg-emerald-100 text-emerald-800 font-bold'
+                                    : 'text-slate-400 hover:text-emerald-700'
+                                }`}
+                              >
+                                <Meh className="w-3 h-3" />
+                              </button>
+
+                              <button
+                                type="button"
+                                onClick={() => onSetPreference(dish.id, pref.member_id, 'dislike')}
+                                title={t('dishes.pref_dislike_tooltip', { name: pref.member_name })}
+                                className={`px-1.5 py-0.5 flex items-center space-x-0.5 transition-colors ${
+                                  isDisliked
+                                    ? 'bg-rose-600 text-white font-bold'
+                                    : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                }`}
+                              >
+                                <ThumbsDown className="w-3 h-3" />
+                                <span className="text-[9px] font-bold">{t('dishes.pref_dislike')}</span>
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       )}
 
