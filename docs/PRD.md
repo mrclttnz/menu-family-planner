@@ -180,6 +180,19 @@ Planning daily meals for a family is a recurring source of friction and mental e
   4. **Validation & Duplicate Modes**: *Given* an import file, *When* processing, *Then* missing mandatory fields (`title`, `status`, `courses`) are reported per row without terminating execution, and duplicate dishes are handled according to user strategy (`skip` or `update`).
   5. **Security (Shift-Left)**: *Given* text fields starting with spreadsheet formula triggers (`=, +, -, @`), *When* exporting or importing, *Then* formulas are neutralized to prevent CSV injection vulnerabilities.
 
+### `US-18`: Meal Planner Attendance Indicator & Modal (`S11` / Issue #8)
+- **Story**: As a meal planner, I want to view attendee summary information directly within each meal slot in all calendar views and quickly toggle attendance exceptions in a modal, so that I can manage who is eating at each meal with zero friction.
+- **Acceptance Criteria**:
+  1. **Visual Attendance Summary**: *Given* any calendar view (`compact_h`, `compact_v`, `detailed`), *When* viewing a meal slot, *Then* a concise indicator shows presence summary (e.g. icon + "solo Leo", "no Papà", or "Tutti presenti").
+  2. **Interactive Attendance Modal**: *Given* a click on the attendance indicator, *When* the modal opens, *Then* family members can be toggled present/absent with immediate live summary preview and batch saving.
+
+### `US-19`: Meal Planner Edit Assigned Dish & Diners (`S12` / Issue #9)
+- **Story**: As a meal planner or family member, I want to click on any planned dish in the calendar to modify which specific diners it is intended for (or reset it to all attendees), so that alternative dishes and dietary assignments can be adapted dynamically.
+- **Acceptance Criteria**:
+  1. **Interactive Dish Titles in All Views**: *Given* the meal planner in any view mode (`compact_h`, `compact_v`, `detailed`), *When* clicking on a scheduled dish title or diner label, *Then* an edit assignment modal opens.
+  2. **Diner Selection Experience**: *Given* the edit assignment modal, *When* switching between "Assegna a tutti i presenti" and "Assegna solo a specifici commensali", *Then* family member chips allow toggling individual diner assignments.
+  3. **Atomic API Update**: *Given* modified diner assignments, *When* saving, *Then* `PATCH /calendar/slots/{slot_id}/dishes/{dish_id}` updates the assignments atomically and refreshes compatibility alerts and calendar badges immediately.
+
 ---
 
 ## 5. Non-Functional & Security Requirements

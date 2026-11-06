@@ -41,8 +41,17 @@ PLATFORM="${BUILD_PLATFORM:-linux/amd64,linux/arm64}"
 
 echo "Building multi-architecture image for: $PLATFORM"
 if docker buildx version &>/dev/null; then
-  # Ensure a buildx builder exists and is running
-  docker buildx inspect menu-builder &>/dev/null || docker buildx create --name menu-builder --use
+  # Ensure a healthy buildx builder exists, auto-recovering from stale WSL bind mounts
+  if docker buildx inspect menu-builder &>/dev/null; then
+    if ! docker buildx inspect --bootstrap menu-builder &>/dev/null; then
+      echo "⚠️ Detected stale menu-builder container. Recreating builder..."
+      docker buildx rm menu-builder 2>/dev/null || true
+      docker rm -f buildx_buildkit_menu-builder0 2>/dev/null || true
+      docker buildx create --name menu-builder --use
+    fi
+  else
+    docker buildx create --name menu-builder --use
+  fi
   docker buildx use menu-builder
   docker buildx build \
     --platform "$PLATFORM" \
