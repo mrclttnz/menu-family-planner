@@ -342,7 +342,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   })
 
   return (
-    <div className="space-y-2.5 pb-16 md:pb-4">
+    <div className="space-y-2.5 pb-6 md:pb-4">
       {/* Top Bar (G002: super compact padding) */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5">
         <div>
@@ -400,7 +400,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   className="fixed inset-0 z-20"
                   onClick={() => setIsExportDropdownOpen(false)}
                 />
-                <div className="absolute right-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95">
+                <div className="absolute left-0 mt-1 w-44 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-30 animate-in fade-in zoom-in-95">
                   <button
                     onClick={() => handleExport('xlsx')}
                     className="w-full text-left px-3 py-1.5 text-xs text-slate-700 hover:bg-slate-50 flex items-center space-x-2 cursor-pointer"

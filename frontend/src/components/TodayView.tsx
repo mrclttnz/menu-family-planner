@@ -61,7 +61,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
   }
 
   return (
-    <div className="space-y-2 pb-14 md:pb-3">
+    <div className="space-y-2 pb-6 md:pb-3">
       {/* Header Banner (G002: super compact) */}
       <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-lg px-3 py-1.5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
         <div>

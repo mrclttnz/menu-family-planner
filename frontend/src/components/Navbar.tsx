@@ -54,83 +54,84 @@ export const Navbar: React.FC<NavbarProps> = ({
   }
 
   return (
-    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur border-b border-slate-200">
+    <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 pt-[env(safe-area-inset-top,0px)] shadow-2xs">
       <div className="max-w-full xl:max-w-[1550px] mx-auto px-2 sm:px-3">
-        <div className="flex items-center justify-between h-9">
+        {/* Main Header Row */}
+        <div className="flex items-center justify-between min-h-[42px] sm:min-h-[46px] py-1">
           {/* Logo & Brand */}
-          <div className="flex items-center space-x-1.5 cursor-pointer" onClick={() => onSelectTab('today')}>
-            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-2xs">
-              <Utensils className="w-3 h-3" />
+          <div className="flex items-center space-x-1.5 cursor-pointer select-none" onClick={() => onSelectTab('today')}>
+            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-2xs flex-shrink-0">
+              <Utensils className="w-3.5 h-3.5" />
             </div>
             <div className="flex items-center space-x-1.5">
               <span className="font-bold text-xs sm:text-sm text-slate-900 tracking-tight">{t('nav.brand')}</span>
               {household && (
-                <span className="hidden sm:inline-block text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-600">
+                <span className="hidden sm:inline-block text-[10px] font-medium px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 truncate max-w-[120px]">
                   {household.name}
                 </span>
               )}
             </div>
           </div>
 
-          {/* Navigation Tabs (Desktop) */}
-          <nav className="hidden md:flex space-x-0.5">
+          {/* Navigation Tabs (Desktop md and above) */}
+          <nav className="hidden md:flex items-center space-x-1">
             <button
               onClick={() => onSelectTab('today')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 activeTab === 'today'
-                  ? 'bg-brand-50 text-brand-700 font-semibold'
+                  ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <Utensils className="w-3.5 h-3.5" />
+              <Utensils className="w-3.5 h-3.5 text-brand-600" />
               <span>{t('nav.today')}</span>
             </button>
 
             <button
               onClick={() => onSelectTab('calendar')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 activeTab === 'calendar'
-                  ? 'bg-brand-50 text-brand-700 font-semibold'
+                  ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <Calendar className="w-3.5 h-3.5" />
+              <Calendar className="w-3.5 h-3.5 text-brand-600" />
               <span>{t('nav.calendar')}</span>
             </button>
 
             <button
               onClick={() => onSelectTab('dishes')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 activeTab === 'dishes'
-                  ? 'bg-brand-50 text-brand-700 font-semibold'
+                  ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <BookOpen className="w-3.5 h-3.5" />
+              <BookOpen className="w-3.5 h-3.5 text-brand-600" />
               <span>{t('nav.dishes')}</span>
             </button>
 
             <button
               onClick={() => onSelectTab('members')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-medium transition-colors ${
+              className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer ${
                 activeTab === 'members'
-                  ? 'bg-brand-50 text-brand-700 font-semibold'
+                  ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <Users className="w-3.5 h-3.5" />
+              <Users className="w-3.5 h-3.5 text-brand-600" />
               <span>{t('nav.members')}</span>
             </button>
           </nav>
 
           {/* Actions: Language & Logout */}
           <div className="flex items-center space-x-1.5">
-            {/* Language Switcher Dropdown (scalable for N languages, shows active language) */}
+            {/* Language Switcher Dropdown */}
             <div className="relative" ref={langMenuRef}>
               <button
                 type="button"
                 onClick={() => setIsLangMenuOpen(!isLangMenuOpen)}
-                className="flex items-center space-x-1 px-2 py-0.5 rounded text-xs font-semibold border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+                className="flex items-center space-x-1 px-2 py-1 rounded text-xs font-semibold border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
                 title={t('nav.select_language')}
               >
                 <Globe className="w-3 h-3 text-slate-500" />
@@ -168,57 +169,65 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               onClick={onLogout}
-              className="flex items-center space-x-1 text-slate-500 hover:text-rose-600 px-2 py-0.5 rounded text-xs font-medium hover:bg-rose-50 transition-colors"
+              className="flex items-center space-x-1 text-slate-500 hover:text-rose-600 px-2 py-1 rounded text-xs font-medium hover:bg-rose-50 transition-colors cursor-pointer"
               title={t('nav.logout_title')}
             >
-              <LogOut className="w-3 h-3" />
+              <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">{t('nav.logout')}</span>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex justify-around items-center">
-        <button
-          onClick={() => onSelectTab('today')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
-            activeTab === 'today' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Utensils className="w-4 h-4 mb-0.5" />
-          <span>{t('nav.today_short')}</span>
-        </button>
+        {/* Mobile Navigation Tabs (Row 2 on < md screens: full width, clean, never truncated) */}
+        <nav className="md:hidden flex items-center justify-around border-t border-slate-100 py-1 px-0.5 gap-1">
+          <button
+            onClick={() => onSelectTab('today')}
+            className={`flex-1 flex items-center justify-center space-x-1 py-1.5 px-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'today'
+                ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Utensils className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{t('nav.today')}</span>
+          </button>
 
-        <button
-          onClick={() => onSelectTab('calendar')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
-            activeTab === 'calendar' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Calendar className="w-4 h-4 mb-0.5" />
-          <span>{t('nav.calendar_short')}</span>
-        </button>
+          <button
+            onClick={() => onSelectTab('calendar')}
+            className={`flex-1 flex items-center justify-center space-x-1 py-1.5 px-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'calendar'
+                ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{t('nav.calendar')}</span>
+          </button>
 
-        <button
-          onClick={() => onSelectTab('dishes')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
-            activeTab === 'dishes' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <BookOpen className="w-4 h-4 mb-0.5" />
-          <span>{t('nav.dishes_short')}</span>
-        </button>
+          <button
+            onClick={() => onSelectTab('dishes')}
+            className={`flex-1 flex items-center justify-center space-x-1 py-1.5 px-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'dishes'
+                ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <BookOpen className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{t('nav.dishes')}</span>
+          </button>
 
-        <button
-          onClick={() => onSelectTab('members')}
-          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
-            activeTab === 'members' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          <Users className="w-4 h-4 mb-0.5" />
-          <span>{t('nav.members_short')}</span>
-        </button>
+          <button
+            onClick={() => onSelectTab('members')}
+            className={`flex-1 flex items-center justify-center space-x-1 py-1.5 px-1 rounded-md text-xs font-medium transition-all cursor-pointer ${
+              activeTab === 'members'
+                ? 'bg-brand-50 text-brand-700 font-bold shadow-2xs'
+                : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">{t('nav.members')}</span>
+          </button>
+        </nav>
       </div>
     </header>
   )

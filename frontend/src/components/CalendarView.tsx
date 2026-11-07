@@ -638,7 +638,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }
 
   return (
-    <div className="space-y-2.5 pb-16 md:pb-4">
+    <div className="space-y-2.5 pb-6 md:pb-4">
       {/* Top Header & Navigation (G002 / Issue #13: mobile compact) */}
       <div className="bg-white rounded-lg px-3 py-1.5 border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-2xs">
         <div>
