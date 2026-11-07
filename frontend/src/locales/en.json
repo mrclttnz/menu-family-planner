@@ -217,7 +217,9 @@
     "import_errors": "Errors during import:",
     "import_help": "Supported formats are Excel (.xlsx), CSV (.csv) and JSON (.json). You can also download a sample template.",
     "download_template": "Download sample template",
-    "no_dishes_found": "No dishes found with the selected filters."
+    "no_dishes_found": "No dishes found with the selected filters.",
+    "error_duplicate_name": "A dish with this name already exists in the catalog.",
+    "error_title_required": "Please enter a dish title."
   },
   "members": {
     "title": "Family Members",

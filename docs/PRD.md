@@ -135,6 +135,7 @@ Planning daily meals for a family is a recurring source of friction and mental e
   2. **Multi-course Support**: *Given* a dish like "Insalatona di pollo", *When* assigning courses, *Then* it can be tagged as both `Secondo` and `Piatto unico`.
   3. **Validation**: *Given* an invalid URL format when Source Type is `Sito Web` or `Social / Reel`, *Then* the app highlights the invalid URL field with helpful formatting guidance.
   4. **Security**: *Given* any user input in title, notes, or source, *When* rendered in the UI, *Then* HTML and script tags are strictly sanitized/escaped (Anti-XSS).
+  5. **Duplicate Prevention (Issue #17 / Slice S17)**: *Given* an attempt to create or rename a dish with a title already present in the household catalog, *When* comparing case-insensitively and ignoring leading/trailing whitespace (e.g. `"Carbonara"` vs `" carbonara "`), *Then* the action is blocked by client-side form validation and server-side API validation returning a localized error message.
 
 ### `US-03`: Per-Member Dish Preferences (`favorite`, `neutral`, `dislike`)
 - **Story**: As a family member or cook, I want to record whether a dish is loved, fine, or disliked by specific family members, so that preferences are clearly tracked.

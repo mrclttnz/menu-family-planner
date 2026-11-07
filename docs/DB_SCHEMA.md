@@ -288,6 +288,7 @@ erDiagram
 | `source_url` | `VARCHAR(1000)`| `YES` | - | | Web link or social reel URL |
 | `created_at` | `TIMESTAMPTZ` | `NO` | `CURRENT_TIMESTAMP` | | Creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | `NO` | `CURRENT_TIMESTAMP` | | Last update |
+- **Unique Constraint / Index**: `uq_dishes_household_lower_title` on `(household_id, LOWER(TRIM(title)))` (prevents duplicate dish titles per household regardless of casing or surrounding whitespace)
 
 ### 3.5 `dish_courses` (Many-to-Many Dish <-> Course Types)
 | Column | Type | Nullable | Constraints | Description |
@@ -411,6 +412,7 @@ erDiagram
 | `idx_members_household` | `members(household_id)` | List household members |
 | `idx_dish_statuses_household` | `dish_statuses(household_id, status_lookup_id)` | Household status lookups |
 | `idx_dishes_household_status` | `dishes(household_id, status_id)` | Fast catalog filtering by status |
+| `uq_dishes_household_lower_title` | `dishes(household_id, LOWER(TRIM(title)))` | Unique constraint preventing duplicate dish titles (case-insensitive & trimmed) |
 | `idx_dish_courses_course` | `dish_courses(course_type_id, dish_id)` | Filter catalog by course (e.g. only Primi) |
 | `idx_dish_preferences_dish` | `dish_member_preferences(dish_id)` | Instant retrieval of all ratings for a dish |
 | `idx_meal_slots_date_range` | `meal_slots(household_id, date, meal_type_id)` | Rolling calendar query for date window |

@@ -46,6 +46,7 @@ The testing strategy ensures high test confidence without brittle mocks:
 | **`US-17` Formula Injection Sanitization** | `backend/tests/test_dishes_import_export.py` | Verifying formula triggers (=, +, -, @) are neutralized on export and import. | **PASS** |
 | **`US-18` Meal Planner Attendance Indicator & Modal (`S11` / Issue #8)** | `frontend/` build & UI validation | Concise `Users` icon + textual summary ("solo...", "no...") in lower-left cell corner across matrix views (`compact_h`, `compact_v`) and slot header (`detailed`); interactive attendance modal matching `TodayView` styling with live preview, batch toggle diff, and save/cancel. | **PASS** |
 | **`US-19` Meal Planner Edit Assigned Dish & Diners (`S12` / Issue #9)** | `backend/tests/test_calendar_and_attendance.py`, `frontend/` build | Clickable dish title in all matrix views (`compact_h`, `compact_v`, `detailed`) opening edit modal to modify diner assignment (`PATCH /calendar/slots/{id}/dishes/{dish_id}` or all diners). | **PASS** |
+| **`US-22` Prevent Duplicate Dish Name (`S17` / Issue #17)** | `backend/tests/test_dishes_and_preferences.py`, `frontend/` build | Case-insensitive and trimmed duplicate rejection on creation (400) and title rename (400); identical title allowed across different households (multi-tenant isolation); client-side instant validation on both catalog modal and quick create form. | **PASS** |
 | **`US-07` Frontend SPA Verification** | `frontend/` build pipeline | TypeScript compile (`tsc`), JSX bundling with Vite, production assets generated without errors, static mount verified on FastAPI. | **PASS** |
 
 ---
@@ -96,12 +97,13 @@ tests/test_dishes_import_export.py::test_import_duplicates_skip_and_update PASSE
 tests/test_dishes_import_export.py::test_import_validation_and_row_errors PASSED [ 84%]
 tests/test_dishes_import_export.py::test_formula_injection_defense PASSED [ 87%]
 tests/test_dishes_import_export.py::test_import_and_export_dishes_with_tags PASSED [ 89%]
+tests/test_dishes_and_preferences.py::test_prevent_duplicate_dish_names PASSED [ 90%]
 tests/test_members.py::test_create_and_list_members PASSED               [ 92%]
 tests/test_members.py::test_create_duplicate_member_name_fails PASSED   [ 95%]
 tests/test_members.py::test_update_member PASSED                         [ 97%]
 tests/test_members.py::test_delete_member PASSED                         [100%]
 
-======================== 38 passed, 1 warning in 13.84s ========================
+======================== 40 passed, 1 warning in 15.33s ========================
 ```
 
 ### Frontend TypeScript & Vite Build Evidence

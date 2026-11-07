@@ -284,15 +284,29 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!title.trim()) {
-      setFormError('Il nome del piatto è obbligatorio.')
+    const trimmedTitle = title.trim()
+    if (!trimmedTitle) {
+      setFormError(t('dishes.error_title_required'))
       return
     }
+
+    // Issue #17: Prevent duplicate dish name (case-insensitive & whitespace trimmed)
+    const normalizedNewTitle = trimmedTitle.toLowerCase()
+    const duplicateDish = dishes.find(
+      (d) =>
+        d.title.trim().toLowerCase() === normalizedNewTitle &&
+        (!editingDish || d.id !== editingDish.id)
+    )
+    if (duplicateDish) {
+      setFormError(t('dishes.error_duplicate_name'))
+      return
+    }
+
     setFormError(null)
     setSubmitting(true)
     try {
       const payload = {
-        title: title.trim(),
+        title: trimmedTitle,
         description: description.trim() || undefined,
         notes: notes.trim() || undefined,
         status_id: statusId,

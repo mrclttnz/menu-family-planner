@@ -217,7 +217,9 @@
     "import_errors": "Errori durante l'importazione:",
     "import_help": "I formati supportati sono Excel (.xlsx), CSV (.csv) e JSON (.json). Puoi anche scaricare un template di esempio.",
     "download_template": "Scarica template di esempio",
-    "no_dishes_found": "Nessun piatto trovato con i filtri selezionati."
+    "no_dishes_found": "Nessun piatto trovato con i filtri selezionati.",
+    "error_duplicate_name": "Un piatto con questo nome è già presente nel catalogo.",
+    "error_title_required": "Inserisci il titolo del piatto."
   },
   "members": {
     "title": "I Membri della Famiglia",
