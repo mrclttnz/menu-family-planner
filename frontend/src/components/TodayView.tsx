@@ -127,7 +127,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           onClick={() => onToggleAttendance(slot.id, m.id, isAbsent)}
                           className={`flex items-center space-x-1 px-1.5 py-0.2 rounded-full text-[10px] font-medium transition-all ${
                             !isAbsent
-                              ? 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'
+                              ? 'bg-brand-50 text-brand-800 border border-brand-200 hover:bg-brand-100'
                               : 'bg-slate-100 text-slate-400 line-through border border-dashed border-slate-300'
                           }`}
                         >
@@ -269,11 +269,11 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                     key={m.id}
                                     className={`flex items-center space-x-1.5 px-2 py-0.5 rounded text-[11px] border transition-colors ${
                                       isThumbsDown
-                                        ? 'bg-rose-50 border-rose-300 ring-1 ring-rose-200'
+                                        ? 'bg-rose-50/70 border-rose-200 ring-1 ring-rose-100'
                                         : isThumbsUp
-                                        ? 'bg-emerald-50 border-emerald-300 ring-1 ring-emerald-200'
+                                        ? 'bg-sky-50/70 border-sky-200 ring-1 ring-sky-100'
                                         : isNeutral
-                                        ? 'bg-slate-100 border-slate-300'
+                                        ? 'bg-emerald-50/70 border-emerald-200 ring-1 ring-emerald-100'
                                         : 'bg-slate-50 border-slate-200/80'
                                     }`}
                                   >
@@ -285,43 +285,43 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
                                     {/* 3 State Toggle Buttons */}
                                     <div className="flex items-center rounded border border-slate-200 overflow-hidden bg-white">
-                                      {/* Piace (👍) */}
+                                      {/* Piace (👍 - Blu sfumato) */}
                                       <button
                                         type="button"
                                         onClick={() => handleToggleRating('thumbs_up')}
                                         title={t('today.rating_liked_title', { name: m.name })}
                                         className={`px-1.5 py-0.5 flex items-center transition-all text-[10px] ${
                                           isThumbsUp
-                                            ? 'bg-emerald-600 text-white font-bold ring-1 ring-emerald-600'
-                                            : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
+                                            ? 'bg-sky-500 text-white font-bold ring-1 ring-sky-500'
+                                            : 'text-slate-400 hover:text-sky-600 hover:bg-sky-50'
                                         }`}
                                       >
                                         <ThumbsUp className="w-3 h-3" />
                                       </button>
 
-                                      {/* Neutro (😐) */}
+                                      {/* Neutro (😐 - Verde) */}
                                       <button
                                         type="button"
                                         onClick={() => handleToggleRating('neutral')}
                                         title={t('today.rating_neutral_title', { name: m.name })}
                                         className={`px-1.5 py-0.5 flex items-center transition-all text-[10px] ${
                                           isNeutral
-                                            ? 'bg-slate-600 text-white font-bold ring-1 ring-slate-600'
-                                            : 'text-slate-400 hover:text-slate-700 hover:bg-slate-100'
+                                            ? 'bg-emerald-600 text-white font-bold ring-1 ring-emerald-600'
+                                            : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
                                         }`}
                                       >
                                         <Meh className="w-3 h-3" />
                                       </button>
 
-                                      {/* Non piace (👎) */}
+                                      {/* Non piace (👎 - Rosso sfumato) */}
                                       <button
                                         type="button"
                                         onClick={() => handleToggleRating('thumbs_down')}
                                         title={t('today.rating_disliked_title', { name: m.name })}
                                         className={`px-1.5 py-0.5 flex items-center transition-all text-[10px] ${
                                           isThumbsDown
-                                            ? 'bg-rose-600 text-white font-bold ring-1 ring-rose-600'
-                                            : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
+                                            ? 'bg-rose-400 text-white font-bold ring-1 ring-rose-400'
+                                            : 'text-slate-400 hover:text-rose-500 hover:bg-rose-50'
                                         }`}
                                       >
                                         <ThumbsDown className="w-3 h-3" />

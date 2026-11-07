@@ -543,7 +543,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
             onClick={() => setSelectedStatusFilter(null)}
             className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-colors text-xs ${
               selectedStatusFilter === null
-                ? 'bg-slate-900 text-white'
+                ? 'bg-brand-600 text-white'
                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
             }`}
           >
@@ -555,7 +555,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
               onClick={() => setSelectedStatusFilter(s.id)}
               className={`px-2 py-0.5 rounded-md font-medium whitespace-nowrap transition-colors text-xs ${
                 selectedStatusFilter === s.id
-                  ? 'bg-slate-900 text-white'
+                  ? 'bg-brand-600 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
@@ -774,7 +774,11 @@ export const DishesView: React.FC<DishesViewProps> = ({
                           <div
                             key={pref.member_id}
                             className={`flex items-center justify-between text-xs px-1.5 py-0.5 rounded transition-colors ${
-                              isDisliked ? 'bg-rose-50 border border-rose-200' : ''
+                              isDisliked
+                                ? 'bg-rose-50/70 border border-rose-200/80'
+                                : isFavorite
+                                ? 'bg-sky-50/70 border border-sky-200/80'
+                                : ''
                             }`}
                           >
                             <div className="flex items-center space-x-1 min-w-0">
@@ -784,13 +788,18 @@ export const DishesView: React.FC<DishesViewProps> = ({
                               />
                               <span className="text-slate-700 font-medium text-[11px] truncate">{pref.member_name}</span>
                               {isDisliked && (
-                                <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded">
+                                <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded border border-rose-200">
                                   {t('dishes.pref_dislike')}
+                                </span>
+                              )}
+                              {isFavorite && (
+                                <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1 py-0.2 rounded border border-sky-200">
+                                  {t('dishes.pref_favorite_btn', 'Piace')}
                                 </span>
                               )}
                             </div>
 
-                            {/* 3-State Toggle: favorite, neutral, dislike */}
+                            {/* 3-State Toggle: favorite (Blu sfumato), neutral (Verde), dislike (Rosso sfumato) */}
                             <div className="flex rounded border border-slate-200 overflow-hidden bg-slate-50">
                               <button
                                 type="button"
@@ -798,11 +807,11 @@ export const DishesView: React.FC<DishesViewProps> = ({
                                 title={t('dishes.pref_favorite_tooltip', { name: pref.member_name })}
                                 className={`px-2 py-1 sm:px-1.5 sm:py-0.5 flex items-center transition-colors cursor-pointer ${
                                   isFavorite
-                                    ? 'bg-pink-100 text-pink-700 font-bold'
-                                    : 'text-slate-400 hover:text-pink-600'
+                                    ? 'bg-sky-100 text-sky-800 font-bold'
+                                    : 'text-slate-400 hover:text-sky-600 hover:bg-sky-50'
                                 }`}
                               >
-                                <ThumbsUp className={`w-3 h-3 ${isFavorite ? 'fill-pink-500' : ''}`} />
+                                <ThumbsUp className={`w-3 h-3 ${isFavorite ? 'fill-sky-500 text-sky-600' : ''}`} />
                               </button>
 
                               <button
@@ -812,7 +821,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                                 className={`px-2 py-1 sm:px-1.5 sm:py-0.5 flex items-center transition-colors cursor-pointer ${
                                   pref.rating === 'neutral'
                                     ? 'bg-emerald-100 text-emerald-800 font-bold'
-                                    : 'text-slate-400 hover:text-emerald-700'
+                                    : 'text-slate-400 hover:text-emerald-700 hover:bg-emerald-50'
                                 }`}
                               >
                                 <Meh className="w-3 h-3" />
@@ -824,7 +833,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                                 title={t('dishes.pref_dislike_tooltip', { name: pref.member_name })}
                                 className={`px-2 py-1 sm:px-1.5 sm:py-0.5 flex items-center space-x-0.5 transition-colors cursor-pointer ${
                                   isDisliked
-                                    ? 'bg-rose-600 text-white font-bold'
+                                    ? 'bg-rose-100 text-rose-700 font-bold border border-rose-200'
                                     : 'text-slate-400 hover:text-rose-600 hover:bg-rose-50'
                                 }`}
                               >
@@ -1017,7 +1026,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                         <div
                           key={pref.member_id}
                           className={`flex items-center justify-between text-xs px-2 py-1 rounded bg-white border ${
-                            isDisliked ? 'border-rose-300 bg-rose-50/50' : 'border-slate-200'
+                            isDisliked ? 'border-rose-200 bg-rose-50/50' : isFavorite ? 'border-sky-200 bg-sky-50/50' : 'border-slate-200'
                           }`}
                         >
                           <div className="flex items-center space-x-1.5">
@@ -1027,12 +1036,18 @@ export const DishesView: React.FC<DishesViewProps> = ({
                             />
                             <span className="font-medium text-slate-800">{pref.member_name}</span>
                             {isDisliked && (
-                              <span className="text-[9px] font-bold text-rose-600 bg-rose-100 px-1 py-0.2 rounded">
+                              <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1 py-0.2 rounded border border-rose-200">
                                 {t('dishes.pref_dislike')}
+                              </span>
+                            )}
+                            {isFavorite && (
+                              <span className="text-[9px] font-bold text-sky-700 bg-sky-100 px-1 py-0.2 rounded border border-sky-200">
+                                {t('dishes.pref_favorite_btn', 'Piace')}
                               </span>
                             )}
                           </div>
                           <div className="flex rounded border border-slate-200 overflow-hidden bg-slate-50">
+                            {/* Piace (Blu sfumato) */}
                             <button
                               type="button"
                               onClick={() => {
@@ -1040,12 +1055,13 @@ export const DishesView: React.FC<DishesViewProps> = ({
                                 pref.rating = 'favorite'
                               }}
                               className={`px-2 py-0.5 text-[10px] flex items-center space-x-1 ${
-                                isFavorite ? 'bg-pink-100 text-pink-700 font-bold' : 'text-slate-500 hover:text-pink-600'
+                                isFavorite ? 'bg-sky-100 text-sky-800 font-bold' : 'text-slate-500 hover:text-sky-600 hover:bg-sky-50'
                               }`}
                             >
-                              <ThumbsUp className="w-3 h-3" />
+                              <ThumbsUp className={`w-3 h-3 ${isFavorite ? 'fill-sky-500 text-sky-600' : ''}`} />
                               <span>{t('dishes.pref_favorite_btn')}</span>
                             </button>
+                            {/* Neutro / OK (Verde) */}
                             <button
                               type="button"
                               onClick={() => {
@@ -1055,12 +1071,13 @@ export const DishesView: React.FC<DishesViewProps> = ({
                               className={`px-2 py-0.5 text-[10px] flex items-center space-x-1 ${
                                 pref.rating === 'neutral'
                                   ? 'bg-emerald-100 text-emerald-800 font-bold'
-                                  : 'text-slate-500 hover:text-emerald-700'
+                                  : 'text-slate-500 hover:text-emerald-700 hover:bg-emerald-50'
                               }`}
                             >
                               <Meh className="w-3 h-3" />
                               <span>{t('dishes.pref_neutral_btn')}</span>
                             </button>
+                            {/* Non piace (Rosso sfumato) */}
                             <button
                               type="button"
                               onClick={() => {
@@ -1069,7 +1086,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                               }}
                               className={`px-2 py-0.5 text-[10px] flex items-center space-x-1 ${
                                 isDisliked
-                                  ? 'bg-rose-600 text-white font-bold'
+                                  ? 'bg-rose-100 text-rose-700 font-bold border-l border-rose-200'
                                   : 'text-slate-500 hover:text-rose-600 hover:bg-rose-50'
                               }`}
                             >

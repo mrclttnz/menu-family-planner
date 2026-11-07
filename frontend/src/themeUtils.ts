@@ -9,9 +9,10 @@ export const THEME_STORAGE_KEY = 'menu_design_theme_color'
 
 export const THEME_PRESETS: ThemePreset[] = [
   { id: 'emerald', nameKey: 'theme.emerald', hex: '#16a34a' },
-  { id: 'teal', nameKey: 'theme.teal', hex: '#0d9488' },
+  { id: 'light_royal_blue', nameKey: 'theme.light_royal_blue', hex: '#4884e5' },
   { id: 'blue', nameKey: 'theme.blue', hex: '#2563eb' },
   { id: 'indigo', nameKey: 'theme.indigo', hex: '#4f46e5' },
+  { id: 'teal', nameKey: 'theme.teal', hex: '#0d9488' },
   { id: 'purple', nameKey: 'theme.purple', hex: '#7c3aed' },
   { id: 'pink', nameKey: 'theme.pink', hex: '#db2777' },
   { id: 'red', nameKey: 'theme.red', hex: '#dc2626' },
