@@ -46,12 +46,13 @@
 | `S11` | Meal Planner Attendance Indicator & Modal ([#8](https://github.com/mrclttnz/menu-family-planner/issues/8)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S12` | Meal Planner: Edit Assigned Dish & Diners ([#9](https://github.com/mrclttnz/menu-family-planner/issues/9)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S13` | Compact Card View for Dish Catalog ([#10](https://github.com/mrclttnz/menu-family-planner/issues/10)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S14` | Dish Tags & Cross-View Filtered Selection ([#7](https://github.com/mrclttnz/menu-family-planner/issues/7)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
 - [x] **Gate 2 (Architecture & Threat Model Approved)**: Decoupled FastAPI + React SPA with SQLite/Postgres and Option 1 (`favorite` / `neutral` / `dislike`).
-- [x] **Gate 3 (DB Schema & Modules Approved)**: Normalized `dish_status_lookups`, dynamic daily `meal_types`, and exception-based attendance (present by default).
-- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 35 automated tests passing with 100% success rate in `backend/tests/` (including 8 calendar/attendance tests).
+- [x] **Gate 3 (DB Schema & Modules Approved)**: Normalized `dish_status_lookups`, dynamic daily `meal_types`, exception-based attendance, and normalized `tags`/`dish_tags`.
+- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 38 automated tests passing with 100% success rate in `backend/tests/` (including tag taxonomy, search, and import/export tests).
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).

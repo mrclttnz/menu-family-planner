@@ -193,6 +193,16 @@ Planning daily meals for a family is a recurring source of friction and mental e
   2. **Diner Selection Experience**: *Given* the edit assignment modal, *When* switching between "Assegna a tutti i presenti" and "Assegna solo a specifici commensali", *Then* family member chips allow toggling individual diner assignments.
   3. **Atomic API Update**: *Given* modified diner assignments, *When* saving, *Then* `PATCH /calendar/slots/{slot_id}/dishes/{dish_id}` updates the assignments atomically and refreshes compatibility alerts and calendar badges immediately.
 
+### `US-20`: Dish Tags & Cross-View Filtered Selection (`S14` / Issue #7)
+- **Story**: As a meal planner, I want to assign custom tags to dishes and use them to search and filter dishes across the recipe catalog and meal planning calendar, so that I can quickly select meals matching criteria like speed, seasonality, or occasion.
+- **Acceptance Criteria**:
+  1. **Tag Input & Sanitization**: *Given* creating or editing a dish, *When* entering tags, *Then* tags can be added via Enter or comma, inner commas are stripped or rejected, and existing household tags are suggested with autocomplete.
+  2. **Color Customization**: *Given* a tag, *When* customizing its color, *Then* the user can choose the default UI brand color, select from preset swatches, enter a hex RGB code, or use the interactive color matrix and sliders picker.
+  3. **Multi-Tag AND Filtering**: *Given* multiple tags selected in the filter chips of the recipe catalog or meal planner dish picker, *When* filtering, *Then* only dishes containing **all** selected tags (AND logic) are displayed.
+  4. **Full-Text Tag Search**: *Given* a search term matching a tag name, *When* searching in the dish catalog or calendar dish picker, *Then* dishes containing that tag are matched and returned.
+  5. **Import & Export Roundtrip**: *Given* dish export or import in XLSX, CSV, or JSON, *When* processed, *Then* tags are exported as a clean comma-separated list and correctly imported and linked.
+  6. **Inline Quick Create Support**: *Given* adding a new dish directly from the meal planner modal, *When* creating the dish on the fly, *Then* the user can assign tags using `DishTagSelector` (with any active tag filters prefilled), saving and scheduling the dish in a single seamless flow.
+
 ---
 
 ## 5. Non-Functional & Security Requirements

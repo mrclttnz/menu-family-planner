@@ -6,7 +6,7 @@ from sqlalchemy import or_
 from app.core.database import get_db
 from app.models.household import Household, Member
 from app.models.taxonomy import DishStatus, CourseType, SourceType
-from app.models.dish import Dish, DishCourse, DishMemberPreference
+from app.models.dish import Dish, DishCourse, DishMemberPreference, Tag, DishTag
 from app.models.meal_plan import MealSlot, MealSlotDish, MealSlotDishNote
 from app.schemas.dish import (
     DishCreate,
@@ -17,6 +17,8 @@ from app.schemas.dish import (
     DishSourceInfo,
     MemberPreferenceSummary,
     DishImportResult,
+    TagSummary,
+    DishTagInput,
 )
 from app.schemas.preference import PreferenceUpdate, PreferenceResponse
 from app.schemas.meal_plan import SlotDishNoteResponse
@@ -47,7 +49,13 @@ def build_dish_response(dish: Dish, household_members: List[Member]) -> DishResp
         for dc in dish.courses
     ]
 
-    # 3. Source Info
+    # 3. Tags
+    tags = [
+        TagSummary(id=dt.tag.id, name=dt.tag.name, color=dt.tag.color)
+        for dt in dish.tags
+    ]
+
+    # 4. Source Info
     source_info = DishSourceInfo(
         source_type_id=dish.source_type.id if dish.source_type else None,
         source_type_name=dish.source_type.name if dish.source_type else None,
@@ -56,7 +64,7 @@ def build_dish_response(dish: Dish, household_members: List[Member]) -> DishResp
         source_url=dish.source_url,
     )
 
-    # 4. Member Preferences (unspecified defaults to 'neutral')
+    # 5. Member Preferences (unspecified defaults to 'neutral')
     pref_map = {p.member_id: p.rating for p in dish.preferences}
     preferences = [
         MemberPreferenceSummary(
@@ -76,6 +84,7 @@ def build_dish_response(dish: Dish, household_members: List[Member]) -> DishResp
         notes=dish.notes,
         status=status_summary,
         courses=courses,
+        tags=tags,
         source=source_info,
         preferences=preferences,
         created_at=dish.created_at,
@@ -83,15 +92,60 @@ def build_dish_response(dish: Dish, household_members: List[Member]) -> DishResp
     )
 
 
+def sync_dish_tags(dish: Dish, tags_input: Optional[List[DishTagInput]], household_id: int, db: Session):
+    """Synchronizes dish tags, creating new household tags and validating against inner commas."""
+    if tags_input is None:
+        return
+
+    # Clear existing associations
+    dish.tags.clear()
+    db.flush()
+
+    seen_names = set()
+    for t_in in tags_input:
+        name_clean = t_in.name.strip()
+        if not name_clean:
+            continue
+        if "," in name_clean:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Tag name '{name_clean}' cannot contain commas."
+            )
+        lower_name = name_clean.lower()
+        if lower_name in seen_names:
+            continue
+        seen_names.add(lower_name)
+
+        tag = db.query(Tag).filter(
+            Tag.household_id == household_id,
+            Tag.name.ilike(name_clean)
+        ).first()
+
+        if not tag:
+            tag = Tag(
+                household_id=household_id,
+                name=name_clean,
+                color=t_in.color or "#16a34a"
+            )
+            db.add(tag)
+            db.flush()
+        elif t_in.color and t_in.color != tag.color:
+            tag.color = t_in.color
+            db.flush()
+
+        dish.tags.append(DishTag(dish_id=dish.id, tag_id=tag.id))
+
+
 @router.get("", response_model=List[DishResponse])
 def list_dishes(
     status_id: Optional[int] = Query(None, description="Filter by dish status"),
     course_id: Optional[int] = Query(None, description="Filter by course type"),
-    search: Optional[str] = Query(None, description="Search in title or notes"),
+    tag_id: Optional[List[int]] = Query(None, description="Filter by tag IDs (AND logic)"),
+    search: Optional[str] = Query(None, description="Search in title, notes, or tags"),
     current_household: Household = Depends(get_current_household),
     db: Session = Depends(get_db)
 ):
-    """List dishes with multi-course and status filtering."""
+    """List dishes with multi-course, tag (AND logic), and status filtering."""
     query = db.query(Dish).filter(Dish.household_id == current_household.id)
 
     if status_id:
@@ -100,9 +154,20 @@ def list_dishes(
     if course_id:
         query = query.join(Dish.courses).filter(DishCourse.course_type_id == course_id)
 
+    if tag_id:
+        for tid in tag_id:
+            query = query.filter(Dish.tags.any(DishTag.tag_id == tid))
+
     if search and search.strip():
         term = f"%{search.strip()}%"
-        query = query.filter(or_(Dish.title.ilike(term), Dish.notes.ilike(term)))
+        query = query.filter(
+            or_(
+                Dish.title.ilike(term),
+                Dish.notes.ilike(term),
+                Dish.description.ilike(term),
+                Dish.tags.any(DishTag.tag.has(Tag.name.ilike(term)))
+            )
+        )
 
     dishes = query.order_by(Dish.title.asc()).all()
     members = db.query(Member).filter(Member.household_id == current_household.id).all()
@@ -116,7 +181,7 @@ def create_dish(
     current_household: Household = Depends(get_current_household),
     db: Session = Depends(get_db)
 ):
-    """Create a new dish with courses and recipe source."""
+    """Create a new dish with courses, tags, and recipe source."""
     # Verify status belongs to household
     status_obj = db.query(DishStatus).filter(
         DishStatus.id == req.status_id,
@@ -159,6 +224,10 @@ def create_dish(
     for cid in req.course_ids:
         db.add(DishCourse(dish_id=dish.id, course_type_id=cid))
 
+    # Synchronize tags
+    if req.tags:
+        sync_dish_tags(dish, req.tags, current_household.id, db)
+
     db.commit()
     db.refresh(dish)
 
@@ -171,7 +240,8 @@ def export_dishes(
     format: str = Query("xlsx", pattern="^(xlsx|csv|json)$", description="Export format (xlsx, csv, or json)"),
     status_id: Optional[int] = Query(None, description="Filter by dish status"),
     course_id: Optional[int] = Query(None, description="Filter by course type"),
-    search: Optional[str] = Query(None, description="Search in title or notes"),
+    tag_id: Optional[List[int]] = Query(None, description="Filter by tag IDs (AND logic)"),
+    search: Optional[str] = Query(None, description="Search in title, notes, or tags"),
     current_household: Household = Depends(get_current_household),
     db: Session = Depends(get_db)
 ):
@@ -182,9 +252,19 @@ def export_dishes(
         query = query.filter(Dish.status_id == status_id)
     if course_id:
         query = query.join(Dish.courses).filter(DishCourse.course_type_id == course_id)
+    if tag_id:
+        for tid in tag_id:
+            query = query.filter(Dish.tags.any(DishTag.tag_id == tid))
     if search and search.strip():
         term = f"%{search.strip()}%"
-        query = query.filter(or_(Dish.title.ilike(term), Dish.notes.ilike(term)))
+        query = query.filter(
+            or_(
+                Dish.title.ilike(term),
+                Dish.notes.ilike(term),
+                Dish.description.ilike(term),
+                Dish.tags.any(DishTag.tag.has(Tag.name.ilike(term)))
+            )
+        )
 
     dishes = query.order_by(Dish.title.asc()).all()
     today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
@@ -326,6 +406,9 @@ def update_dish(
         db.query(DishCourse).filter(DishCourse.dish_id == dish.id).delete()
         for cid in req.course_ids:
             db.add(DishCourse(dish_id=dish.id, course_type_id=cid))
+
+    if req.tags is not None:
+        sync_dish_tags(dish, req.tags, current_household.id, db)
 
     db.commit()
     db.refresh(dish)

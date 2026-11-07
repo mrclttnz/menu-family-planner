@@ -15,6 +15,8 @@
     "search": "Cerca...",
     "yes": "Sì",
     "no": "No",
+    "clear": "Azzera",
+    "apply": "Applica",
     "saving": "Salvataggio...",
     "compatibility_warning": "Attenzione: a {{names}} non piace questo piatto!",
     "compatibility_hit": "⭐ Piatto amato da tutti i commensali a cui è destinato!",
@@ -271,5 +273,24 @@
       "Newsletter": "Newsletter",
       "Note personali": "Note personali"
     }
+  },
+  "tags": {
+    "label": "Tag",
+    "helper_hint": "Premi Invio o virgola per aggiungere",
+    "input_placeholder": "Aggiungi tag (es. Veloce, Invernale, Pesce)...",
+    "filter_by_tags": "Tag (AND)",
+    "existing_tags": "Tag esistenti",
+    "already_added": "Tag già presente",
+    "remove_tag": "Rimuovi tag",
+    "change_color": "Modifica colore",
+    "select_color": "Scegli Colore Tag",
+    "color_for_tag": "Colore per il tag \"{{tag}}\"",
+    "preview": "Anteprima",
+    "preset_colors": "Colori Preimpostati",
+    "custom_color_or_matrix": "Colore Personalizzato (HEX o Matrice)",
+    "matrix_picker": "Tavolozza",
+    "open_matrix_sliders": "Apri matrice e slider colori",
+    "invalid_hex": "Codice HEX non valido (es. #16a34a)",
+    "reset_to_default": "Reimposta colore predefinito UI"
   }
 }

@@ -66,6 +66,13 @@ export interface DishSourceInfo {
   source_url?: string;
 }
 
+export interface Tag {
+  id: number;
+  household_id?: number;
+  name: string;
+  color: string;
+}
+
 export interface Dish {
   id: number;
   household_id: number;
@@ -82,6 +89,7 @@ export interface Dish {
     id: number;
     name: string;
   }>;
+  tags?: Tag[];
   source: DishSourceInfo;
   preferences: MemberPreference[];
   created_at: string;

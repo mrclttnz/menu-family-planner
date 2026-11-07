@@ -36,6 +36,10 @@ erDiagram
     DISHES ||--o{ DISH_COURSES : "categorized_as"
     COURSE_TYPES ||--o{ DISH_COURSES : "contains"
     
+    HOUSEHOLDS ||--o{ TAGS : "owns"
+    DISHES ||--o{ DISH_TAGS : "tagged_with"
+    TAGS ||--o{ DISH_TAGS : "applied_to"
+    
     DISHES ||--o{ DISH_MEMBER_PREFERENCES : "rated_by"
     
     MEAL_TYPES ||--o{ MEAL_SLOTS : "defines_meal_type"
@@ -132,6 +136,19 @@ erDiagram
     DISH_COURSES {
         int dish_id PK,FK
         int course_type_id PK,FK
+    }
+
+    TAGS {
+        int id PK
+        int household_id FK
+        string name "NOT NULL"
+        string color "DEFAULT #16a34a"
+        timestamp created_at
+    }
+
+    DISH_TAGS {
+        int dish_id PK,FK
+        int tag_id PK,FK
     }
 
     DISH_MEMBER_PREFERENCES {
@@ -279,7 +296,23 @@ erDiagram
 | `course_type_id` | `INTEGER` | `NO` | `FOREIGN KEY -> course_types(id) ON DELETE CASCADE` | Course reference |
 - **Primary Key**: `(dish_id, course_type_id)`
 
-### 3.6 `dish_member_preferences` (Member Preferences)
+### 3.6 `tags` (Household Custom Tags)
+| Column | Type | Nullable | Default | Constraints | Description |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `id` | `INTEGER` | `NO` | Auto-Inc | `PRIMARY KEY` | Tag identifier |
+| `household_id` | `INTEGER` | `NO` | - | `FOREIGN KEY -> households(id) ON DELETE CASCADE` | Tenant scoping |
+| `name` | `VARCHAR(50)` | `NO` | - | `UNIQUE(household_id, name)` | Tag name (no commas) |
+| `color` | `VARCHAR(20)` | `NO` | `'#16a34a'` | | UI / custom hex color |
+| `created_at` | `TIMESTAMPTZ` | `NO` | `CURRENT_TIMESTAMP` | | Creation timestamp |
+
+### 3.7 `dish_tags` (Many-to-Many Dish <-> Tags)
+| Column | Type | Nullable | Constraints | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `dish_id` | `INTEGER` | `NO` | `FOREIGN KEY -> dishes(id) ON DELETE CASCADE` | Dish reference |
+| `tag_id` | `INTEGER` | `NO` | `FOREIGN KEY -> tags(id) ON DELETE CASCADE` | Tag reference |
+- **Primary Key**: `(dish_id, tag_id)`
+
+### 3.8 `dish_member_preferences` (Member Preferences)
 | Column | Type | Nullable | Default | Constraints | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `dish_id` | `INTEGER` | `NO` | - | `FOREIGN KEY -> dishes(id) ON DELETE CASCADE` | Rated dish |

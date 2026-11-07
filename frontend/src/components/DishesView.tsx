@@ -30,19 +30,24 @@ import {
   FileCheck,
   ChevronsRight,
   ChevronsLeft,
+  Tag as TagIcon,
 } from 'lucide-react'
+import { Tag } from '../types'
+import { DishTagSelector, SelectedTagItem } from './DishTagSelector'
 
 interface DishesViewProps {
   dishes: Dish[]
   statuses: DishStatus[]
   courses: CourseType[]
   sources: SourceType[]
+  availableTags?: Tag[]
   onCreateDish: (payload: {
     title: string
     description?: string
     notes?: string
     status_id: number
     course_ids: number[]
+    tags?: Array<{ name: string; color?: string }>
     source_type_id?: number
     source_reference?: string
     source_url?: string
@@ -53,6 +58,7 @@ interface DishesViewProps {
     notes?: string
     status_id: number
     course_ids: number[]
+    tags?: Array<{ name: string; color?: string }>
     source_type_id?: number
     source_reference?: string
     source_url?: string
@@ -67,6 +73,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   statuses,
   courses,
   sources,
+  availableTags = [],
   onCreateDish,
   onUpdateDish,
   onDeleteDish,
@@ -77,6 +84,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   const [search, setSearch] = useState('')
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<number | null>(null)
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<number | null>(null)
+  const [selectedTagNames, setSelectedTagNames] = useState<string[]>([])
 
   // Modal State (Create & Edit)
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -93,6 +101,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   const [notes, setNotes] = useState('')
   const [statusId, setStatusId] = useState<number>(1)
   const [selectedCourseIds, setSelectedCourseIds] = useState<number[]>([])
+  const [formTags, setFormTags] = useState<SelectedTagItem[]>([])
   const [sourceTypeId, setSourceTypeId] = useState<number | undefined>(undefined)
   const [sourceReference, setSourceReference] = useState('')
   const [sourceUrl, setSourceUrl] = useState('')
@@ -130,6 +139,30 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
   const handleCollapseAll = () => {
     setExpandedDishIds(new Set())
+  }
+
+  // Tags Index for Filter Bar (Issue #7)
+  const allHouseholdTags = React.useMemo(() => {
+    const map = new Map<string, { id?: number; name: string; color: string }>()
+    if (availableTags) {
+      availableTags.forEach((t) => map.set(t.name.toLowerCase(), t))
+    }
+    dishes.forEach((d) => {
+      d.tags?.forEach((t) => {
+        if (!map.has(t.name.toLowerCase())) {
+          map.set(t.name.toLowerCase(), t)
+        }
+      })
+    })
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [availableTags, dishes])
+
+  const handleToggleTagFilter = (tagName: string) => {
+    setSelectedTagNames((prev) =>
+      prev.some((t) => t.toLowerCase() === tagName.toLowerCase())
+        ? prev.filter((t) => t.toLowerCase() !== tagName.toLowerCase())
+        : [...prev, tagName]
+    )
   }
 
   const handleExport = async (format: 'xlsx' | 'csv' | 'json') => {
@@ -202,6 +235,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
     setNotes('')
     setStatusId(getDefaultStatusId())
     setSelectedCourseIds([courses[0]?.id || 1])
+    setFormTags([])
     setSourceTypeId(undefined) // D002: Optional source type defaults to undefined
     setSourceReference('')
     setSourceUrl('')
@@ -216,6 +250,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
     setNotes(dish.notes || '')
     setStatusId(dish.status.id)
     setSelectedCourseIds(dish.courses.map((c) => c.id))
+    setFormTags(dish.tags ? dish.tags.map((t) => ({ id: t.id, name: t.name, color: t.color })) : [])
     setSourceTypeId(dish.source.source_type_id || undefined)
     setSourceReference(dish.source.source_reference || '')
     setSourceUrl(dish.source.source_url || '')
@@ -258,6 +293,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
         notes: notes.trim() || undefined,
         status_id: statusId,
         course_ids: selectedCourseIds,
+        tags: formTags.map((t) => ({ name: t.name, color: t.color })),
         source_type_id: sourceTypeId || undefined,
         source_reference: sourceReference.trim() || undefined,
         source_url: sourceUrl.trim() || undefined,
@@ -280,19 +316,27 @@ export const DishesView: React.FC<DishesViewProps> = ({
     }
   }
 
-  // Client-side filter
+  // Client-side filter (AND logic for tags, matches search in tags)
   const filteredDishes = dishes.filter((dish) => {
     if (search.trim()) {
       const term = search.toLowerCase()
       const matchTitle = dish.title.toLowerCase().includes(term)
       const matchNotes = dish.notes?.toLowerCase().includes(term)
-      if (!matchTitle && !matchNotes) return false
+      const matchDesc = dish.description?.toLowerCase().includes(term)
+      const matchTags = dish.tags?.some((t) => t.name.toLowerCase().includes(term))
+      if (!matchTitle && !matchNotes && !matchDesc && !matchTags) return false
     }
     if (selectedStatusFilter && dish.status.id !== selectedStatusFilter) {
       return false
     }
     if (selectedCourseFilter && !dish.courses.some((c) => c.id === selectedCourseFilter)) {
       return false
+    }
+    if (selectedTagNames.length > 0) {
+      const hasAllTags = selectedTagNames.every((st) =>
+        dish.tags?.some((dt) => dt.name.toLowerCase() === st.toLowerCase())
+      )
+      if (!hasAllTags) return false
     }
     return true
   })
@@ -479,6 +523,49 @@ export const DishesView: React.FC<DishesViewProps> = ({
             </button>
           ))}
         </div>
+
+        {/* Tag Filters (AND logic) */}
+        {allHouseholdTags.length > 0 && (
+          <div className="flex items-center space-x-1 overflow-x-auto pb-0.5 text-xs flex-wrap gap-y-1">
+            <span className="text-slate-400 font-medium px-1.5 flex items-center text-[11px]">
+              <TagIcon className="w-3 h-3 mr-1 text-brand-600" /> {t('tags.filter_by_tags', 'Tag (AND)')}:
+            </span>
+            {selectedTagNames.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedTagNames([])}
+                className="px-2 py-0.5 rounded-full font-medium whitespace-nowrap text-[10px] bg-slate-200 text-slate-700 hover:bg-slate-300 transition-colors mr-1 cursor-pointer"
+              >
+                {t('common.clear', 'Azzera')} ({selectedTagNames.length})
+              </button>
+            )}
+            {allHouseholdTags.map((tItem) => {
+              const isSelected = selectedTagNames.some(
+                (st) => st.toLowerCase() === tItem.name.toLowerCase()
+              )
+              const tagColor = tItem.color || '#16a34a'
+              return (
+                <button
+                  key={tItem.name}
+                  type="button"
+                  onClick={() => handleToggleTagFilter(tItem.name)}
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all flex items-center space-x-1 cursor-pointer ${
+                    isSelected
+                      ? 'ring-2 ring-offset-1 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200/80'
+                  }`}
+                  style={isSelected ? { backgroundColor: tagColor, borderColor: tagColor } : {}}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full inline-block"
+                    style={{ backgroundColor: isSelected ? '#ffffff' : tagColor }}
+                  />
+                  <span>{tItem.name}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* Dishes Cards Grid (G002: 4-5 columns on large screens, compact padding) */}
@@ -571,6 +658,21 @@ export const DishesView: React.FC<DishesViewProps> = ({
                       </span>
                     ))}
                   </div>
+
+                  {/* Tag Badges (Issue #7) */}
+                  {dish.tags && dish.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      {dish.tags.map((tg) => (
+                        <span
+                          key={tg.id || tg.name}
+                          className="text-[9px] font-semibold text-white px-1.5 py-0.2 rounded-full shadow-2xs"
+                          style={{ backgroundColor: tg.color || '#16a34a' }}
+                        >
+                          {tg.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Attributes visible only when expanded */}
                   {isExpanded && (
@@ -836,6 +938,13 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Tags Selector (Issue #7) */}
+              <DishTagSelector
+                selectedTags={formTags}
+                availableTags={allHouseholdTags}
+                onChange={setFormTags}
+              />
 
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">

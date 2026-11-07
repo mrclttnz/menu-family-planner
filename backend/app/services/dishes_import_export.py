@@ -10,7 +10,7 @@ import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
 
-from app.models.dish import Dish, DishCourse
+from app.models.dish import Dish, DishCourse, Tag, DishTag
 from app.models.taxonomy import DishStatus, CourseType, SourceType
 from app.schemas.dish import DishImportResult, DishImportRowError
 
@@ -26,9 +26,16 @@ HEADER_COLUMNS = [
     "status",
     "source_type",
     "courses",
+    "tags",
     "source_reference",
     "source_url",
 ]
+
+
+def format_tags_field(tags: List[Any]) -> str:
+    """Formats tags as a clean comma-separated list of names."""
+    names = [dt.tag.name for dt in tags if dt.tag and dt.tag.name]
+    return ", ".join(names)
 
 
 def sanitize_for_export(val: Optional[str]) -> str:
@@ -119,6 +126,7 @@ def export_dishes_to_xlsx(dishes: List[Dish]) -> bytes:
         status_name = dish.status.custom_label if dish.status.custom_label else dish.status.lookup.name
         source_type_name = dish.source_type.name if dish.source_type else ""
         courses_str = format_courses_field([dc.course_type for dc in dish.courses if dc.course_type])
+        tags_str = format_tags_field(dish.tags)
 
         row_data = [
             sanitize_for_export(dish.title),
@@ -127,6 +135,7 @@ def export_dishes_to_xlsx(dishes: List[Dish]) -> bytes:
             sanitize_for_export(status_name),
             sanitize_for_export(source_type_name),
             courses_str,
+            sanitize_for_export(tags_str),
             sanitize_for_export(dish.source_reference or ""),
             sanitize_for_export(dish.source_url or ""),
         ]
@@ -160,6 +169,7 @@ def export_dishes_to_csv(dishes: List[Dish]) -> bytes:
         status_name = dish.status.custom_label if dish.status.custom_label else dish.status.lookup.name
         source_type_name = dish.source_type.name if dish.source_type else ""
         courses_str = format_courses_field([dc.course_type for dc in dish.courses if dc.course_type])
+        tags_str = format_tags_field(dish.tags)
 
         writer.writerow([
             sanitize_for_export(dish.title),
@@ -168,6 +178,7 @@ def export_dishes_to_csv(dishes: List[Dish]) -> bytes:
             sanitize_for_export(status_name),
             sanitize_for_export(source_type_name),
             courses_str,
+            sanitize_for_export(tags_str),
             sanitize_for_export(dish.source_reference or ""),
             sanitize_for_export(dish.source_url or ""),
         ])
@@ -182,6 +193,7 @@ def export_dishes_to_json(dishes: List[Dish]) -> bytes:
         status_name = dish.status.custom_label if dish.status.custom_label else dish.status.lookup.name
         source_type_name = dish.source_type.name if dish.source_type else ""
         courses_list = [dc.course_type.name for dc in dish.courses if dc.course_type and dc.course_type.name]
+        tags_list = [dt.tag.name for dt in dish.tags if dt.tag and dt.tag.name]
 
         data.append({
             "title": sanitize_for_export(dish.title),
@@ -190,6 +202,7 @@ def export_dishes_to_json(dishes: List[Dish]) -> bytes:
             "status": sanitize_for_export(status_name),
             "source_type": sanitize_for_export(source_type_name),
             "courses": courses_list,
+            "tags": tags_list,
             "source_reference": sanitize_for_export(dish.source_reference or ""),
             "source_url": sanitize_for_export(dish.source_url or ""),
         })
@@ -208,6 +221,8 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
             "source_type": "Famiglia",
             "courses_str": '["Primo"]',
             "courses_list": ["Primo"],
+            "tags_str": "Veloce, Vegetariano",
+            "tags_list": ["Veloce", "Vegetariano"],
             "source_reference": "Ricetta della nonna",
             "source_url": "",
         },
@@ -219,6 +234,8 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
             "source_type": "Libro / Rivista",
             "courses_str": '["Secondo", "Piatto unico"]',
             "courses_list": ["Secondo", "Piatto unico"],
+            "tags_str": "Carne, Invernale",
+            "tags_list": ["Carne", "Invernale"],
             "source_reference": "Il Cucchiaio d'Argento p. 112",
             "source_url": "https://www.cucchiaio.it/ricetta/arrosto-di-vitello/",
         },
@@ -249,6 +266,7 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
                 d["status"],
                 d["source_type"],
                 d["courses_str"],
+                d["tags_str"],
                 d["source_reference"],
                 d["source_url"],
             ])
@@ -276,6 +294,7 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
                 "status": d["status"],
                 "source_type": d["source_type"],
                 "courses": d["courses_list"],
+                "tags": d["tags_list"],
                 "source_reference": d["source_reference"],
                 "source_url": d["source_url"],
             }
@@ -299,6 +318,7 @@ def generate_import_template(fmt: str) -> Tuple[bytes, str, str]:
                 d["status"],
                 d["source_type"],
                 d["courses_str"],
+                d["tags_str"],
                 d["source_reference"],
                 d["source_url"],
             ])
@@ -476,6 +496,10 @@ def import_dishes_from_bytes(
     ).all()
     source_map: Dict[str, SourceType] = {s.name.strip().lower(): s for s in source_objs if s.name}
 
+    # Preload existing tags for household
+    tag_objs = db.query(Tag).filter(Tag.household_id == household_id).all()
+    tag_map: Dict[str, Tag] = {t.name.strip().lower(): t for t in tag_objs if t.name}
+
     # Preload existing dishes for household (case-insensitive title map)
     existing_dishes = db.query(Dish).filter(Dish.household_id == household_id).all()
     dish_map: Dict[str, Dish] = {d.title.strip().lower(): d for d in existing_dishes}
@@ -576,6 +600,44 @@ def import_dishes_from_bytes(
                 source_map[s_key] = new_s
                 matched_source = new_s
 
+        # Optional Tags
+        raw_tags = r.get("tags", "")
+        matched_tags: List[Tag] = []
+        raw_tag_names: List[str] = []
+        if isinstance(raw_tags, list):
+            for item in raw_tags:
+                clean_item = sanitize_from_import(str(item))
+                if clean_item:
+                    raw_tag_names.append(clean_item)
+        elif isinstance(raw_tags, str) and raw_tags.strip():
+            for part in raw_tags.split(","):
+                clean_part = sanitize_from_import(part)
+                if clean_part:
+                    raw_tag_names.append(clean_part)
+
+        seen_tkeys = set()
+        for t_name in raw_tag_names:
+            clean_t = t_name.replace(",", "").strip()
+            if not clean_t:
+                continue
+            t_key = clean_t.lower()
+            if t_key in seen_tkeys:
+                continue
+            seen_tkeys.add(t_key)
+
+            if t_key in tag_map:
+                matched_tags.append(tag_map[t_key])
+            else:
+                new_tag = Tag(
+                    household_id=household_id,
+                    name=clean_t[:50],
+                    color="#16a34a"
+                )
+                db.add(new_tag)
+                db.flush()
+                tag_map[t_key] = new_tag
+                matched_tags.append(new_tag)
+
         clean_desc = sanitize_from_import(r.get("description", ""))
         clean_notes = sanitize_from_import(r.get("notes", ""))
         clean_source_ref = sanitize_from_import(r.get("source_reference", ""))
@@ -604,6 +666,10 @@ def import_dishes_from_bytes(
                 for c in matched_courses:
                     db.add(DishCourse(dish_id=existing_dish.id, course_type_id=c.id))
 
+                db.query(DishTag).filter(DishTag.dish_id == existing_dish.id).delete()
+                for t in matched_tags:
+                    db.add(DishTag(dish_id=existing_dish.id, tag_id=t.id))
+
                 updated_count += 1
         else:
             new_dish = Dish(
@@ -621,6 +687,9 @@ def import_dishes_from_bytes(
 
             for c in matched_courses:
                 db.add(DishCourse(dish_id=new_dish.id, course_type_id=c.id))
+
+            for t in matched_tags:
+                db.add(DishTag(dish_id=new_dish.id, tag_id=t.id))
 
             dish_map[title_key] = new_dish
             created_count += 1

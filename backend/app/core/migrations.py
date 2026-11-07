@@ -38,3 +38,36 @@ def run_auto_migrations(engine: Engine) -> None:
                     CONSTRAINT uq_slot_dish_member_rating UNIQUE (meal_slot_dish_id, member_id)
                 )
             """))
+
+        if "tags" not in table_names:
+            if engine.dialect.name == "sqlite":
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tags (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        household_id INTEGER NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+                        name VARCHAR(50) NOT NULL,
+                        color VARCHAR(20) NOT NULL DEFAULT '#16a34a',
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_household_tag_name UNIQUE (household_id, name)
+                    )
+                """))
+            else:
+                conn.execute(text("""
+                    CREATE TABLE IF NOT EXISTS tags (
+                        id SERIAL PRIMARY KEY,
+                        household_id INTEGER NOT NULL REFERENCES households(id) ON DELETE CASCADE,
+                        name VARCHAR(50) NOT NULL,
+                        color VARCHAR(20) NOT NULL DEFAULT '#16a34a',
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                        CONSTRAINT uq_household_tag_name UNIQUE (household_id, name)
+                    )
+                """))
+
+        if "dish_tags" not in table_names:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS dish_tags (
+                    dish_id INTEGER NOT NULL REFERENCES dishes(id) ON DELETE CASCADE,
+                    tag_id INTEGER NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
+                    PRIMARY KEY (dish_id, tag_id)
+                )
+            """))

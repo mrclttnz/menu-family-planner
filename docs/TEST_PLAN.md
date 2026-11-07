@@ -86,20 +86,22 @@ tests/test_dishes_and_preferences.py::test_update_dish_validates_courses PASSED 
 tests/test_dishes_and_preferences.py::test_default_status_ok_flag PASSED [ 58%]
 tests/test_dishes_and_preferences.py::test_optional_source_type_dish_creation PASSED [ 61%]
 tests/test_dishes_and_preferences.py::test_slot_dish_multiple_notes_and_history PASSED [ 64%]
-tests/test_dishes_import_export.py::test_export_dishes_csv_xlsx_and_json PASSED [ 67%]
-tests/test_dishes_import_export.py::test_download_template_all_formats PASSED [ 70%]
-tests/test_dishes_import_export.py::test_import_dishes_csv_english PASSED [ 73%]
-tests/test_dishes_import_export.py::test_import_dishes_json PASSED       [ 76%]
-tests/test_dishes_import_export.py::test_import_duplicates_skip_and_update PASSED [ 79%]
-tests/test_dishes_import_export.py::test_import_validation_and_row_errors PASSED [ 82%]
-tests/test_dishes_import_export.py::test_formula_injection_defense PASSED [ 85%]
-tests/test_members.py::test_create_and_list_members PASSED               [ 88%]
-tests/test_members.py::test_create_duplicate_member_name_fails PASSED   [ 91%]
-tests/test_members.py::test_update_member PASSED                         [ 94%]
-tests/test_members.py::test_delete_member PASSED                         [ 97%]
-tests/test_members.py::test_tenant_isolation_members PASSED              [100%]
+tests/test_dishes_and_preferences.py::test_tags_taxonomy_crud_and_validation PASSED [ 66%]
+tests/test_dishes_and_preferences.py::test_dishes_with_tags_and_filtering_and_search PASSED [ 69%]
+tests/test_dishes_import_export.py::test_export_dishes_csv_xlsx_and_json PASSED [ 71%]
+tests/test_dishes_import_export.py::test_download_template_all_formats PASSED [ 74%]
+tests/test_dishes_import_export.py::test_import_dishes_csv_english PASSED [ 76%]
+tests/test_dishes_import_export.py::test_import_dishes_json PASSED       [ 79%]
+tests/test_dishes_import_export.py::test_import_duplicates_skip_and_update PASSED [ 82%]
+tests/test_dishes_import_export.py::test_import_validation_and_row_errors PASSED [ 84%]
+tests/test_dishes_import_export.py::test_formula_injection_defense PASSED [ 87%]
+tests/test_dishes_import_export.py::test_import_and_export_dishes_with_tags PASSED [ 89%]
+tests/test_members.py::test_create_and_list_members PASSED               [ 92%]
+tests/test_members.py::test_create_duplicate_member_name_fails PASSED   [ 95%]
+tests/test_members.py::test_update_member PASSED                         [ 97%]
+tests/test_members.py::test_delete_member PASSED                         [100%]
 
-======================== 34 passed, 1 warning in 11.72s ========================
+======================== 38 passed, 1 warning in 13.84s ========================
 ```
 
 ### Frontend TypeScript & Vite Build Evidence
@@ -108,9 +110,9 @@ tests/test_members.py::test_tenant_isolation_members PASSED              [100%]
 > tsc && vite build
 
 vite v5.4.21 building for production...
-✓ 1955 modules transformed.
-dist/index.html                   0.74 kB │ gzip:  0.49 kB
-dist/assets/index-Byj-2PTh.css   24.65 kB │ gzip:  4.99 kB
-dist/assets/index-BEOvhPp8.js   200.38 kB │ gzip: 58.85 kB
-✓ built in 2.68s
+✓ 1991 modules transformed.
+dist/index.html                   0.74 kB │ gzip:   0.49 kB
+dist/assets/index-T4isYaV8.css   36.83 kB │ gzip:   6.56 kB
+dist/assets/index-CzFcvtqJ.js   378.03 kB │ gzip: 102.25 kB
+✓ built in 3.63s
 ```

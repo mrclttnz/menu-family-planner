@@ -33,6 +33,7 @@ interface TodayViewProps {
 export const TodayView: React.FC<TodayViewProps> = ({
   slots,
   members,
+  dishes,
   onToggleAttendance,
   onAssignDish,
   onRemoveDish,
@@ -186,6 +187,25 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                   {dishAssign.notes}
                                 </p>
                               )}
+
+                              {/* Dish Tags (Issue #7) */}
+                              {(() => {
+                                const fullDish = dishes?.find((d) => d.id === dishAssign.dish_id)
+                                if (!fullDish?.tags || fullDish.tags.length === 0) return null
+                                return (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {fullDish.tags.map((tg) => (
+                                      <span
+                                        key={tg.id || tg.name}
+                                        className="text-[9px] font-semibold text-white px-1.5 py-0.2 rounded-full shadow-2xs"
+                                        style={{ backgroundColor: tg.color || '#16a34a' }}
+                                      >
+                                        {tg.name}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )
+                              })()}
                             </div>
                             <button
                               onClick={() => onRemoveDish(slot.id, dishAssign.dish_id)}

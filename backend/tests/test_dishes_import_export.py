@@ -281,3 +281,34 @@ def test_formula_injection_defense(client, auth_headers):
     assert res_export.status_code == 200
     csv_text = res_export.content.decode("utf-8-sig")
     assert "'=1+2" in csv_text
+
+
+def test_import_and_export_dishes_with_tags(client, auth_headers):
+    # 1. Import CSV containing 'tags' column
+    csv_content = """title,description,notes,status,source_type,courses,tags,source_reference,source_url
+"Couscous di Verdure","Piatto speziato e leggero","Aggiungere menta fresca","OK","Note personali","Primo","Veloce, Vegetariano, Estivo","Marocco",
+"Bistecca alla Fiorentina","Taglio spesso al sangue","Sale grosso","OK","Famiglia","Secondo","Carne, Griglia","Firenze",
+"""
+    files = {
+        "file": ("dishes_tags.csv", csv_content.encode("utf-8"), "text/csv")
+    }
+    res = client.post("/api/v1/dishes/import", headers=auth_headers, files=files, data={"mode": "skip"})
+    assert res.status_code == 200
+    assert res.json()["created"] == 2
+
+    # Verify dishes have tags
+    res_dishes = client.get("/api/v1/dishes", headers=auth_headers)
+    dishes = res_dishes.json()
+    couscous = next(d for d in dishes if d["title"] == "Couscous di Verdure")
+    tag_names = [t["name"] for t in couscous["tags"]]
+    assert "Veloce" in tag_names
+    assert "Vegetariano" in tag_names
+    assert "Estivo" in tag_names
+
+    # Export to CSV and verify 'tags' column contains the tags
+    res_export = client.get("/api/v1/dishes/export?format=csv", headers=auth_headers)
+    assert res_export.status_code == 200
+    csv_text = res_export.content.decode("utf-8-sig")
+    assert "Veloce" in csv_text
+    assert "Vegetariano" in csv_text
+

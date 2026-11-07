@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 class MealTypeResponse(BaseModel):
@@ -76,3 +76,69 @@ class SourceTypeResponse(BaseModel):
     is_custom: bool
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TagCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=50)
+    color: Optional[str] = Field("#16a34a", max_length=20)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        clean = v.strip()
+        if "," in clean:
+            raise ValueError("Tag name cannot contain commas")
+        if not clean:
+            raise ValueError("Tag name cannot be empty")
+        return clean
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            clean = v.strip()
+            if not clean.startswith("#") or len(clean) not in (4, 7):
+                raise ValueError("Tag color must be a valid hex color (e.g. #16a34a or #fff)")
+            return clean
+        return "#16a34a"
+
+
+class TagUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=50)
+    color: Optional[str] = Field(None, max_length=20)
+
+    model_config = ConfigDict(extra="forbid")
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None:
+            clean = v.strip()
+            if "," in clean:
+                raise ValueError("Tag name cannot contain commas")
+            if not clean:
+                raise ValueError("Tag name cannot be empty")
+            return clean
+        return None
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            clean = v.strip()
+            if not clean.startswith("#") or len(clean) not in (4, 7):
+                raise ValueError("Tag color must be a valid hex color (e.g. #16a34a or #fff)")
+            return clean
+        return None
+
+
+class TagResponse(BaseModel):
+    id: int
+    household_id: int
+    name: str
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+

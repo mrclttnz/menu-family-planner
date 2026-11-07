@@ -214,3 +214,125 @@ def test_slot_dish_multiple_notes_and_history(client, auth_headers):
     history = res_history.json()
     assert len(history) == 2
     assert history[0]["meal_date"] == "2026-11-01"
+
+
+def test_tags_taxonomy_crud_and_validation(client, auth_headers):
+    # 1. Create a tag with default color
+    res_create = client.post("/api/v1/taxonomies/tags", headers=auth_headers, json={"name": "Veloce"})
+    assert res_create.status_code == 201
+    tag1 = res_create.json()
+    assert tag1["name"] == "Veloce"
+    assert tag1["color"] == "#16a34a"
+
+    # 2. Create another tag with custom hex color
+    res_create2 = client.post("/api/v1/taxonomies/tags", headers=auth_headers, json={"name": "Vegetariano", "color": "#0284c7"})
+    assert res_create2.status_code == 201
+    tag2 = res_create2.json()
+    assert tag2["name"] == "Vegetariano"
+    assert tag2["color"] == "#0284c7"
+
+    # 3. Duplicate tag name should return 409 Conflict
+    res_dup = client.post("/api/v1/taxonomies/tags", headers=auth_headers, json={"name": "veloce"})
+    assert res_dup.status_code == 409
+
+    # 4. Reject tag name containing comma
+    res_comma = client.post("/api/v1/taxonomies/tags", headers=auth_headers, json={"name": "salva,cena"})
+    assert res_comma.status_code == 422
+
+    # 5. List tags
+    res_list = client.get("/api/v1/taxonomies/tags", headers=auth_headers)
+    assert res_list.status_code == 200
+    names = [t["name"] for t in res_list.json()]
+    assert "Vegetariano" in names
+    assert "Veloce" in names
+
+    # 6. Update tag color
+    res_update = client.put(f"/api/v1/taxonomies/tags/{tag1['id']}", headers=auth_headers, json={"color": "#db2777"})
+    assert res_update.status_code == 200
+    assert res_update.json()["color"] == "#db2777"
+
+    # 7. Delete tag
+    res_del = client.delete(f"/api/v1/taxonomies/tags/{tag2['id']}", headers=auth_headers)
+    assert res_del.status_code == 204
+
+
+def test_dishes_with_tags_and_filtering_and_search(client, auth_headers):
+    res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    status_id = res_statuses.json()[0]["id"]
+    res_courses = client.get("/api/v1/taxonomies/courses", headers=auth_headers)
+    course_id = res_courses.json()[0]["id"]
+
+    # Reject tag with comma in dish creation
+    res_bad = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Invalid Tag Dish",
+        "status_id": status_id,
+        "course_ids": [course_id],
+        "tags": [{"name": "veloce, sano"}]
+    })
+    assert res_bad.status_code == 422
+
+    # Dish 1: Tag A (Veloce) and Tag B (Invernale)
+    res_d1 = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Minestrone caldo",
+        "status_id": status_id,
+        "course_ids": [course_id],
+        "tags": [
+            {"name": "Veloce", "color": "#16a34a"},
+            {"name": "Invernale", "color": "#2563eb"}
+        ]
+    })
+    assert res_d1.status_code == 201
+    d1 = res_d1.json()
+    assert len(d1["tags"]) == 2
+    tag_veloce = next(t for t in d1["tags"] if t["name"] == "Veloce")
+    tag_invernale = next(t for t in d1["tags"] if t["name"] == "Invernale")
+
+    # Dish 2: Tag A only (Veloce)
+    res_d2 = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Insalata di riso",
+        "status_id": status_id,
+        "course_ids": [course_id],
+        "tags": [{"name": "Veloce"}]
+    })
+    assert res_d2.status_code == 201
+
+    # Dish 3: Tag B only (Invernale)
+    res_d3 = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Polenta e funghi",
+        "status_id": status_id,
+        "course_ids": [course_id],
+        "tags": [{"name": "Invernale"}]
+    })
+    assert res_d3.status_code == 201
+
+    # 1. Filter by Tag A (Veloce) -> Dish 1 and Dish 2
+    res_f1 = client.get(f"/api/v1/dishes?tag_id={tag_veloce['id']}", headers=auth_headers)
+    titles_f1 = [d["title"] for d in res_f1.json()]
+    assert "Minestrone caldo" in titles_f1
+    assert "Insalata di riso" in titles_f1
+    assert "Polenta e funghi" not in titles_f1
+
+    # 2. Filter by Tag A AND Tag B -> ONLY Dish 1
+    res_fand = client.get(
+        f"/api/v1/dishes?tag_id={tag_veloce['id']}&tag_id={tag_invernale['id']}",
+        headers=auth_headers
+    )
+    titles_fand = [d["title"] for d in res_fand.json()]
+    assert "Minestrone caldo" in titles_fand
+    assert "Insalata di riso" not in titles_fand
+    assert "Polenta e funghi" not in titles_fand
+
+    # 3. Search matching tag name
+    res_search = client.get("/api/v1/dishes?search=Invernale", headers=auth_headers)
+    titles_search = [d["title"] for d in res_search.json()]
+    assert "Minestrone caldo" in titles_search
+    assert "Polenta e funghi" in titles_search
+    assert "Insalata di riso" not in titles_search
+
+    # 4. Update Dish 2 to also have Tag B
+    res_upd = client.put(f"/api/v1/dishes/{res_d2.json()['id']}", headers=auth_headers, json={
+        "tags": [{"name": "Veloce"}, {"name": "Invernale"}]
+    })
+    assert res_upd.status_code == 200
+    assert len(res_upd.json()["tags"]) == 2
+

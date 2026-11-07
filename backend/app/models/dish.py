@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, CheckConstraint
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -24,6 +24,7 @@ class Dish(Base):
     status = relationship("DishStatus", back_populates="dishes")
     source_type = relationship("SourceType", back_populates="dishes")
     courses = relationship("DishCourse", back_populates="dish", cascade="all, delete-orphan")
+    tags = relationship("DishTag", back_populates="dish", cascade="all, delete-orphan")
     preferences = relationship("DishMemberPreference", back_populates="dish", cascade="all, delete-orphan")
     meal_assignments = relationship("MealSlotDish", back_populates="dish", cascade="all, delete-orphan")
 
@@ -37,6 +38,35 @@ class DishCourse(Base):
     # Relationships
     dish = relationship("Dish", back_populates="courses")
     course_type = relationship("CourseType", back_populates="dish_courses")
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    household_id = Column(Integer, ForeignKey("households.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(50), nullable=False)
+    color = Column(String(20), nullable=False, default="#16a34a")
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+    # Relationships
+    household = relationship("Household", backref="tags")
+    dishes = relationship("DishTag", back_populates="tag", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        UniqueConstraint("household_id", "name", name="uq_household_tag_name"),
+    )
+
+
+class DishTag(Base):
+    __tablename__ = "dish_tags"
+
+    dish_id = Column(Integer, ForeignKey("dishes.id", ondelete="CASCADE"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tags.id", ondelete="CASCADE"), primary_key=True)
+
+    # Relationships
+    dish = relationship("Dish", back_populates="tags")
+    tag = relationship("Tag", back_populates="dishes")
 
 
 class DishMemberPreference(Base):

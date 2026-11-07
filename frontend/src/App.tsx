@@ -7,6 +7,7 @@ import {
   DishStatus,
   CourseType,
   SourceType,
+  Tag,
   Dish,
   MealSlot,
 } from './types'
@@ -30,6 +31,7 @@ export function App() {
   const [statuses, setStatuses] = useState<DishStatus[]>([])
   const [courses, setCourses] = useState<CourseType[]>([])
   const [sources, setSources] = useState<SourceType[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [dishes, setDishes] = useState<Dish[]>([])
   const [calendarSlots, setCalendarSlots] = useState<MealSlot[]>([])
 
@@ -94,13 +96,14 @@ export function App() {
     if (!household) return
 
     try {
-      const [membersData, mealTypesData, statusesData, coursesData, sourcesData, dishesData, calendarData] =
+      const [membersData, mealTypesData, statusesData, coursesData, sourcesData, tagsData, dishesData, calendarData] =
         await Promise.all([
           api.getMembers(),
           api.getMealTypes(),
           api.getStatuses(),
           api.getCourses(),
           api.getSources(),
+          api.getTags(),
           api.getDishes(),
           api.getCalendar(startDate, endDate),
         ])
@@ -110,6 +113,7 @@ export function App() {
       setStatuses(statusesData)
       setCourses(coursesData)
       setSources(sourcesData)
+      setTags(tagsData)
       setDishes(dishesData)
       setCalendarSlots(calendarData)
     } catch (err) {
@@ -286,12 +290,14 @@ export function App() {
   // Create Dish
   const handleCreateDish = async (payload: Parameters<typeof api.createDish>[0]) => {
     const newDish = await api.createDish(payload)
-    const [dishesData, calendarData] = await Promise.all([
+    const [dishesData, calendarData, tagsData] = await Promise.all([
       api.getDishes(),
       api.getCalendar(startDate, endDate),
+      api.getTags(),
     ])
     setDishes(dishesData)
     setCalendarSlots(calendarData)
+    setTags(tagsData)
     return newDish
   }
 
@@ -319,23 +325,27 @@ export function App() {
   // Update Dish (G001/D004)
   const handleUpdateDish = async (dishId: number, payload: Parameters<typeof api.updateDish>[1]) => {
     await api.updateDish(dishId, payload)
-    const [dishesData, calendarData] = await Promise.all([
+    const [dishesData, calendarData, tagsData] = await Promise.all([
       api.getDishes(),
       api.getCalendar(startDate, endDate),
+      api.getTags(),
     ])
     setDishes(dishesData)
     setCalendarSlots(calendarData)
+    setTags(tagsData)
   }
 
   // Delete Dish
   const handleDeleteDish = async (dishId: number) => {
     await api.deleteDish(dishId)
-    const [dishesData, calendarData] = await Promise.all([
+    const [dishesData, calendarData, tagsData] = await Promise.all([
       api.getDishes(),
       api.getCalendar(startDate, endDate),
+      api.getTags(),
     ])
     setDishes(dishesData)
     setCalendarSlots(calendarData)
+    setTags(tagsData)
   }
 
   // Set Member Preference
@@ -468,6 +478,7 @@ export function App() {
             statuses={statuses}
             courses={courses}
             sources={sources}
+            availableTags={tags}
             onCreateDish={handleCreateDish}
             onUpdateDish={handleUpdateDish}
             onDeleteDish={handleDeleteDish}

@@ -5,6 +5,7 @@ import {
   DishStatus,
   CourseType,
   SourceType,
+  Tag,
   Dish,
   MealSlot,
   MealSlotAttendance,
@@ -103,12 +104,32 @@ export const api = {
     }),
   getSources: () => request<SourceType[]>('/taxonomies/sources'),
 
+  // Tags (Issue #7)
+  getTags: () => request<Tag[]>('/taxonomies/tags'),
+  createTag: (payload: { name: string; color?: string }) =>
+    request<Tag>('/taxonomies/tags', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }),
+  updateTag: (id: number, payload: { name?: string; color?: string }) =>
+    request<Tag>(`/taxonomies/tags/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }),
+  deleteTag: (id: number) =>
+    request<void>(`/taxonomies/tags/${id}`, {
+      method: 'DELETE',
+    }),
+
   // Dishes & Preferences
-  getDishes: (params?: { status_id?: number; course_id?: number; search?: string }) => {
+  getDishes: (params?: { status_id?: number; course_id?: number; search?: string; tag_id?: number[] }) => {
     const query = new URLSearchParams()
     if (params?.status_id) query.set('status_id', params.status_id.toString())
     if (params?.course_id) query.set('course_id', params.course_id.toString())
     if (params?.search) query.set('search', params.search)
+    if (params?.tag_id) {
+      params.tag_id.forEach((tid) => query.append('tag_id', tid.toString()))
+    }
     return request<Dish[]>(`/dishes?${query.toString()}`)
   },
   createDish: (payload: {
@@ -117,6 +138,7 @@ export const api = {
     notes?: string
     status_id: number
     course_ids: number[]
+    tags?: Array<{ name: string; color?: string }>
     source_type_id?: number
     source_reference?: string
     source_url?: string
@@ -131,6 +153,7 @@ export const api = {
     notes: string
     status_id: number
     course_ids: number[]
+    tags: Array<{ name: string; color?: string }>
     source_type_id: number
     source_reference: string
     source_url: string
@@ -150,13 +173,16 @@ export const api = {
     }),
   getDishNotes: (dishId: number) => request<SlotDishNote[]>(`/dishes/${dishId}/notes`),
 
-  exportDishes: async (format: 'xlsx' | 'csv' | 'json', params?: { status_id?: number; course_id?: number; search?: string }) => {
+  exportDishes: async (format: 'xlsx' | 'csv' | 'json', params?: { status_id?: number; course_id?: number; search?: string; tag_id?: number[] }) => {
     const token = getToken()
     const query = new URLSearchParams()
     query.set('format', format)
     if (params?.status_id) query.set('status_id', params.status_id.toString())
     if (params?.course_id) query.set('course_id', params.course_id.toString())
     if (params?.search) query.set('search', params.search)
+    if (params?.tag_id) {
+      params.tag_id.forEach((tid) => query.append('tag_id', tid.toString()))
+    }
 
     const headers: HeadersInit = {}
     if (token) headers['Authorization'] = `Bearer ${token}`

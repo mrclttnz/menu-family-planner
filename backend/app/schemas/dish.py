@@ -34,6 +34,40 @@ class MemberPreferenceSummary(BaseModel):
     rating: str  # 'favorite' | 'neutral' | 'dislike'
 
 
+class TagSummary(BaseModel):
+    id: int
+    name: str
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DishTagInput(BaseModel):
+    id: Optional[int] = None
+    name: str = Field(..., min_length=1, max_length=50)
+    color: Optional[str] = Field("#16a34a", max_length=20)
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, v: str) -> str:
+        clean = v.strip()
+        if "," in clean:
+            raise ValueError("Tag name cannot contain commas")
+        if not clean:
+            raise ValueError("Tag name cannot be empty")
+        return clean
+
+    @field_validator("color")
+    @classmethod
+    def validate_color(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v.strip():
+            clean = v.strip()
+            if not clean.startswith("#") or len(clean) not in (4, 7):
+                raise ValueError("Tag color must be a valid hex color (e.g. #16a34a or #fff)")
+            return clean
+        return "#16a34a"
+
+
 class DishCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200, description="Dish title")
     description: Optional[str] = Field(None, max_length=2000)
@@ -43,6 +77,7 @@ class DishCreate(BaseModel):
     source_type_id: Optional[int] = None
     source_reference: Optional[str] = Field(None, max_length=255)
     source_url: Optional[str] = Field(None, max_length=1000)
+    tags: Optional[List[DishTagInput]] = Field(default_factory=list, description="Associated tags")
 
     model_config = ConfigDict(extra="forbid")
 
@@ -66,6 +101,7 @@ class DishUpdate(BaseModel):
     source_type_id: Optional[int] = None
     source_reference: Optional[str] = None
     source_url: Optional[str] = None
+    tags: Optional[List[DishTagInput]] = None
 
     model_config = ConfigDict(extra="forbid")
 
@@ -88,6 +124,7 @@ class DishResponse(BaseModel):
     notes: Optional[str]
     status: StatusSummary
     courses: List[CourseSummary]
+    tags: List[TagSummary] = Field(default_factory=list)
     source: DishSourceInfo
     preferences: List[MemberPreferenceSummary]
     created_at: datetime

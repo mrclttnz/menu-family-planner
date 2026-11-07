@@ -196,11 +196,15 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 | `/taxonomies/courses` | `POST` | Required | Create custom course type |
 | `/taxonomies/statuses`| `GET` | Required | List dish statuses backed by lookup table |
 | `/taxonomies/sources` | `GET` | Required | List recipe source types (`Libro`, `Sito Web`, `Social`, etc.) |
+| `/taxonomies/tags`    | `GET` | Required | List household custom tags |
+| `/taxonomies/tags`    | `POST`| Required | Create household custom tag with optional color |
+| `/taxonomies/tags/{id}`| `PUT`| Required | Update tag name or color |
+| `/taxonomies/tags/{id}`| `DELETE`| Required | Delete tag and cascade remove from dishes |
 
 ### 5.4 Dish Catalog & Recipe Sources
 | Endpoint | Method | Auth | Description |
 | :--- | :--- | :--- | :--- |
-| `/dishes` | `GET` | Required | Filterable dish list (query params: `status_id`, `course_id`, `search` substring matching title/notes) |
+| `/dishes` | `GET` | Required | Filterable dish list (query params: `status_id`, `course_id`, `tag_id` with AND logic, `search` substring matching title/notes/tags) |
 | `/dishes` | `POST` | Required | Create dish: `{ title, notes?, status_id, course_ids: [1, 2], source: { type_id?, reference?, url? } }` |
 | `/dishes/{id}` | `GET` | Required | Get dish details including assigned courses, source info, and member preferences |
 | `/dishes/{id}` | `PUT` | Required | Update dish details and assigned courses |

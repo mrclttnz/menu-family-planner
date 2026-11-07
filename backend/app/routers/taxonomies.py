@@ -5,6 +5,7 @@ from sqlalchemy import or_
 from app.core.database import get_db
 from app.models.household import Household
 from app.models.taxonomy import DishStatusLookup, DishStatus, MealType, CourseType, SourceType
+from app.models.dish import Tag
 from app.schemas.taxonomy import (
     MealTypeResponse,
     DishStatusResponse,
@@ -13,6 +14,9 @@ from app.schemas.taxonomy import (
     CourseTypeResponse,
     SourceTypeCreate,
     SourceTypeResponse,
+    TagCreate,
+    TagUpdate,
+    TagResponse,
 )
 from app.api.deps import get_current_household
 
@@ -209,3 +213,102 @@ def create_source_type(
         is_active=source.is_active,
         is_custom=True
     )
+
+
+@router.get("/tags", response_model=List[TagResponse])
+def list_tags(
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """List all tags for the current household, ordered alphabetically."""
+    return (
+        db.query(Tag)
+        .filter(Tag.household_id == current_household.id)
+        .order_by(Tag.name.asc())
+        .all()
+    )
+
+
+@router.post("/tags", response_model=TagResponse, status_code=status.HTTP_201_CREATED)
+def create_tag(
+    req: TagCreate,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Create a new tag for the current household."""
+    name_clean = req.name.strip()
+    existing = db.query(Tag).filter(
+        Tag.household_id == current_household.id,
+        Tag.name.ilike(name_clean)
+    ).first()
+    if existing:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Tag '{name_clean}' already exists."
+        )
+
+    tag = Tag(
+        household_id=current_household.id,
+        name=name_clean,
+        color=req.color or "#16a34a"
+    )
+    db.add(tag)
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.put("/tags/{tag_id}", response_model=TagResponse)
+def update_tag(
+    tag_id: int,
+    req: TagUpdate,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Update tag name and/or color."""
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id,
+        Tag.household_id == current_household.id
+    ).first()
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found.")
+
+    if req.name is not None:
+        name_clean = req.name.strip()
+        existing = db.query(Tag).filter(
+            Tag.household_id == current_household.id,
+            Tag.id != tag_id,
+            Tag.name.ilike(name_clean)
+        ).first()
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Tag '{name_clean}' already exists."
+            )
+        tag.name = name_clean
+
+    if req.color is not None:
+        tag.color = req.color
+
+    db.commit()
+    db.refresh(tag)
+    return tag
+
+
+@router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_tag(
+    tag_id: int,
+    current_household: Household = Depends(get_current_household),
+    db: Session = Depends(get_db)
+):
+    """Delete a tag and remove it from all dishes."""
+    tag = db.query(Tag).filter(
+        Tag.id == tag_id,
+        Tag.household_id == current_household.id
+    ).first()
+    if not tag:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found.")
+
+    db.delete(tag)
+    db.commit()
+    return None

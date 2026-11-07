@@ -8,6 +8,7 @@ import {
   getLocalizedCourseName,
   getLocalizedCompatibilityMessage,
 } from '../taxonomyUtils'
+import { DishTagSelector, SelectedTagItem } from './DishTagSelector'
 import {
   Calendar as CalendarIcon,
   Plus,
@@ -31,6 +32,7 @@ import {
   Rows3,
   List,
   Search,
+  Tag as TagIcon,
 } from 'lucide-react'
 
 export type CalendarViewMode = 'compact_h' | 'compact_v' | 'detailed'
@@ -61,6 +63,7 @@ interface CalendarViewProps {
     notes?: string
     status_id: number
     course_ids: number[]
+    tags?: Array<{ name: string; color?: string }>
   }) => Promise<Dish>
   onRemoveDish: (slotId: number, dishId: number) => void
   onAddSlotDishNote: (slotId: number, dishId: number, note: string) => void
@@ -123,12 +126,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   // P007: Dish Search & Course Filter
   const [dishSearch, setDishSearch] = useState('')
   const [selectedCourseFilter, setSelectedCourseFilter] = useState<number | null>(null)
+  const [selectedCalendarTagFilters, setSelectedCalendarTagFilters] = useState<string[]>([])
 
   // P008: Inline Quick Create Dish
   const [isCreatingDish, setIsCreatingDish] = useState(false)
   const [newDishTitle, setNewDishTitle] = useState('')
   const [newDishCourseIds, setNewDishCourseIds] = useState<number[]>([])
   const [newDishNotes, setNewDishNotes] = useState('')
+  const [newDishTags, setNewDishTags] = useState<SelectedTagItem[]>([])
   const [isSavingDish, setIsSavingDish] = useState(false)
   const [createDishError, setCreateDishError] = useState<string | null>(null)
 
@@ -295,6 +300,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setSelectedMemberIdsForDish([])
     setDishSearch('')
     setSelectedCourseFilter(null)
+    setSelectedCalendarTagFilters([])
     setIsCreatingDish(false)
     setNewDishTitle('')
     setNewDishCourseIds([])
@@ -324,6 +330,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setNewDishTitle(prefillTitle || dishSearch || '')
     setNewDishCourseIds(selectedCourseFilter ? [selectedCourseFilter] : [])
     setNewDishNotes('')
+    // Prefill tags if any tag filters were active in calendar dish picker
+    const prefilledTags: SelectedTagItem[] = selectedCalendarTagFilters.map((tagName) => {
+      const match = calendarAvailableTags.find((t) => t.name.toLowerCase() === tagName.toLowerCase())
+      return {
+        id: match?.id,
+        name: tagName,
+        color: match?.color || '#16a34a',
+      }
+    })
+    setNewDishTags(prefilledTags)
     setCreateDishError(null)
   }
 
@@ -355,6 +371,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           course_ids: newDishCourseIds,
           notes: newDishNotes.trim() || undefined,
           status_id: statusId,
+          tags: newDishTags.map((t) => ({ name: t.name, color: t.color })),
         })
         const assignedIds =
           assignForSpecificMembers && selectedMemberIdsForDish.length > 0 ? selectedMemberIdsForDish : undefined
@@ -410,16 +427,39 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     .filter((mt) => slots.some((s) => s.meal_type.id === mt.id))
     .sort((a, b) => a.default_sort_order - b.default_sort_order)
 
-  // P007: Filtered dishes list by search text and course filter
+  // Unique available tags across all dishes for calendar dish picker
+  const calendarAvailableTags = React.useMemo(() => {
+    const map = new Map<string, { id?: number; name: string; color: string }>()
+    dishes.forEach((d) => {
+      d.tags?.forEach((t) => {
+        if (!map.has(t.name.toLowerCase())) {
+          map.set(t.name.toLowerCase(), t)
+        }
+      })
+    })
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
+  }, [dishes])
+
+  // P007 / Issue #7: Filtered dishes list by search text, course filter, and tags (AND logic)
   const filteredDishes = dishes.filter((dish) => {
     const matchesSearch =
       !dishSearch.trim() ||
       dish.title.toLowerCase().includes(dishSearch.toLowerCase()) ||
-      (dish.description && dish.description.toLowerCase().includes(dishSearch.toLowerCase()))
+      (dish.description && dish.description.toLowerCase().includes(dishSearch.toLowerCase())) ||
+      (dish.notes && dish.notes.toLowerCase().includes(dishSearch.toLowerCase())) ||
+      (dish.tags && dish.tags.some((t) => t.name.toLowerCase().includes(dishSearch.toLowerCase())))
+
     const matchesCourse =
       selectedCourseFilter === null ||
       dish.courses.some((c) => c.id === selectedCourseFilter)
-    return matchesSearch && matchesCourse
+
+    const matchesTags =
+      selectedCalendarTagFilters.length === 0 ||
+      selectedCalendarTagFilters.every((tagName) =>
+        dish.tags?.some((t) => t.name.toLowerCase() === tagName.toLowerCase())
+      )
+
+    return matchesSearch && matchesCourse && matchesTags
   })
 
   // Map of slot by date and meal_type_id
@@ -1511,7 +1551,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       {/* Modal: Pick Dish for Slot (P002: Diners Selection, P007: Search/Filter, P008: Quick Create) */}
       {selectedSlotForDish !== null && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 flex items-center justify-center p-3 sm:p-4">
-          <div className="bg-white rounded-lg p-4 max-w-lg w-full space-y-2.5 shadow-xl max-h-[88vh] flex flex-col">
+          <div
+            className={`bg-white rounded-lg p-4 max-w-lg w-full space-y-2.5 shadow-xl transition-all ${
+              isCreatingDish ? 'h-auto max-h-[92vh] overflow-y-auto' : 'max-h-[88vh] flex flex-col'
+            }`}
+          >
             <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
               <h3 className="font-bold text-sm text-slate-900 flex items-center space-x-1.5">
                 <Utensils className="w-3.5 h-3.5 text-brand-600" />
@@ -1598,7 +1642,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
             {isCreatingDish ? (
               /* P008: Inline Quick Create Dish Form */
-              <form onSubmit={handleQuickCreateDishSubmit} className="space-y-2.5 overflow-y-auto flex-1 pr-1">
+              <form onSubmit={handleQuickCreateDishSubmit} className="space-y-2.5">
                 {createDishError && (
                   <div className="p-2 text-xs bg-rose-50 border border-rose-200 text-rose-700 rounded">
                     {createDishError}
@@ -1657,6 +1701,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden resize-none"
                   />
                 </div>
+
+                {/* Quick Create Tags Selector (Issue #7) */}
+                <DishTagSelector
+                  selectedTags={newDishTags}
+                  availableTags={calendarAvailableTags}
+                  onChange={setNewDishTags}
+                />
 
                 <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
                   <button
@@ -1738,6 +1789,55 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       })}
                     </div>
                   )}
+
+                  {/* Tag filter chips (AND logic) */}
+                  {calendarAvailableTags.length > 0 && (
+                    <div className="flex items-center gap-1 overflow-x-auto pb-0.5 text-[10px] flex-wrap">
+                      <span className="text-slate-400 font-medium px-1 text-[9px] flex items-center">
+                        <TagIcon className="w-2.5 h-2.5 mr-0.5 text-brand-600" /> {t('tags.filter_by_tags', 'Tag (AND)')}:
+                      </span>
+                      {selectedCalendarTagFilters.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedCalendarTagFilters([])}
+                          className="px-1.5 py-0.2 rounded-full whitespace-nowrap bg-slate-200 text-slate-700 hover:bg-slate-300 text-[9px] font-medium"
+                        >
+                          ✕ {t('common.clear', 'Azzera')}
+                        </button>
+                      )}
+                      {calendarAvailableTags.map((tItem) => {
+                        const isSelected = selectedCalendarTagFilters.some(
+                          (st) => st.toLowerCase() === tItem.name.toLowerCase()
+                        )
+                        const tagColor = tItem.color || '#16a34a'
+                        return (
+                          <button
+                            type="button"
+                            key={tItem.name}
+                            onClick={() =>
+                              setSelectedCalendarTagFilters((prev) =>
+                                prev.some((st) => st.toLowerCase() === tItem.name.toLowerCase())
+                                  ? prev.filter((st) => st.toLowerCase() !== tItem.name.toLowerCase())
+                                  : [...prev, tItem.name]
+                              )
+                            }
+                            className={`px-2 py-0.5 rounded-full whitespace-nowrap border transition-all text-[9px] font-semibold flex items-center space-x-1 ${
+                              isSelected
+                                ? 'text-white shadow-2xs'
+                                : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                            }`}
+                            style={isSelected ? { backgroundColor: tagColor, borderColor: tagColor } : {}}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: isSelected ? '#ffffff' : tagColor }}
+                            />
+                            <span>{tItem.name}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 {/* Filtered Dishes List */}
@@ -1783,6 +1883,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 className="text-[9px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded font-medium"
                               >
                                 {getLocalizedCourseName(c.name, t)}
+                              </span>
+                            ))}
+                            {dish.tags && dish.tags.map((tg) => (
+                              <span
+                                key={tg.id || tg.name}
+                                className="text-[9px] text-white px-1.5 py-0.2 rounded-full font-semibold shadow-2xs"
+                                style={{ backgroundColor: tg.color || '#16a34a' }}
+                              >
+                                {tg.name}
                               </span>
                             ))}
                           </div>
