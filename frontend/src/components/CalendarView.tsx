@@ -353,10 +353,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const handleQuickCreateDishSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newDishTitle.trim()) {
-      setCreateDishError('Inserisci il nome del piatto')
+    const trimmedTitle = newDishTitle.trim()
+    if (!trimmedTitle) {
+      setCreateDishError(t('dishes.error_title_required'))
       return
     }
+
+    // Issue #17: Prevent duplicate dish name (case-insensitive & whitespace trimmed)
+    const normalizedNewTitle = trimmedTitle.toLowerCase()
+    const duplicateDish = dishes.find(
+      (d) => d.title.trim().toLowerCase() === normalizedNewTitle
+    )
+    if (duplicateDish) {
+      setCreateDishError(t('dishes.error_duplicate_name'))
+      return
+    }
+
     if (!selectedSlotForDish) return
 
     setIsSavingDish(true)
@@ -367,7 +379,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       if (onCreateDish) {
         const created = await onCreateDish({
-          title: newDishTitle.trim(),
+          title: trimmedTitle,
           course_ids: newDishCourseIds,
           notes: newDishNotes.trim() || undefined,
           status_id: statusId,

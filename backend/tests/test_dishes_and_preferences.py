@@ -388,3 +388,87 @@ def test_dish_title_trim_and_validation(client, auth_headers):
     assert len(res_search_empty.json()) >= 1
 
 
+def test_prevent_duplicate_dish_names(client, auth_headers):
+    """P017 / Issue #17: Prevent duplicate dish names in catalog (case-insensitive & trimmed)."""
+    res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    status_id = res_statuses.json()[0]["id"]
+    res_courses = client.get("/api/v1/taxonomies/courses", headers=auth_headers)
+    course_id = res_courses.json()[0]["id"]
+
+    # 1. Create a new dish
+    res_create = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "  Spaghetti alla Carbonara  ",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    })
+    assert res_create.status_code == 201
+    dish_id = res_create.json()["id"]
+    assert res_create.json()["title"] == "Spaghetti alla Carbonara"
+
+    # 2. Duplicate with exact same name should fail (400)
+    res_dup_exact = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Spaghetti alla Carbonara",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    })
+    assert res_dup_exact.status_code == 400
+    assert "già presente nel catalogo" in res_dup_exact.json()["detail"]
+
+    # 3. Duplicate with different case and whitespace should fail (400)
+    res_dup_case = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "  spaghetti alla carbonara \t",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    })
+    assert res_dup_case.status_code == 400
+    assert "già presente nel catalogo" in res_dup_case.json()["detail"]
+
+    # 4. Create another dish with unique name
+    res_create2 = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "Pasta al Pomodoro",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    })
+    assert res_create2.status_code == 201
+    dish2_id = res_create2.json()["id"]
+
+    # 5. Update dish 2 with dish 1's title should fail (400)
+    res_update_dup = client.put(f"/api/v1/dishes/{dish2_id}", headers=auth_headers, json={
+        "title": " SPAGHETTI ALLA CARBONARA ",
+    })
+    assert res_update_dup.status_code == 400
+    assert "già presente nel catalogo" in res_update_dup.json()["detail"]
+
+    # 6. Update dish 2 keeping its own title should succeed (200)
+    res_update_same = client.put(f"/api/v1/dishes/{dish2_id}", headers=auth_headers, json={
+        "title": "pasta al pomodoro",
+        "notes": "Deliziosa con basilico fresco"
+    })
+    assert res_update_same.status_code == 200
+    assert res_update_same.json()["notes"] == "Deliziosa con basilico fresco"
+
+    # 7. Different household should be able to use the same dish name (multi-tenant isolation)
+    reg_res = client.post("/api/v1/auth/register", json={
+        "name": "Famiglia Bianchi",
+        "email": "bianchi@example.com",
+        "password": "Password123!"
+    })
+    assert reg_res.status_code == 201
+    bianchi_token = reg_res.json()["access_token"]
+    bianchi_headers = {"Authorization": f"Bearer {bianchi_token}"}
+
+    res_b_statuses = client.get("/api/v1/taxonomies/statuses", headers=bianchi_headers)
+    b_status_id = res_b_statuses.json()[0]["id"]
+    res_b_courses = client.get("/api/v1/taxonomies/courses", headers=bianchi_headers)
+    b_course_id = res_b_courses.json()[0]["id"]
+
+    res_b_dish = client.post("/api/v1/dishes", headers=bianchi_headers, json={
+        "title": "Spaghetti alla Carbonara",
+        "status_id": b_status_id,
+        "course_ids": [b_course_id],
+    })
+    assert res_b_dish.status_code == 201
+    assert res_b_dish.json()["title"] == "Spaghetti alla Carbonara"
+
+
+

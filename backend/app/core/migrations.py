@@ -71,3 +71,8 @@ def run_auto_migrations(engine: Engine) -> None:
                     PRIMARY KEY (dish_id, tag_id)
                 )
             """))
+
+        # Issue #17: Case-insensitive, whitespace-trimmed unique index on dishes per household
+        if "dishes" in table_names:
+            conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_dishes_household_lower_title ON dishes (household_id, LOWER(TRIM(title)))"))
+

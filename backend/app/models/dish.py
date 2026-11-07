@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, CheckConstraint, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, CheckConstraint, UniqueConstraint, Index, func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 
@@ -18,6 +18,10 @@ class Dish(Base):
     source_url = Column(String(1000), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
+
+    __table_args__ = (
+        Index("uq_dishes_household_lower_title", household_id, func.lower(func.trim(title)), unique=True),
+    )
 
     # Relationships
     household = relationship("Household", back_populates="dishes")

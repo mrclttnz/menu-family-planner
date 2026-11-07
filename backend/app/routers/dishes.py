@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from app.core.database import get_db
 from app.models.household import Household, Member
 from app.models.taxonomy import DishStatus, CourseType, SourceType
@@ -208,11 +208,26 @@ def create_dish(
         if not source_obj:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid source_type_id.")
 
+    trimmed_title = req.title.strip()
+    if not trimmed_title:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dish title cannot be empty.")
+
+    # Issue #17: Check for duplicate dish in household (case-insensitive and trimmed)
+    existing_dish = db.query(Dish).filter(
+        Dish.household_id == current_household.id,
+        func.lower(func.trim(Dish.title)) == trimmed_title.lower()
+    ).first()
+    if existing_dish:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Un piatto con questo nome è già presente nel catalogo."
+        )
+
     dish = Dish(
         household_id=current_household.id,
         status_id=req.status_id,
         source_type_id=req.source_type_id,
-        title=req.title.strip(),
+        title=trimmed_title,
         description=req.description.strip() if req.description else None,
         notes=req.notes.strip() if req.notes else None,
         source_reference=req.source_reference.strip() if req.source_reference else None,
@@ -367,7 +382,21 @@ def update_dish(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Dish not found.")
 
     if req.title is not None:
-        dish.title = req.title.strip()
+        trimmed_title = req.title.strip()
+        if not trimmed_title:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Dish title cannot be empty.")
+        # Issue #17: Check for duplicate dish in household if title changed
+        existing_dish = db.query(Dish).filter(
+            Dish.household_id == current_household.id,
+            Dish.id != dish.id,
+            func.lower(func.trim(Dish.title)) == trimmed_title.lower()
+        ).first()
+        if existing_dish:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Un piatto con questo nome è già presente nel catalogo."
+            )
+        dish.title = trimmed_title
     if req.description is not None:
         dish.description = req.description.strip() if req.description else None
     if req.notes is not None:

@@ -205,9 +205,9 @@ All endpoints are prefixed with `/api/v1`. All protected endpoints require a val
 | Endpoint | Method | Auth | Description |
 | :--- | :--- | :--- | :--- |
 | `/dishes` | `GET` | Required | Filterable dish list (query params: `status_id`, `course_id`, `tag_id` with AND logic, `search` substring matching title/notes/tags) |
-| `/dishes` | `POST` | Required | Create dish: `{ title, notes?, status_id, course_ids: [1, 2], source: { type_id?, reference?, url? } }` |
+| `/dishes` | `POST` | Required | Create dish: `{ title, notes?, status_id, course_ids: [1, 2], source: { type_id?, reference?, url? } }`. Rejects duplicate names within household (`LOWER(TRIM(title))`, returns 400). |
 | `/dishes/{id}` | `GET` | Required | Get dish details including assigned courses, source info, and member preferences |
-| `/dishes/{id}` | `PUT` | Required | Update dish details and assigned courses |
+| `/dishes/{id}` | `PUT` | Required | Update dish details and assigned courses. Enforces duplicate check if title is renamed. |
 | `/dishes/{id}` | `DELETE`| Required | Delete dish |
 | `/dishes/{id}/notes` | `GET` | Required | Retrieve historical feedback and notes logged for this dish across past planned meals |
 | `/dishes/export` | `GET` | Required | Export filtered dishes to `.xlsx`, `.csv` (UTF-8 BOM), or `.json` (`?format=xlsx\|csv\|json&status_id=&course_id=&search=`) |
