@@ -74,5 +74,55 @@ def run_auto_migrations(engine: Engine) -> None:
 
         # Issue #17: Case-insensitive, whitespace-trimmed unique index on dishes per household
         if "dishes" in table_names:
+            # Deduplicate any pre-existing duplicate dishes per household before creating the unique index
+            duplicates = conn.execute(text("""
+                SELECT household_id, LOWER(TRIM(title)) AS norm_title
+                FROM dishes
+                GROUP BY household_id, LOWER(TRIM(title))
+                HAVING COUNT(*) > 1
+            """)).fetchall()
+
+            for dup_row in duplicates:
+                h_id = dup_row[0]
+                norm_title = dup_row[1]
+                dish_rows = conn.execute(
+                    text("""
+                        SELECT id FROM dishes
+                        WHERE household_id = :h_id AND LOWER(TRIM(title)) = :norm_title
+                        ORDER BY id ASC
+                    """),
+                    {"h_id": h_id, "norm_title": norm_title}
+                ).fetchall()
+
+                if len(dish_rows) > 1:
+                    keeper_id = dish_rows[0][0]
+                    dup_ids = [r[0] for r in dish_rows[1:]]
+                    for dup_id in dup_ids:
+                        conn.execute(
+                            text("""
+                                DELETE FROM meal_slot_dishes
+                                WHERE dish_id = :dup_id
+                                  AND meal_slot_id IN (SELECT meal_slot_id FROM meal_slot_dishes WHERE dish_id = :keeper_id)
+                            """),
+                            {"dup_id": dup_id, "keeper_id": keeper_id}
+                        )
+                        conn.execute(
+                            text("UPDATE meal_slot_dishes SET dish_id = :keeper_id WHERE dish_id = :dup_id"),
+                            {"dup_id": dup_id, "keeper_id": keeper_id}
+                        )
+                        conn.execute(
+                            text("""
+                                DELETE FROM dish_member_preferences
+                                WHERE dish_id = :dup_id
+                                  AND member_id IN (SELECT member_id FROM dish_member_preferences WHERE dish_id = :keeper_id)
+                            """),
+                            {"dup_id": dup_id, "keeper_id": keeper_id}
+                        )
+                        conn.execute(
+                            text("UPDATE dish_member_preferences SET dish_id = :keeper_id WHERE dish_id = :dup_id"),
+                            {"dup_id": dup_id, "keeper_id": keeper_id}
+                        )
+                        conn.execute(text("DELETE FROM dishes WHERE id = :dup_id"), {"dup_id": dup_id})
+
             conn.execute(text("CREATE UNIQUE INDEX IF NOT EXISTS uq_dishes_household_lower_title ON dishes (household_id, LOWER(TRIM(title)))"))
 
