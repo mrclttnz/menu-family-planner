@@ -158,8 +158,9 @@ def list_dishes(
         for tid in tag_id:
             query = query.filter(Dish.tags.any(DishTag.tag_id == tid))
 
-    if search and search.strip():
-        term = f"%{search.strip()}%"
+    clean_search = search.strip() if search else None
+    if clean_search:
+        term = f"%{clean_search}%"
         query = query.filter(
             or_(
                 Dish.title.ilike(term),
@@ -255,8 +256,9 @@ def export_dishes(
     if tag_id:
         for tid in tag_id:
             query = query.filter(Dish.tags.any(DishTag.tag_id == tid))
-    if search and search.strip():
-        term = f"%{search.strip()}%"
+    clean_search = search.strip() if search else None
+    if clean_search:
+        term = f"%{clean_search}%"
         query = query.filter(
             or_(
                 Dish.title.ilike(term),

@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Dish, DishStatus, CourseType, SourceType, SlotDishNote, DishImportResult } from '../types'
 import { api } from '../api'
@@ -321,29 +321,32 @@ export const DishesView: React.FC<DishesViewProps> = ({
   }
 
   // Client-side filter (AND logic for tags, matches search in tags)
-  const filteredDishes = dishes.filter((dish) => {
-    if (search.trim()) {
-      const term = search.trim().toLowerCase()
-      const matchTitle = dish.title.toLowerCase().includes(term)
-      const matchNotes = dish.notes?.toLowerCase().includes(term)
-      const matchDesc = dish.description?.toLowerCase().includes(term)
-      const matchTags = dish.tags?.some((t) => t.name.toLowerCase().includes(term))
-      if (!matchTitle && !matchNotes && !matchDesc && !matchTags) return false
-    }
-    if (selectedStatusFilter && dish.status.id !== selectedStatusFilter) {
-      return false
-    }
-    if (selectedCourseFilter && !dish.courses.some((c) => c.id === selectedCourseFilter)) {
-      return false
-    }
-    if (selectedTagNames.length > 0) {
-      const hasAllTags = selectedTagNames.every((st) =>
-        dish.tags?.some((dt) => dt.name.toLowerCase() === st.toLowerCase())
-      )
-      if (!hasAllTags) return false
-    }
-    return true
-  })
+  // Ensures dish search term is always trimmed of leading and trailing spaces before filtering
+  const filteredDishes = useMemo(() => {
+    const trimmedSearch = search.trim().toLowerCase()
+    return dishes.filter((dish) => {
+      if (trimmedSearch) {
+        const matchTitle = dish.title.toLowerCase().includes(trimmedSearch)
+        const matchNotes = dish.notes?.toLowerCase().includes(trimmedSearch)
+        const matchDesc = dish.description?.toLowerCase().includes(trimmedSearch)
+        const matchTags = dish.tags?.some((t) => t.name.toLowerCase().includes(trimmedSearch))
+        if (!matchTitle && !matchNotes && !matchDesc && !matchTags) return false
+      }
+      if (selectedStatusFilter && dish.status.id !== selectedStatusFilter) {
+        return false
+      }
+      if (selectedCourseFilter && !dish.courses.some((c) => c.id === selectedCourseFilter)) {
+        return false
+      }
+      if (selectedTagNames.length > 0) {
+        const hasAllTags = selectedTagNames.every((st) =>
+          dish.tags?.some((dt) => dt.name.toLowerCase() === st.toLowerCase())
+        )
+        if (!hasAllTags) return false
+      }
+      return true
+    })
+  }, [dishes, search, selectedStatusFilter, selectedCourseFilter, selectedTagNames])
 
   return (
     <div className="space-y-2.5 pb-6 md:pb-4">
@@ -466,9 +469,22 @@ export const DishesView: React.FC<DishesViewProps> = ({
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onBlur={() => setSearch((prev) => prev.trim())}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') setSearch((prev) => prev.trim())
+            }}
             placeholder={t('dishes.search_placeholder')}
-            className="w-full pl-8 pr-2.5 py-1 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
+            className="w-full pl-8 pr-7 py-1 rounded-md border border-slate-200 focus:outline-none focus:ring-1 focus:ring-brand-500 text-xs"
           />
+          {search && (
+            <button
+              type="button"
+              onClick={() => setSearch('')}
+              className="text-slate-400 hover:text-slate-600 absolute right-2.5 top-1.5 text-xs p-0.5"
+            >
+              ✕
+            </button>
+          )}
         </div>
 
         {/* Course Filters */}

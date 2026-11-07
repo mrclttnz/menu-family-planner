@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MealSlot, Member, MealType, Dish, CourseType, DishStatus } from '../types'
 import { formatDate, parseDate } from '../dateUtils'
@@ -441,27 +441,30 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }, [dishes])
 
   // P007 / Issue #7: Filtered dishes list by search text, course filter, and tags (AND logic)
-  const filteredDishes = dishes.filter((dish) => {
+  // Ensures dish search term is always trimmed of leading and trailing spaces before filtering
+  const filteredDishes = useMemo(() => {
     const term = dishSearch.trim().toLowerCase()
-    const matchesSearch =
-      !term ||
-      dish.title.toLowerCase().includes(term) ||
-      (dish.description && dish.description.toLowerCase().includes(term)) ||
-      (dish.notes && dish.notes.toLowerCase().includes(term)) ||
-      (dish.tags && dish.tags.some((t) => t.name.toLowerCase().includes(term)))
+    return dishes.filter((dish) => {
+      const matchesSearch =
+        !term ||
+        dish.title.toLowerCase().includes(term) ||
+        (dish.description && dish.description.toLowerCase().includes(term)) ||
+        (dish.notes && dish.notes.toLowerCase().includes(term)) ||
+        (dish.tags && dish.tags.some((t) => t.name.toLowerCase().includes(term)))
 
-    const matchesCourse =
-      selectedCourseFilter === null ||
-      dish.courses.some((c) => c.id === selectedCourseFilter)
+      const matchesCourse =
+        selectedCourseFilter === null ||
+        dish.courses.some((c) => c.id === selectedCourseFilter)
 
-    const matchesTags =
-      selectedCalendarTagFilters.length === 0 ||
-      selectedCalendarTagFilters.every((tagName) =>
-        dish.tags?.some((t) => t.name.toLowerCase() === tagName.toLowerCase())
-      )
+      const matchesTags =
+        selectedCalendarTagFilters.length === 0 ||
+        selectedCalendarTagFilters.every((tagName) =>
+          dish.tags?.some((t) => t.name.toLowerCase() === tagName.toLowerCase())
+        )
 
-    return matchesSearch && matchesCourse && matchesTags
-  })
+      return matchesSearch && matchesCourse && matchesTags
+    })
+  }, [dishes, dishSearch, selectedCourseFilter, selectedCalendarTagFilters])
 
   // Map of slot by date and meal_type_id
   const slotMap = new Map<string, MealSlot>()
@@ -1845,6 +1848,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       type="text"
                       value={dishSearch}
                       onChange={(e) => setDishSearch(e.target.value)}
+                      onBlur={() => setDishSearch((prev) => prev.trim())}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') setDishSearch((prev) => prev.trim())
+                      }}
                       placeholder={t('calendar.select_dish_placeholder')}
                       className="w-full pl-8 pr-7 py-1 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden"
                     />
