@@ -326,3 +326,18 @@ In the weekly planner (`CalendarView.tsx`), attendance is indicated directly ins
   - *Zero Present*: displays `"Nessun presente"` / `"Nobody present"`.
 - **Constraint Handling**: In compact horizontal and vertical grids, the indicator uses strict CSS truncation (`truncate`, `max-w-[62%]`) so that variable-length family names never deform matrix cell height or width.
 - **Attendance Modal & Synchronization**: Clicking the indicator opens an attendance dialog rendering diner pills identical to `TodayView.tsx` (avatar color, active vs. strikethrough absence state with `UserX`). Modifying attendance operates on local state until the user confirms with "Salva", which dispatches individual attendance toggles via `PUT /api/v1/attendance/{slot_id}/members/{member_id}` and re-evaluates calendar slot compatibility alerts in a single refresh.
+
+### 7.3 Responsive Mobile Optimization & Compact Vertical Single-Column Flow (Slice S15 / Issue #13)
+
+To ensure an optimal kitchen dashboard experience on smartphones (360px–430px viewports):
+- **Global Viewport Isolation**: Prevent horizontal blowout by setting `overflow-x: hidden; max-width: 100vw;` on `html`, `body`, and `#root`. The main app wrapper (`<main>`) applies `min-w-0` to avoid flex item minimum-content expansion and sets `pb-20 md:pb-4` to clear the fixed mobile bottom navigation bar.
+- **Safe Area Insets**: The mobile bottom bar incorporates `pb-[max(0.375rem,env(safe-area-inset-bottom))]` to avoid overlapping the gesture home bar on iOS and Android devices.
+- **Adaptive Compact Vertical Flow (`compact_v`)**:
+  - Configured as the **system-wide default view mode** (`localStorage: 'compact_v'`).
+  - **Desktop (`>= md`)**: Renders a multi-column matrix where days are rows and meal types are side-by-side columns with horizontal table scrolling if needed.
+  - **Mobile (`< md`)**: Eliminates horizontal scrolling entirely. When horizontal screen space is insufficient, each day renders a compact day header and an **inline single-column vertical sequence of meal slots** (e.g., Pranzo stacked directly above Cena).
+  - Fully shares the unified slot rendering pipeline (`renderCompactSlotBody`), preserving meal note editing, dish removal, alternative dish assignments, attendance pills, and dish quick-creation.
+- **Touch-First Control Targets**:
+  - Calendar header switches to icon-only buttons on small viewports with tooltip titles, reducing header width footprint.
+  - Dish cards expand tap areas (min 36–40px) for edit, delete, expand/collapse toggles, and diner preference rating selectors (`ThumbsUp`, `Meh`, `ThumbsDown`).
+  - Catalog actions toolbar renders primary action `+ Nuovo Piatto` with compact icon-first secondary actions (Export count badge, Import icon, Expand/Collapse icon).

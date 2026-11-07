@@ -423,7 +423,7 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 max-w-full xl:max-w-[1550px] w-full mx-auto px-2 sm:px-3 pt-1.5 pb-4">
+      <main className="flex-1 max-w-full xl:max-w-[1550px] w-full min-w-0 mx-auto px-2 sm:px-3 pt-1.5 pb-20 md:pb-4">
         {activeTab === 'today' && (
           <TodayView
             slots={todaySlots}

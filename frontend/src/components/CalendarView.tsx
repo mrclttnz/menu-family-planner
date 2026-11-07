@@ -102,12 +102,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const { t, i18n } = useTranslation()
   const currentLocale = i18n.language && i18n.language.startsWith('en') ? 'en-US' : 'it-IT'
 
-  // P004: Switch 3 modalità (Compatta Orizzontale, Compatta Verticale, Dettagliata)
+  // P004 / Issue #13: Switch 3 modalità (Compatta Orizzontale, Compatta Verticale, Dettagliata) - Default su Compatta Verticale
   const [viewMode, setViewMode] = useState<CalendarViewMode>(() => {
     const saved = localStorage.getItem('menu_design_view_mode')
     if (saved === 'detailed') return 'detailed'
-    if (saved === 'compact_v') return 'compact_v'
-    return 'compact_h' // default (o fallback da vecchio 'compact')
+    if (saved === 'compact_h') return 'compact_h'
+    return 'compact_v' // default is compact vertical
   })
 
   const handleToggleViewMode = (mode: CalendarViewMode) => {
@@ -471,9 +471,175 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const currentTodayStr = formatDate(new Date())
   const isCurrentWeek = weekDates.includes(currentTodayStr)
 
+  // Reusable slot body for both desktop matrix table and mobile single-column sequence
+  const renderCompactSlotBody = (slot: MealSlot) => {
+    const attSummary = getAttendanceSummary(slot.absent_member_ids)
+
+    return (
+      <div className="space-y-1">
+        {/* P010: Meal Slot Note */}
+        {editingSlotNoteId === slot.id ? (
+          <div className="flex items-center space-x-1 p-0.5 bg-amber-50 rounded border border-amber-300 mb-1">
+            <input
+              type="text"
+              autoFocus
+              value={editSlotNoteValue}
+              onChange={(e) => setEditSlotNoteValue(e.target.value)}
+              placeholder={t('calendar.slot_notes_placeholder')}
+              className="w-full min-w-0 px-1 py-0.2 text-[9px] rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault()
+                  handleSaveSlotNote(slot.id)
+                } else if (e.key === 'Escape') {
+                  setEditingSlotNoteId(null)
+                }
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => handleSaveSlotNote(slot.id)}
+              className="px-1 py-0.2 bg-amber-600 text-white font-medium text-[9px] rounded hover:bg-amber-700 flex-shrink-0"
+            >
+              ✓
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingSlotNoteId(null)}
+              className="px-0.5 py-0.2 text-slate-500 hover:bg-amber-100 text-[9px] rounded flex-shrink-0"
+            >
+              ✕
+            </button>
+          </div>
+        ) : slot.notes ? (
+          <div
+            className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
+            onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
+            title={t('calendar.edit_note_tooltip')}
+          >
+            <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
+              <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
+              <span className="italic font-medium">{slot.notes}</span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                handleDeleteSlotNote(slot.id)
+              }}
+              title={t('calendar.delete_note_title')}
+              className="opacity-0 group-hover:opacity-100 text-amber-700 hover:text-rose-600 text-[9px] px-0.5 flex-shrink-0 transition-opacity"
+            >
+              ✕
+            </button>
+          </div>
+        ) : null}
+
+        {slot.dishes.length === 0 ? (
+          <button
+            onClick={() => handleOpenAssignModal(slot.id)}
+            className="w-full text-center py-1 sm:py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5 cursor-pointer"
+            title={t('calendar.add_dish_tooltip')}
+          >
+            <Plus className="w-2.5 h-2.5" />
+            <span>{t('calendar.btn_dish')}</span>
+          </button>
+        ) : (
+          slot.dishes.map((d) => {
+            const hasAssignedMembers =
+              d.assigned_member_ids && d.assigned_member_ids.length > 0
+            const assignedList = hasAssignedMembers
+              ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
+              : []
+            const namesStr = assignedList.map((m) => m.name).join(', ')
+
+            return (
+              <div
+                key={d.id}
+                className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
+              >
+                <div className="truncate pr-1 text-[11px] leading-snug flex-1 min-w-0">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditSlotDishModal(slot, d)}
+                    title={t('calendar.edit_dish_assignment_tooltip')}
+                    className="text-left font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate max-w-full inline-block"
+                  >
+                    • {d.dish_title}
+                  </button>
+                  {hasAssignedMembers && (
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditSlotDishModal(slot, d)}
+                      title={t('calendar.edit_dish_assignment_tooltip')}
+                      className="ml-1 text-[10px] text-amber-700 hover:text-amber-800 font-semibold whitespace-nowrap cursor-pointer hover:underline"
+                    >
+                      ({namesStr})
+                    </button>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onRemoveDish(slot.id, d.dish_id)
+                  }}
+                  title={t('calendar.remove_dish_tooltip')}
+                  className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] p-0.5 flex-shrink-0 transition-opacity cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+            )
+          })
+        )}
+
+        {/* Bottom row of cell: Attendance on lower-left, actions on right */}
+        <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
+          <button
+            type="button"
+            onClick={() => handleOpenAttendanceModal(slot)}
+            className="flex items-center space-x-1 text-slate-500 hover:text-brand-700 hover:bg-slate-100/80 px-1 py-0.5 rounded transition-colors min-w-0 max-w-[62%] truncate group text-left cursor-pointer"
+            title={attSummary.fullTooltip || t('calendar.manage_attendance_tooltip')}
+          >
+            <Users className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-brand-600" />
+            {attSummary.text ? (
+              <span className="truncate text-[9px] font-medium text-slate-600 group-hover:text-brand-700">
+                {attSummary.text}
+              </span>
+            ) : null}
+          </button>
+
+          <div className="flex items-center space-x-0.5 flex-shrink-0">
+            {slot.dishes.length > 0 && (
+              <button
+                onClick={() => handleOpenAssignModal(slot.id)}
+                className="text-center py-0.5 px-1 text-[9px] text-slate-500 sm:text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center space-x-0.5 cursor-pointer"
+                title={t('calendar.add_another_dish_tooltip')}
+              >
+                <Plus className="w-2.5 h-2.5" />
+                <span>{t('calendar.btn_another_dish')}</span>
+              </button>
+            )}
+            {!slot.notes && (
+              <button
+                onClick={() => handleStartEditSlotNote(slot.id, '')}
+                className="px-1 text-center py-0.5 text-[9px] text-slate-500 sm:text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center space-x-0.5 cursor-pointer"
+                title={t('calendar.add_note_tooltip')}
+              >
+                <Plus className="w-2.5 h-2.5" />
+                <span>{t('calendar.btn_note')}</span>
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-2.5 pb-16 md:pb-4">
-      {/* Top Header & Navigation (G002: super compact) */}
+      {/* Top Header & Navigation (G002 / Issue #13: mobile compact) */}
       <div className="bg-white rounded-lg px-3 py-1.5 border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-2xs">
         <div>
           <h2 className="text-base sm:text-lg font-bold text-slate-900 flex items-center space-x-1.5">
@@ -485,12 +651,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center space-x-2 self-start md:self-auto flex-wrap gap-y-1.5">
-          {/* P004: Switch 3 modalità (Orizzontale, Verticale, Dettagliata) */}
+        <div className="flex items-center space-x-1.5 sm:space-x-2 self-start md:self-auto flex-wrap gap-y-1.5">
+          {/* P004 / Issue #13: Switch 3 modalità (Orizzontale, Verticale, Dettagliata) - icone su mobile, testo da sm: */}
           <div className="flex items-center rounded-md border border-slate-200 bg-slate-100 p-0.5 text-xs">
             <button
               onClick={() => handleToggleViewMode('compact_h')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+              className={`flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
                 viewMode === 'compact_h'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
@@ -498,11 +664,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               title={t('calendar.view_horizontal')}
             >
               <LayoutGrid className="w-3 h-3" />
-              <span>{t('calendar.view_horizontal')}</span>
+              <span className="hidden sm:inline">{t('calendar.view_horizontal')}</span>
             </button>
             <button
               onClick={() => handleToggleViewMode('compact_v')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+              className={`flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
                 viewMode === 'compact_v'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
@@ -510,11 +676,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               title={t('calendar.view_vertical')}
             >
               <Rows3 className="w-3 h-3" />
-              <span>{t('calendar.view_vertical')}</span>
+              <span className="hidden sm:inline">{t('calendar.view_vertical')}</span>
             </button>
             <button
               onClick={() => handleToggleViewMode('detailed')}
-              className={`flex items-center space-x-1 px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
+              className={`flex items-center space-x-1 px-1.5 sm:px-2 py-0.5 rounded text-[11px] font-medium transition-all ${
                 viewMode === 'detailed'
                   ? 'bg-white text-slate-900 shadow-2xs font-semibold'
                   : 'text-slate-500 hover:text-slate-800'
@@ -522,13 +688,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               title={t('calendar.view_detailed')}
             >
               <List className="w-3 h-3" />
-              <span>{t('calendar.view_detailed')}</span>
+              <span className="hidden sm:inline">{t('calendar.view_detailed')}</span>
             </button>
           </div>
 
           {/* P005: Scelta giorno inizio settimana */}
           <div className="flex items-center space-x-1 text-[11px] bg-slate-50 border border-slate-200 rounded px-1.5 py-0.5">
-            <span className="text-slate-400 font-medium">{t('calendar.start_day_from')}</span>
+            <span className="text-slate-400 font-medium hidden xs:inline">{t('calendar.start_day_from')}</span>
             <select
               value={weekStartDay}
               onChange={(e) => onChangeWeekStartDay(Number(e.target.value))}
@@ -568,7 +734,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               {t('calendar.today_badge')}
             </button>
 
-            <span className="text-[11px] font-semibold px-2 py-0.5 bg-slate-100 rounded text-slate-700">
+            <span className="text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 bg-slate-100 rounded text-slate-700 whitespace-nowrap">
               {startDate} ➔ {endDate}
             </span>
 
@@ -831,266 +997,202 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         </div>
       ) : viewMode === 'compact_v' ? (
-        /* P004: Compact Vertical Matrix View (days as rows, meal types as columns) */
-        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[760px]">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="w-28 sm:w-36 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
-                    {t('calendar.day_col')}
-                  </th>
-                  {activeMealTypes.map((mt) => (
-                    <th
-                      key={mt.id}
-                      className="px-2 py-1 text-center font-bold text-slate-700 uppercase text-[11px] border-r border-slate-200 last:border-r-0"
-                    >
-                      <div className="flex items-center justify-center space-x-1">
-                        <span className="truncate">{getLocalizedMealTypeName(mt, t)}</span>
-                        {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteMealType(mt.id, getLocalizedMealTypeName(mt, t))}
-                            className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors"
-                            title={t('calendar.remove_meal_type_title', { name: getLocalizedMealTypeName(mt, t) })}
-                          >
-                            <X className="w-2.5 h-2.5" />
-                          </button>
-                        )}
-                      </div>
+        /* P004 / Issue #13: Compact Vertical View (Desktop Matrix + Mobile Single-Column Sequence) */
+        <div className="space-y-2">
+          {/* Desktop Table View (>= md): Days as rows, meal types as columns */}
+          <div className="hidden md:block bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[760px]">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="w-28 sm:w-36 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
+                      {t('calendar.day_col')}
                     </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {weekDates.map((dateStr) => {
-                  const dateObj = parseDate(dateStr)
-                  const isToday = currentTodayStr === dateStr
-                  const dayShort = new Intl.DateTimeFormat(currentLocale, { weekday: 'short' }).format(dateObj)
-                  const dayNum = dateObj.getDate()
-                  const monthShort = new Intl.DateTimeFormat(currentLocale, { month: 'short' }).format(dateObj)
-
-                  return (
-                    <tr
-                      key={dateStr}
-                      className={`hover:bg-slate-50/40 transition-colors ${isToday ? 'bg-brand-50/25' : ''}`}
-                    >
-                      {/* Day Header Cell (Row Header) */}
-                      <td
-                        className={`px-2 py-2 border-r border-slate-200 align-top ${
-                          isToday ? 'bg-brand-50/70 text-brand-900' : 'bg-slate-50/60 text-slate-800'
-                        }`}
+                    {activeMealTypes.map((mt) => (
+                      <th
+                        key={mt.id}
+                        className="px-2 py-1 text-center font-bold text-slate-700 uppercase text-[11px] border-r border-slate-200 last:border-r-0"
                       >
-                        <div className="flex flex-col items-center justify-center text-center">
-                          <span className="capitalize font-bold text-xs">{dayShort}</span>
-                          <span className="text-[11px] text-slate-600 font-medium">
-                            {dayNum} {monthShort}
-                          </span>
-                          {isToday && (
-                            <span className="mt-0.5 bg-brand-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded uppercase">
-                              {t('calendar.today_badge')}
-                            </span>
+                        <div className="flex items-center justify-center space-x-1">
+                          <span className="truncate">{getLocalizedMealTypeName(mt, t)}</span>
+                          {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteMealType(mt.id, getLocalizedMealTypeName(mt, t))}
+                              className="text-slate-400 hover:text-rose-600 hover:bg-rose-50 p-0.5 rounded transition-colors cursor-pointer"
+                              title={t('calendar.remove_meal_type_title', { name: getLocalizedMealTypeName(mt, t) })}
+                            >
+                              <X className="w-2.5 h-2.5" />
+                            </button>
                           )}
-                          <button
-                            onClick={() => setSelectedMealTypeForDate(dateStr)}
-                            className="mt-1.5 flex items-center space-x-0.5 text-[9px] text-slate-500 hover:text-brand-600 border border-slate-200 bg-white hover:bg-slate-50 px-1.5 py-0.5 rounded transition-colors"
-                            title={`+ ${t('calendar.btn_meal')} (${dayShort} ${dayNum})`}
-                          >
-                            <Plus className="w-2.5 h-2.5" />
-                            <span>{t('calendar.btn_meal')}</span>
-                          </button>
                         </div>
-                      </td>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {weekDates.map((dateStr) => {
+                    const dateObj = parseDate(dateStr)
+                    const isToday = currentTodayStr === dateStr
+                    const dayShort = new Intl.DateTimeFormat(currentLocale, { weekday: 'short' }).format(dateObj)
+                    const dayNum = dateObj.getDate()
+                    const monthShort = new Intl.DateTimeFormat(currentLocale, { month: 'short' }).format(dateObj)
 
-                      {/* Meal Type Cells for this Day */}
-                      {activeMealTypes.map((mt) => {
-                        const slot = slotMap.get(`${dateStr}_${mt.id}`)
-                        return (
-                          <td
-                            key={mt.id}
-                            className="px-2 py-1.5 border-r border-slate-200 last:border-r-0 align-top min-w-[140px]"
-                          >
-                            {slot ? (
-                              <div className="space-y-1">
-                                {/* P010: Meal Slot Note */}
-                                {editingSlotNoteId === slot.id ? (
-                                  <div className="flex items-center space-x-1 p-0.5 bg-amber-50 rounded border border-amber-300 mb-1">
-                                    <input
-                                      type="text"
-                                      autoFocus
-                                      value={editSlotNoteValue}
-                                      onChange={(e) => setEditSlotNoteValue(e.target.value)}
-                                      placeholder={t('calendar.slot_notes_placeholder')}
-                                      className="w-full min-w-0 px-1 py-0.2 text-[9px] rounded border border-amber-300 bg-white focus:outline-none focus:ring-1 focus:ring-amber-500"
-                                      onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                          e.preventDefault()
-                                          handleSaveSlotNote(slot.id)
-                                        } else if (e.key === 'Escape') {
-                                          setEditingSlotNoteId(null)
-                                        }
-                                      }}
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => handleSaveSlotNote(slot.id)}
-                                      className="px-1 py-0.2 bg-amber-600 text-white font-medium text-[9px] rounded hover:bg-amber-700 flex-shrink-0"
-                                    >
-                                      ✓
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setEditingSlotNoteId(null)}
-                                      className="px-0.5 py-0.2 text-slate-500 hover:bg-amber-100 text-[9px] rounded flex-shrink-0"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ) : slot.notes ? (
-                                  <div
-                                    className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1"
-                                    onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
-                                    title={t('calendar.edit_note_tooltip')}
-                                  >
-                                    <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
-                                      <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
-                                      <span className="italic font-medium">{slot.notes}</span>
-                                    </div>
-                                    <button
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleDeleteSlotNote(slot.id)
-                                      }}
-                                      title={t('calendar.delete_note_title')}
-                                      className="opacity-0 group-hover:opacity-100 text-amber-700 hover:text-rose-600 text-[9px] px-0.5 flex-shrink-0 transition-opacity"
-                                    >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ) : null}
+                    return (
+                      <tr
+                        key={dateStr}
+                        className={`hover:bg-slate-50/40 transition-colors ${isToday ? 'bg-brand-50/25' : ''}`}
+                      >
+                        {/* Day Header Cell (Row Header) */}
+                        <td
+                          className={`px-2 py-2 border-r border-slate-200 align-top ${
+                            isToday ? 'bg-brand-50/70 text-brand-900' : 'bg-slate-50/60 text-slate-800'
+                          }`}
+                        >
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <span className="capitalize font-bold text-xs">{dayShort}</span>
+                            <span className="text-[11px] text-slate-600 font-medium">
+                              {dayNum} {monthShort}
+                            </span>
+                            {isToday && (
+                              <span className="mt-0.5 bg-brand-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded uppercase">
+                                {t('calendar.today_badge')}
+                              </span>
+                            )}
+                            <button
+                              onClick={() => setSelectedMealTypeForDate(dateStr)}
+                              className="mt-1.5 flex items-center space-x-0.5 text-[9px] text-slate-500 hover:text-brand-600 border border-slate-200 bg-white hover:bg-slate-50 px-1.5 py-0.5 rounded transition-colors cursor-pointer"
+                              title={`+ ${t('calendar.btn_meal')} (${dayShort} ${dayNum})`}
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                              <span>{t('calendar.btn_meal')}</span>
+                            </button>
+                          </div>
+                        </td>
 
-                                {slot.dishes.length === 0 ? (
-                                  <button
-                                    onClick={() => handleOpenAssignModal(slot.id)}
-                                    className="w-full text-center py-1 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/70 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-0.5"
-                                    title={t('calendar.add_dish_tooltip')}
-                                  >
-                                    <Plus className="w-2.5 h-2.5" />
-                                    <span>{t('calendar.btn_dish')}</span>
-                                  </button>
-                                ) : (
-                                  slot.dishes.map((d) => {
-                                    const hasAssignedMembers =
-                                      d.assigned_member_ids && d.assigned_member_ids.length > 0
-                                    const assignedList = hasAssignedMembers
-                                      ? members.filter((m) => d.assigned_member_ids?.includes(m.id))
-                                      : []
-                                    const namesStr = assignedList.map((m) => m.name).join(', ')
+                        {/* Meal Type Cells for this Day */}
+                        {activeMealTypes.map((mt) => {
+                          const slot = slotMap.get(`${dateStr}_${mt.id}`)
+                          return (
+                            <td
+                              key={mt.id}
+                              className="px-2 py-1.5 border-r border-slate-200 last:border-r-0 align-top min-w-[140px]"
+                            >
+                              {slot ? (
+                                renderCompactSlotBody(slot)
+                              ) : (
+                                <button
+                                  onClick={() => onAddCustomSlot(dateStr, mt.id)}
+                                  className="w-full h-full min-h-[32px] flex items-center justify-center text-[10px] text-slate-300 hover:text-brand-600 hover:bg-slate-50 rounded transition-colors cursor-pointer"
+                                  title={t('calendar.add_slot_for_day', { name: getLocalizedMealTypeName(mt, t) })}
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              )}
+                            </td>
+                          )
+                        })}
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-                                    return (
-                                      <div
-                                        key={d.id}
-                                        className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
-                                      >
-                                        <div className="truncate pr-1 text-[11px] leading-snug flex-1 min-w-0">
-                                          <button
-                                            type="button"
-                                            onClick={() => handleOpenEditSlotDishModal(slot, d)}
-                                            title={t('calendar.edit_dish_assignment_tooltip')}
-                                            className="text-left font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate max-w-full inline-block"
-                                          >
-                                            • {d.dish_title}
-                                          </button>
-                                          {hasAssignedMembers && (
-                                            <button
-                                              type="button"
-                                              onClick={() => handleOpenEditSlotDishModal(slot, d)}
-                                              title={t('calendar.edit_dish_assignment_tooltip')}
-                                              className="ml-1 text-[10px] text-amber-700 hover:text-amber-800 font-semibold whitespace-nowrap cursor-pointer hover:underline"
-                                            >
-                                              ({namesStr})
-                                            </button>
-                                          )}
-                                        </div>
-                                        <button
-                                          type="button"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            onRemoveDish(slot.id, d.dish_id)
-                                          }}
-                                          title={t('calendar.remove_dish_tooltip')}
-                                          className="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] px-0.5 flex-shrink-0 transition-opacity cursor-pointer"
-                                        >
-                                          ✕
-                                        </button>
-                                      </div>
-                                    )
-                                  })
-                                )}
+          {/* Mobile Single-Column Sequence (< md): zero horizontal scroll! */}
+          <div className="block md:hidden space-y-2">
+            {weekDates.map((dateStr) => {
+              const dateObj = parseDate(dateStr)
+              const isToday = currentTodayStr === dateStr
+              const dayShort = new Intl.DateTimeFormat(currentLocale, { weekday: 'short' }).format(dateObj)
+              const dayNum = dateObj.getDate()
+              const monthShort = new Intl.DateTimeFormat(currentLocale, { month: 'short' }).format(dateObj)
 
-                                {/* Bottom row of cell: Attendance on lower-left, actions on right */}
-                                {(() => {
-                                  const attSummary = getAttendanceSummary(slot.absent_member_ids)
-                                  return (
-                                    <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleOpenAttendanceModal(slot)}
-                                        className="flex items-center space-x-1 text-slate-500 hover:text-brand-700 hover:bg-slate-100/80 px-1 py-0.5 rounded transition-colors min-w-0 max-w-[62%] truncate group text-left cursor-pointer"
-                                        title={attSummary.fullTooltip || t('calendar.manage_attendance_tooltip')}
-                                      >
-                                        <Users className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-brand-600" />
-                                        {attSummary.text ? (
-                                          <span className="truncate text-[9px] font-medium text-slate-600 group-hover:text-brand-700">
-                                            {attSummary.text}
-                                          </span>
-                                        ) : null}
-                                      </button>
+              return (
+                <div
+                  key={dateStr}
+                  className={`bg-white rounded-lg border transition-all overflow-hidden ${
+                    isToday ? 'border-brand-400 shadow-xs' : 'border-slate-200'
+                  }`}
+                >
+                  {/* Day Header Bar */}
+                  <div
+                    className={`px-3 py-1.5 flex items-center justify-between border-b ${
+                      isToday
+                        ? 'bg-brand-50/80 border-brand-200 text-brand-900'
+                        : 'bg-slate-50 border-slate-200 text-slate-800'
+                    }`}
+                  >
+                    <div className="flex items-center space-x-1.5">
+                      <span className="capitalize font-bold text-xs">{dayShort}</span>
+                      <span className="text-xs font-semibold text-slate-700">
+                        {dayNum} {monthShort}
+                      </span>
+                      {isToday && (
+                        <span className="bg-brand-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded uppercase">
+                          {t('calendar.today_badge')}
+                        </span>
+                      )}
+                    </div>
 
-                                      <div className="flex items-center space-x-0.5 flex-shrink-0">
-                                        {slot.dishes.length > 0 && (
-                                          <button
-                                            onClick={() => handleOpenAssignModal(slot.id)}
-                                            className="text-center py-0.5 px-1 text-[9px] text-slate-400 hover:text-brand-600 hover:bg-slate-100/50 rounded transition-colors flex items-center space-x-0.5"
-                                            title={t('calendar.add_another_dish_tooltip')}
-                                          >
-                                            <Plus className="w-2.5 h-2.5" />
-                                            <span>{t('calendar.btn_another_dish')}</span>
-                                          </button>
-                                        )}
-                                        {!slot.notes && (
-                                          <button
-                                            onClick={() => handleStartEditSlotNote(slot.id, '')}
-                                            className="px-1 text-center py-0.5 text-[9px] text-slate-400 hover:text-amber-700 hover:bg-amber-50 rounded transition-colors flex items-center space-x-0.5"
-                                            title={t('calendar.add_note_tooltip')}
-                                          >
-                                            <Plus className="w-2.5 h-2.5" />
-                                            <span>{t('calendar.btn_note')}</span>
-                                          </button>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )
-                                })()}
-                              </div>
-                            ) : (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMealTypeForDate(dateStr)}
+                      className="flex items-center space-x-1 text-[10px] font-medium text-slate-600 hover:text-brand-600 bg-white border border-slate-200 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                      title={`+ ${t('calendar.btn_meal')}`}
+                    >
+                      <Plus className="w-3 h-3 text-brand-600" />
+                      <span>{t('calendar.btn_meal')}</span>
+                    </button>
+                  </div>
+
+                  {/* Meals Sequence for this day (single column) */}
+                  <div className="divide-y divide-slate-100">
+                    {activeMealTypes.map((mt) => {
+                      const slot = slotMap.get(`${dateStr}_${mt.id}`)
+                      const localizedMt = getLocalizedMealTypeName(mt, t)
+
+                      return (
+                        <div key={mt.id} className="p-2 sm:p-2.5 space-y-1.5">
+                          {/* Meal Type Title Badge & Delete (if unused) */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">
+                              {localizedMt}
+                            </span>
+                            {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
                               <button
-                                onClick={() => onAddCustomSlot(dateStr, mt.id)}
-                                className="w-full h-full min-h-[32px] flex items-center justify-center text-[10px] text-slate-300 hover:text-brand-600 hover:bg-slate-50 rounded transition-colors"
-                                title={t('calendar.add_slot_for_day', { name: getLocalizedMealTypeName(mt, t) })}
+                                type="button"
+                                onClick={() => handleDeleteMealType(mt.id, localizedMt)}
+                                className="text-slate-400 hover:text-rose-600 p-0.5 rounded transition-colors cursor-pointer"
+                                title={t('calendar.remove_meal_type_title', { name: localizedMt })}
                               >
-                                <Plus className="w-3 h-3" />
+                                <X className="w-2.5 h-2.5" />
                               </button>
                             )}
-                          </td>
-                        )
-                      })}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                          </div>
+
+                          {/* Slot Content or Add Slot Button */}
+                          {slot ? (
+                            renderCompactSlotBody(slot)
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => onAddCustomSlot(dateStr, mt.id)}
+                              className="w-full text-center py-1.5 text-[10px] text-slate-400 hover:text-brand-600 hover:bg-slate-50 rounded border border-dashed border-slate-200 transition-colors flex items-center justify-center space-x-1 cursor-pointer"
+                              title={t('calendar.add_slot_for_day', { name: localizedMt })}
+                            >
+                              <Plus className="w-2.5 h-2.5" />
+                              <span>{t('calendar.add_slot_for_day', { name: localizedMt })}</span>
+                            </button>
+                          )}
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       ) : (

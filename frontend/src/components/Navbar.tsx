@@ -179,11 +179,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       </div>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-slate-200 px-4 py-1.5 flex justify-around items-center">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 pt-1 pb-[max(0.375rem,env(safe-area-inset-bottom))] flex justify-around items-center">
         <button
           onClick={() => onSelectTab('today')}
-          className={`flex flex-col items-center py-0.5 px-3 rounded text-[10px] font-medium ${
-            activeTab === 'today' ? 'text-brand-600 font-bold' : 'text-slate-500'
+          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
+            activeTab === 'today' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <Utensils className="w-4 h-4 mb-0.5" />
@@ -192,8 +192,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('calendar')}
-          className={`flex flex-col items-center py-0.5 px-3 rounded text-[10px] font-medium ${
-            activeTab === 'calendar' ? 'text-brand-600 font-bold' : 'text-slate-500'
+          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
+            activeTab === 'calendar' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <Calendar className="w-4 h-4 mb-0.5" />
@@ -202,8 +202,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('dishes')}
-          className={`flex flex-col items-center py-0.5 px-3 rounded text-[10px] font-medium ${
-            activeTab === 'dishes' ? 'text-brand-600 font-bold' : 'text-slate-500'
+          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
+            activeTab === 'dishes' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <BookOpen className="w-4 h-4 mb-0.5" />
@@ -212,8 +212,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         <button
           onClick={() => onSelectTab('members')}
-          className={`flex flex-col items-center py-0.5 px-3 rounded text-[10px] font-medium ${
-            activeTab === 'members' ? 'text-brand-600 font-bold' : 'text-slate-500'
+          className={`flex-1 flex flex-col items-center justify-center py-1 rounded text-[10px] font-medium transition-colors ${
+            activeTab === 'members' ? 'text-brand-600 font-bold' : 'text-slate-500 hover:text-slate-700'
           }`}
         >
           <Users className="w-4 h-4 mb-0.5" />

@@ -47,6 +47,7 @@
 | `S12` | Meal Planner: Edit Assigned Dish & Diners ([#9](https://github.com/mrclttnz/menu-family-planner/issues/9)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S13` | Compact Card View for Dish Catalog ([#10](https://github.com/mrclttnz/menu-family-planner/issues/10)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S14` | Dish Tags & Cross-View Filtered Selection ([#7](https://github.com/mrclttnz/menu-family-planner/issues/7)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S15` | Responsive Mobile Optimization & Compact Vertical Single-Column Flow ([#13](https://github.com/mrclttnz/menu-family-planner/issues/13)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
