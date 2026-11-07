@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react'
-import { Utensils, Calendar, BookOpen, Users, LogOut, Globe, ChevronDown, Check } from 'lucide-react'
+import { Utensils, Calendar, BookOpen, Users, LogOut, Globe, ChevronDown, Check, Palette } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Household } from '../types'
+import { ThemeSelector } from './ThemeSelector'
 
 interface LanguageOption {
   code: string
@@ -30,6 +31,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const { t, i18n } = useTranslation()
   const [isLangMenuOpen, setIsLangMenuOpen] = useState(false)
+  const [isThemeModalOpen, setIsThemeModalOpen] = useState(false)
   const langMenuRef = useRef<HTMLDivElement>(null)
 
   const currentLang = i18n.language && i18n.language.startsWith('en') ? 'en' : 'it'
@@ -60,7 +62,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex items-center justify-between min-h-[42px] sm:min-h-[46px] py-1">
           {/* Logo & Brand */}
           <div className="flex items-center space-x-1.5 cursor-pointer select-none" onClick={() => onSelectTab('today')}>
-            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center text-white shadow-2xs flex-shrink-0">
+            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-brand-600 to-brand-400 flex items-center justify-center text-white shadow-2xs flex-shrink-0">
               <Utensils className="w-3.5 h-3.5" />
             </div>
             <div className="flex items-center space-x-1.5">
@@ -124,8 +126,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </nav>
 
-          {/* Actions: Language & Logout */}
+          {/* Actions: Theme, Language & Logout */}
           <div className="flex items-center space-x-1.5">
+            {/* Theme Palette Switcher */}
+            <button
+              type="button"
+              onClick={() => setIsThemeModalOpen(true)}
+              className="flex items-center space-x-1 px-2 py-1 rounded text-xs font-semibold border border-slate-200 hover:bg-slate-100 text-slate-700 transition-colors cursor-pointer"
+              title={t('theme.select_theme', 'Personalizza tema e colori interfaccia')}
+            >
+              <Palette className="w-3 h-3 text-brand-600" />
+            </button>
+
             {/* Language Switcher Dropdown */}
             <div className="relative" ref={langMenuRef}>
               <button
@@ -229,6 +241,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
       </div>
+
+      <ThemeSelector
+        isOpen={isThemeModalOpen}
+        onClose={() => setIsThemeModalOpen(false)}
+      />
     </header>
   )
 }

@@ -47,7 +47,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6 sm:p-8 animate-in fade-in zoom-in-95 duration-150">
         <div className="text-center mb-6">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 items-center justify-center text-white shadow-md mb-3">
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-brand-400 items-center justify-center text-white shadow-md mb-3">
             <Utensils className="w-7 h-7" />
           </div>
           <h2 className="text-2xl font-bold text-slate-900">{t('auth.welcome_title')}</h2>
