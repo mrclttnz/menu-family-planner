@@ -219,7 +219,8 @@
     "download_template": "Download sample template",
     "no_dishes_found": "No dishes found with the selected filters.",
     "error_duplicate_name": "A dish with this name already exists in the catalog.",
-    "error_title_required": "Please enter a dish title."
+    "error_title_required": "Please enter a dish title.",
+    "error_courses_required": "At least one course must be selected."
   },
   "members": {
     "title": "Family Members",
@@ -294,5 +295,34 @@
     "open_matrix_sliders": "Open color matrix and sliders",
     "invalid_hex": "Invalid HEX color (e.g. #16a34a)",
     "reset_to_default": "Reset to default UI color"
+  },
+  "errors": {
+    "default": "An unexpected error occurred.",
+    "network_error": "Unable to connect to the server. Please check your connection.",
+    "unauthorized": "Session expired or invalid. Please sign in again.",
+    "forbidden": "You do not have permission to perform this action.",
+    "not_found": "Item not found.",
+    "server_error": "Internal server error. Please try again later.",
+    "field_required": "The \"{{field}}\" field is required.",
+    "invalid_input": "One or more inputs are invalid.",
+    "courses_required": "At least one course must be selected.",
+    "title_required": "Please enter a dish title.",
+    "dish_duplicate_name": "A dish with this name already exists in the catalog.",
+    "invalid_credentials": "Incorrect email or password.",
+    "household_name_exists": "A household with this name already exists.",
+    "member_name_exists": "A member with this name already exists in your household.",
+    "member_not_found": "Member not found.",
+    "dish_not_found": "Dish not found.",
+    "meal_slot_not_found": "Meal slot not found.",
+    "meal_slot_exists": "A meal slot already exists for this date and meal type.",
+    "date_range_invalid": "End date must be greater than or equal to start date.",
+    "date_range_max": "The date range cannot exceed 31 days.",
+    "default_status_cannot_delete": "The default status cannot be deleted.",
+    "system_status_cannot_delete": "System statuses cannot be deleted.",
+    "system_meal_type_cannot_delete": "System meal types cannot be deleted.",
+    "tag_name_exists": "A tag with this name already exists.",
+    "invalid_url": "Web address must start with http:// or https://",
+    "invalid_status": "Invalid status for this household.",
+    "invalid_courses": "One or more selected courses are invalid."
   }
 }

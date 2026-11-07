@@ -219,7 +219,8 @@
     "download_template": "Scarica template di esempio",
     "no_dishes_found": "Nessun piatto trovato con i filtri selezionati.",
     "error_duplicate_name": "Un piatto con questo nome è già presente nel catalogo.",
-    "error_title_required": "Inserisci il titolo del piatto."
+    "error_title_required": "Inserisci il titolo del piatto.",
+    "error_courses_required": "È necessario selezionare almeno una portata."
   },
   "members": {
     "title": "I Membri della Famiglia",
@@ -294,5 +295,34 @@
     "open_matrix_sliders": "Apri matrice e slider colori",
     "invalid_hex": "Codice HEX non valido (es. #16a34a)",
     "reset_to_default": "Reimposta colore predefinito UI"
+  },
+  "errors": {
+    "default": "Si è verificato un errore imprevisto.",
+    "network_error": "Impossibile comunicare con il server. Verifica la connessione.",
+    "unauthorized": "Sessione scaduta o non valida. Effettua nuovamente l'accesso.",
+    "forbidden": "Non disponi dei permessi per eseguire questa operazione.",
+    "not_found": "Elemento non trovato.",
+    "server_error": "Errore interno del server. Riprova più tardi.",
+    "field_required": "Il campo \"{{field}}\" è obbligatorio.",
+    "invalid_input": "Uno o più dati inseriti non sono validi.",
+    "courses_required": "È necessario inserire almeno una portata.",
+    "title_required": "Inserisci il titolo del piatto.",
+    "dish_duplicate_name": "Un piatto con questo nome è già presente nel catalogo.",
+    "invalid_credentials": "Email o password non corretti.",
+    "household_name_exists": "Uno spazio famiglia con questo nome è già registrato.",
+    "member_name_exists": "Un membro con questo nome è già presente nella famiglia.",
+    "member_not_found": "Commensale non trovato.",
+    "dish_not_found": "Piatto non trovato.",
+    "meal_slot_not_found": "Slot pasto non trovato.",
+    "meal_slot_exists": "Esiste già un pasto per questa data e fascia oraria.",
+    "date_range_invalid": "La data di fine deve essere successiva o uguale alla data di inizio.",
+    "date_range_max": "L'intervallo massimo consentito è di 31 giorni.",
+    "default_status_cannot_delete": "Lo stato predefinito non può essere eliminato.",
+    "system_status_cannot_delete": "Gli stati di sistema non possono essere eliminati.",
+    "system_meal_type_cannot_delete": "I tipi di pasto di sistema non possono essere eliminati.",
+    "tag_name_exists": "Esiste già un'etichetta con questo nome.",
+    "invalid_url": "L'indirizzo web deve iniziare con http:// o https://",
+    "invalid_status": "Stato non valido per questa famiglia.",
+    "invalid_courses": "Una o più portate selezionate non sono valide."
   }
 }

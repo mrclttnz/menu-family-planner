@@ -328,7 +328,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const handleStartCreateDish = (prefillTitle?: string) => {
     setIsCreatingDish(true)
     setNewDishTitle((prefillTitle || dishSearch || '').trim())
-    setNewDishCourseIds(selectedCourseFilter ? [selectedCourseFilter] : [])
+    setNewDishCourseIds(
+      selectedCourseFilter
+        ? [selectedCourseFilter]
+        : courses && courses.length > 0
+          ? [courses[0].id]
+          : []
+    )
     setNewDishNotes('')
     // Prefill tags if any tag filters were active in calendar dish picker
     const prefilledTags: SelectedTagItem[] = selectedCalendarTagFilters.map((tagName) => {
@@ -356,6 +362,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const trimmedTitle = newDishTitle.trim()
     if (!trimmedTitle) {
       setCreateDishError(t('dishes.error_title_required'))
+      return
+    }
+
+    if (newDishCourseIds.length === 0) {
+      setCreateDishError(t('dishes.error_courses_required'))
       return
     }
 
