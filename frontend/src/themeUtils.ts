@@ -4,21 +4,19 @@ export interface ThemePreset {
   hex: string
 }
 
-export const DEFAULT_THEME_HEX = '#16a34a'
+export const DEFAULT_THEME_HEX = '#4884e5'
 export const THEME_STORAGE_KEY = 'menu_design_theme_color'
 
 export const THEME_PRESETS: ThemePreset[] = [
-  { id: 'emerald', nameKey: 'theme.emerald', hex: '#16a34a' },
   { id: 'light_royal_blue', nameKey: 'theme.light_royal_blue', hex: '#4884e5' },
+  { id: 'forest_green', nameKey: 'theme.forest_green', hex: '#16a34a' },
   { id: 'blue', nameKey: 'theme.blue', hex: '#2563eb' },
-  { id: 'indigo', nameKey: 'theme.indigo', hex: '#4f46e5' },
   { id: 'teal', nameKey: 'theme.teal', hex: '#0d9488' },
   { id: 'purple', nameKey: 'theme.purple', hex: '#7c3aed' },
   { id: 'pink', nameKey: 'theme.pink', hex: '#db2777' },
   { id: 'red', nameKey: 'theme.red', hex: '#dc2626' },
   { id: 'orange', nameKey: 'theme.orange', hex: '#ea580c' },
   { id: 'amber', nameKey: 'theme.amber', hex: '#d97706' },
-  { id: 'lime', nameKey: 'theme.lime', hex: '#65a30d' },
   { id: 'slate', nameKey: 'theme.slate', hex: '#475569' },
 ]
 

@@ -337,17 +337,15 @@
     "preview": "Anteprima Sfumature",
     "active_theme": "Tema Attivo",
     "select_theme": "Personalizza tema e colori interfaccia",
-    "emerald": "Verde Smeraldo (Default)",
-    "light_royal_blue": "Blu Reale Chiaro",
-    "teal": "Turchese / Ottanio",
+    "light_royal_blue": "Blu Reale Chiaro (Default)",
+    "forest_green": "Verde Foresta",
     "blue": "Blu Oceano",
-    "indigo": "Indaco",
+    "teal": "Turchese / Ottanio",
     "purple": "Viola",
     "pink": "Rosa / Fucsia",
     "red": "Rosso Rubino",
     "orange": "Arancione",
     "amber": "Ambra",
-    "lime": "Verde Bosco",
     "slate": "Grigio Ardesia"
   }
 }

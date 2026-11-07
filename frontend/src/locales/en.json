@@ -337,17 +337,15 @@
     "preview": "Shades Preview",
     "active_theme": "Active Theme",
     "select_theme": "Customize UI theme and colors",
-    "emerald": "Emerald Green (Default)",
-    "light_royal_blue": "Light Royal Blue",
-    "teal": "Teal / Turquoise",
+    "light_royal_blue": "Light Royal Blue (Default)",
+    "forest_green": "Forest Green",
     "blue": "Ocean Blue",
-    "indigo": "Indigo",
+    "teal": "Teal / Turquoise",
     "purple": "Purple",
     "pink": "Pink / Fuchsia",
     "red": "Ruby Red",
     "orange": "Orange",
     "amber": "Amber",
-    "lime": "Forest Green",
     "slate": "Slate Gray"
   }
 }
