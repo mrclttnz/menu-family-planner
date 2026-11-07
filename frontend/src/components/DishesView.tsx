@@ -284,6 +284,10 @@ export const DishesView: React.FC<DishesViewProps> = ({
 
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!title.trim()) {
+      setFormError('Il nome del piatto è obbligatorio.')
+      return
+    }
     setFormError(null)
     setSubmitting(true)
     try {
@@ -319,7 +323,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
   // Client-side filter (AND logic for tags, matches search in tags)
   const filteredDishes = dishes.filter((dish) => {
     if (search.trim()) {
-      const term = search.toLowerCase()
+      const term = search.trim().toLowerCase()
       const matchTitle = dish.title.toLowerCase().includes(term)
       const matchNotes = dish.notes?.toLowerCase().includes(term)
       const matchDesc = dish.description?.toLowerCase().includes(term)
@@ -837,6 +841,7 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   required
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  onBlur={() => setTitle((prev) => prev.trim())}
                   placeholder={t('dishes.dish_title_placeholder')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm"
                 />

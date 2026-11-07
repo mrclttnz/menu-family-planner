@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Any
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
@@ -81,6 +81,16 @@ class DishCreate(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
+    @field_validator("title", mode="before")
+    @classmethod
+    def validate_title(cls, v: Any) -> str:
+        if isinstance(v, str):
+            v_clean = v.strip()
+            if not v_clean:
+                raise ValueError("Dish title cannot be empty or whitespace only")
+            return v_clean
+        return v
+
     @field_validator("source_url")
     @classmethod
     def validate_url(cls, v: Optional[str]) -> Optional[str]:
@@ -104,6 +114,16 @@ class DishUpdate(BaseModel):
     tags: Optional[List[DishTagInput]] = None
 
     model_config = ConfigDict(extra="forbid")
+
+    @field_validator("title", mode="before")
+    @classmethod
+    def validate_title(cls, v: Any) -> str:
+        if isinstance(v, str):
+            v_clean = v.strip()
+            if not v_clean:
+                raise ValueError("Dish title cannot be empty or whitespace only")
+            return v_clean
+        return v
 
     @field_validator("source_url")
     @classmethod

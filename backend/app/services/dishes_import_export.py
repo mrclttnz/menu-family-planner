@@ -61,7 +61,7 @@ def sanitize_from_import(val: Optional[str]) -> Optional[str]:
     # Neutralize dangerous formula execution attempts if present
     elif s.startswith(DANGEROUS_FORMULA_PREFIXES):
         s = f"'{s}"
-    return s
+    return s.strip()
 
 
 def parse_courses_field(raw_val: Any) -> List[str]:

@@ -327,7 +327,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   const handleStartCreateDish = (prefillTitle?: string) => {
     setIsCreatingDish(true)
-    setNewDishTitle(prefillTitle || dishSearch || '')
+    setNewDishTitle((prefillTitle || dishSearch || '').trim())
     setNewDishCourseIds(selectedCourseFilter ? [selectedCourseFilter] : [])
     setNewDishNotes('')
     // Prefill tags if any tag filters were active in calendar dish picker
@@ -442,12 +442,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
   // P007 / Issue #7: Filtered dishes list by search text, course filter, and tags (AND logic)
   const filteredDishes = dishes.filter((dish) => {
+    const term = dishSearch.trim().toLowerCase()
     const matchesSearch =
-      !dishSearch.trim() ||
-      dish.title.toLowerCase().includes(dishSearch.toLowerCase()) ||
-      (dish.description && dish.description.toLowerCase().includes(dishSearch.toLowerCase())) ||
-      (dish.notes && dish.notes.toLowerCase().includes(dishSearch.toLowerCase())) ||
-      (dish.tags && dish.tags.some((t) => t.name.toLowerCase().includes(dishSearch.toLowerCase())))
+      !term ||
+      dish.title.toLowerCase().includes(term) ||
+      (dish.description && dish.description.toLowerCase().includes(term)) ||
+      (dish.notes && dish.notes.toLowerCase().includes(term)) ||
+      (dish.tags && dish.tags.some((t) => t.name.toLowerCase().includes(term)))
 
     const matchesCourse =
       selectedCourseFilter === null ||
@@ -1761,6 +1762,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     autoFocus
                     value={newDishTitle}
                     onChange={(e) => setNewDishTitle(e.target.value)}
+                    onBlur={() => setNewDishTitle((prev) => prev.trim())}
                     placeholder={t('dishes.dish_title_placeholder')}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden"
                   />
@@ -1948,19 +1950,19 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     <div className="text-center py-6 px-4 space-y-2">
                       <p className="text-xs text-slate-500">
                         {dishSearch.trim()
-                          ? t('calendar.no_dishes_for_query', { query: dishSearch })
+                          ? t('calendar.no_dishes_for_query', { query: dishSearch.trim() })
                           : t('calendar.no_dishes_matched')}
                       </p>
                       {onCreateDish && (
                         <button
                           type="button"
-                          onClick={() => handleStartCreateDish(dishSearch)}
+                          onClick={() => handleStartCreateDish(dishSearch.trim())}
                           className="inline-flex items-center space-x-1 text-xs font-semibold text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-2.5 py-1 rounded transition-colors"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>
                             {dishSearch.trim()
-                              ? t('calendar.create_dish_as_new', { name: dishSearch })
+                              ? t('calendar.create_dish_as_new', { name: dishSearch.trim() })
                               : t('calendar.create_new_dish')}
                           </span>
                         </button>

@@ -126,7 +126,7 @@ export const api = {
     const query = new URLSearchParams()
     if (params?.status_id) query.set('status_id', params.status_id.toString())
     if (params?.course_id) query.set('course_id', params.course_id.toString())
-    if (params?.search) query.set('search', params.search)
+    if (params?.search && params.search.trim()) query.set('search', params.search.trim())
     if (params?.tag_id) {
       params.tag_id.forEach((tid) => query.append('tag_id', tid.toString()))
     }
@@ -145,7 +145,10 @@ export const api = {
   }) =>
     request<Dish>('/dishes', {
       method: 'POST',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        title: payload.title.trim(),
+      }),
     }),
   updateDish: (id: number, payload: Partial<{
     title: string
@@ -160,7 +163,10 @@ export const api = {
   }>) =>
     request<Dish>(`/dishes/${id}`, {
       method: 'PUT',
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        ...(payload.title !== undefined ? { title: payload.title.trim() } : {}),
+      }),
     }),
   deleteDish: (id: number) =>
     request<void>(`/dishes/${id}`, {
@@ -179,7 +185,7 @@ export const api = {
     query.set('format', format)
     if (params?.status_id) query.set('status_id', params.status_id.toString())
     if (params?.course_id) query.set('course_id', params.course_id.toString())
-    if (params?.search) query.set('search', params.search)
+    if (params?.search && params.search.trim()) query.set('search', params.search.trim())
     if (params?.tag_id) {
       params.tag_id.forEach((tid) => query.append('tag_id', tid.toString()))
     }

@@ -336,3 +336,55 @@ def test_dishes_with_tags_and_filtering_and_search(client, auth_headers):
     assert res_upd.status_code == 200
     assert len(res_upd.json()["tags"]) == 2
 
+
+def test_dish_title_trim_and_validation(client, auth_headers):
+    """Verifies that dish titles are trimmed of leading/trailing spaces on create, update, and search, and pure whitespace is rejected with 422."""
+    res_courses = client.get("/api/v1/taxonomies/courses", headers=auth_headers)
+    course_id = res_courses.json()[0]["id"]
+    res_statuses = client.get("/api/v1/taxonomies/statuses", headers=auth_headers)
+    status_id = res_statuses.json()[0]["id"]
+
+    # 1. Create with leading and trailing spaces
+    res_create = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "   Risotto ai funghi porcini   ",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    })
+    assert res_create.status_code == 201
+    created_dish = res_create.json()
+    assert created_dish["title"] == "Risotto ai funghi porcini"
+
+    # 2. Create with pure whitespace should be rejected (HTTP 422)
+    res_ws = client.post("/api/v1/dishes", headers=auth_headers, json={
+        "title": "     ",
+        "status_id": status_id,
+        "course_ids": [course_id],
+    })
+    assert res_ws.status_code == 422
+
+    # 3. Update with leading and trailing spaces
+    dish_id = created_dish["id"]
+    res_update = client.put(f"/api/v1/dishes/{dish_id}", headers=auth_headers, json={
+        "title": "   Risotto ai funghi porcini e zafferano   "
+    })
+    assert res_update.status_code == 200
+    assert res_update.json()["title"] == "Risotto ai funghi porcini e zafferano"
+
+    # 4. Update with pure whitespace should be rejected (HTTP 422)
+    res_upd_ws = client.put(f"/api/v1/dishes/{dish_id}", headers=auth_headers, json={
+        "title": "   "
+    })
+    assert res_upd_ws.status_code == 422
+
+    # 5. Search with leading and trailing whitespace
+    res_search = client.get("/api/v1/dishes?search=   zafferano   ", headers=auth_headers)
+    assert res_search.status_code == 200
+    search_titles = [d["title"] for d in res_search.json()]
+    assert "Risotto ai funghi porcini e zafferano" in search_titles
+
+    # 6. Search with pure whitespace should return all dishes normally without filtering error
+    res_search_empty = client.get("/api/v1/dishes?search=   ", headers=auth_headers)
+    assert res_search_empty.status_code == 200
+    assert len(res_search_empty.json()) >= 1
+
+
