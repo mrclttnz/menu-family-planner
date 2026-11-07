@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useTranslation } from 'react-i18next'
 import { Check, Palette, RotateCcw, X, Sparkles } from 'lucide-react'
 import {
@@ -58,7 +59,7 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isOpen, onClose })
     }
   }, [isOpen, onClose])
 
-  if (!isOpen) return null
+  if (!isOpen || typeof document === 'undefined') return null
 
   const handleSelectTheme = (hex: string) => {
     const normalized = normalizeHex(hex)
@@ -93,11 +94,11 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isOpen, onClose })
   const previewShades = generateThemeShades(activeTheme)
   const shadeKeys = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-150">
+  const modalContent = (
+    <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-in fade-in duration-150">
       <div
         ref={modalRef}
-        className="bg-white rounded-2xl shadow-xl border border-slate-200/80 w-full max-w-lg p-5 sm:p-6 overflow-y-auto max-h-[92vh]"
+        className="bg-white rounded-2xl shadow-2xl border border-slate-200/80 w-full max-w-md p-4 sm:p-5 my-auto max-h-[88vh] overflow-y-auto"
       >
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
@@ -254,4 +255,6 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({ isOpen, onClose })
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
