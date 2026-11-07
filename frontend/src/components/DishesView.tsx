@@ -290,6 +290,11 @@ export const DishesView: React.FC<DishesViewProps> = ({
       return
     }
 
+    if (selectedCourseIds.length === 0) {
+      setFormError(t('dishes.error_courses_required'))
+      return
+    }
+
     // Issue #17: Prevent duplicate dish name (case-insensitive & whitespace trimmed)
     const normalizedNewTitle = trimmedTitle.toLowerCase()
     const duplicateDish = dishes.find(

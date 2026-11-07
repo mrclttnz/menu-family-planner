@@ -12,6 +12,8 @@ import {
   SlotDishNote,
   DishImportResult,
 } from './types'
+import { parseApiError } from './errorUtils'
+import i18n from './i18n'
 
 const TOKEN_KEY = 'menu_design_jwt_token'
 
@@ -31,24 +33,27 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     headers.set('Authorization', `Bearer ${token}`)
   }
 
-  const response = await fetch(`/api/v1${endpoint}`, {
-    ...options,
-    headers,
-  })
+  let response: Response
+  try {
+    response = await fetch(`/api/v1${endpoint}`, {
+      ...options,
+      headers,
+    })
+  } catch (netErr: unknown) {
+    throw new Error(i18n.t('errors.network_error'))
+  }
 
   if (response.status === 401) {
     clearToken()
   }
 
   if (!response.ok) {
-    let errorDetail = 'Si è verificato un errore.'
+    let errorDetail = ''
     try {
       const errorJson = await response.json()
-      if (errorJson.detail) {
-        errorDetail = typeof errorJson.detail === 'string' ? errorJson.detail : JSON.stringify(errorJson.detail)
-      }
+      errorDetail = parseApiError(response.status, errorJson)
     } catch {
-      errorDetail = response.statusText || errorDetail
+      errorDetail = parseApiError(response.status, null)
     }
     throw new Error(errorDetail)
   }
