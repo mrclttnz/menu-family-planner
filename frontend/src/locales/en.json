@@ -324,5 +324,29 @@
     "invalid_url": "Web address must start with http:// or https://",
     "invalid_status": "Invalid status for this household.",
     "invalid_courses": "One or more selected courses are invalid."
+  },
+  "theme": {
+    "title": "UI Theme & Colors",
+    "subtitle": "Choose the application's base theme color",
+    "presets": "Preset Palettes",
+    "custom_color": "Custom Color",
+    "custom_color_hint": "Pick any color and the interface will automatically adapt all its shades.",
+    "hex_placeholder": "e.g. #2563eb",
+    "apply_custom": "Apply",
+    "reset_default": "Reset to Default",
+    "preview": "Shades Preview",
+    "active_theme": "Active Theme",
+    "select_theme": "Customize UI theme and colors",
+    "emerald": "Emerald Green (Default)",
+    "teal": "Teal / Turquoise",
+    "blue": "Ocean Blue",
+    "indigo": "Indigo",
+    "purple": "Purple",
+    "pink": "Pink / Fuchsia",
+    "red": "Ruby Red",
+    "orange": "Orange",
+    "amber": "Amber",
+    "lime": "Forest Green",
+    "slate": "Slate Gray"
   }
 }

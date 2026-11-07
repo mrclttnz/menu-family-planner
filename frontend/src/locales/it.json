@@ -324,5 +324,29 @@
     "invalid_url": "L'indirizzo web deve iniziare con http:// o https://",
     "invalid_status": "Stato non valido per questa famiglia.",
     "invalid_courses": "Una o più portate selezionate non sono valide."
+  },
+  "theme": {
+    "title": "Tema & Colori UI",
+    "subtitle": "Scegli il colore di base dell'applicazione",
+    "presets": "Palette Predefinite",
+    "custom_color": "Colore Personalizzato",
+    "custom_color_hint": "Scegli qualsiasi colore e l'interfaccia adatterà automaticamente tutte le sue sfumature.",
+    "hex_placeholder": "es. #2563eb",
+    "apply_custom": "Applica",
+    "reset_default": "Reimposta Predefinito",
+    "preview": "Anteprima Sfumature",
+    "active_theme": "Tema Attivo",
+    "select_theme": "Personalizza tema e colori interfaccia",
+    "emerald": "Verde Smeraldo (Default)",
+    "teal": "Turchese / Ottanio",
+    "blue": "Blu Oceano",
+    "indigo": "Indaco",
+    "purple": "Viola",
+    "pink": "Rosa / Fucsia",
+    "red": "Rosso Rubino",
+    "orange": "Arancione",
+    "amber": "Ambra",
+    "lime": "Verde Bosco",
+    "slate": "Grigio Ardesia"
   }
 }

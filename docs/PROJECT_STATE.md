@@ -51,12 +51,13 @@
 | `S16` | Dish Name Trimming & Whitespace Sanitization ([#16](https://github.com/mrclttnz/menu-family-planner/issues/16)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S17` | Prevent Duplicate Dish Name in Catalog ([#17](https://github.com/mrclttnz/menu-family-planner/issues/17)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S18` | User-Friendly Localized Error Messages & Validation Feedback ([#18](https://github.com/mrclttnz/menu-family-planner/issues/18)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S19` | Dynamic UI Theme & Base Color Palette Customization ([#12](https://github.com/mrclttnz/menu-family-planner/issues/12)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
 - [x] **Gate 2 (Architecture & Threat Model Approved)**: Decoupled FastAPI + React SPA with SQLite/Postgres and Option 1 (`favorite` / `neutral` / `dislike`).
 - [x] **Gate 3 (DB Schema & Modules Approved)**: Normalized `dish_status_lookups`, dynamic daily `meal_types`, exception-based attendance, and normalized `tags`/`dish_tags`.
-- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 40 automated tests passing with 100% success rate in `backend/tests/` (including tag taxonomy, search, import/export, title whitespace trimming, duplicate dish name prevention) and frontend build verified with localized error handling.
+- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 40 automated tests passing with 100% success rate in `backend/tests/` and frontend bundle verified with dynamic CSS variable theme generation and localized UI error handling.
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).

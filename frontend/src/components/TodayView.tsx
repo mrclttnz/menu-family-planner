@@ -63,9 +63,9 @@ export const TodayView: React.FC<TodayViewProps> = ({
   return (
     <div className="space-y-2 pb-6 md:pb-3">
       {/* Header Banner (G002: super compact) */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-700 text-white rounded-lg px-3 py-1.5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+      <div className="bg-gradient-to-r from-brand-600 to-brand-800 text-white rounded-lg px-3 py-1.5 shadow-2xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
         <div>
-          <div className="flex items-center space-x-1 text-emerald-100 text-[10px] font-semibold uppercase tracking-wider">
+          <div className="flex items-center space-x-1 text-brand-100 text-[10px] font-semibold uppercase tracking-wider">
             <Clock className="w-3 h-3" />
             <span>{t('today.banner_title')}</span>
           </div>
@@ -73,7 +73,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
             {todayFormatted}
           </h1>
         </div>
-        <p className="text-[11px] text-emerald-100">
+        <p className="text-[11px] text-brand-100">
           {t('today.banner_subtitle')}
         </p>
       </div>
