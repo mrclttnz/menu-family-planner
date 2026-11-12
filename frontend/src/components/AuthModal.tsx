@@ -11,9 +11,9 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ onSuccess }) => {
   const { t } = useTranslation()
   const [isRegister, setIsRegister] = useState(false)
-  const [name, setName] = useState('Famiglia Rossi')
-  const [email, setEmail] = useState('famiglia.rossi@example.com')
-  const [password, setPassword] = useState('Password123!')
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 

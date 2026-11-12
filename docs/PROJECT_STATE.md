@@ -52,6 +52,7 @@
 | `S17` | Prevent Duplicate Dish Name in Catalog ([#17](https://github.com/mrclttnz/menu-family-planner/issues/17)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S18` | User-Friendly Localized Error Messages & Validation Feedback ([#18](https://github.com/mrclttnz/menu-family-planner/issues/18)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S19` | Dynamic UI Theme & Base Color Palette Customization ([#12](https://github.com/mrclttnz/menu-family-planner/issues/12)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S20` | Remove Fake Default Credentials from Login Form ([#21](https://github.com/mrclttnz/menu-family-planner/issues/21)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
