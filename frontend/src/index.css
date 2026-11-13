@@ -44,18 +44,35 @@ html {
     color-adjust: exact !important;
   }
 
-  /* Reset viewport and eliminate page overflow */
+  /* Force strict single A4 page containment with zero outer margins or overflow */
   html,
-  body,
-  #root {
+  body {
     background: #ffffff !important;
     color: #0f172a !important;
     margin: 0 !important;
     padding: 0 !important;
-    overflow: visible !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  #root,
+  #root > div,
+  main {
+    background: transparent !important;
     width: 100% !important;
     max-width: 100% !important;
+    height: 100% !important;
+    max-height: 100vh !important;
     min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    page-break-after: avoid !important;
+    break-after: avoid !important;
   }
 
   /* Hide app header, navigation bar, interactive modals and designated no-print elements */
@@ -73,10 +90,11 @@ html {
     page-break-inside: avoid !important;
   }
 
-  /* Ensure tables use 100% printable width without horizontal scrollbars */
+  /* Ensure tables use 100% printable area and avoid extra page breaks */
   table {
     width: 100% !important;
-    page-break-inside: auto;
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   tr {

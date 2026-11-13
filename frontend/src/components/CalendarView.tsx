@@ -519,7 +519,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const attSummary = getAttendanceSummary(slot.absent_member_ids)
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1 print:space-y-0.5">
         {/* P010: Meal Slot Note */}
         {editingSlotNoteId === slot.id ? (
           <div className="flex items-center space-x-1 p-0.5 bg-amber-50 rounded border border-amber-300 mb-1 print:hidden">
@@ -556,12 +556,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           </div>
         ) : slot.notes ? (
           <div
-            className="group relative flex items-center justify-between text-[10px] py-0.5 px-1 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1 print:shadow-none print:border-amber-200"
+            className="group relative flex items-center justify-between text-[10px] print:text-[8px] py-0.5 px-1 print:py-0 print:px-0.5 rounded bg-amber-50/90 border border-amber-200/80 text-amber-900 shadow-2xs hover:bg-amber-100/70 transition-colors cursor-pointer mb-1 print:mb-0.5 print:shadow-none print:border-amber-200"
             onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
             title={t('calendar.edit_note_tooltip')}
           >
-            <div className="truncate pr-1 text-[10px] leading-snug flex items-center space-x-1">
-              <StickyNote className="w-2.5 h-2.5 flex-shrink-0 text-amber-700" />
+            <div className="truncate pr-1 text-[10px] print:text-[8px] leading-snug flex items-center space-x-1">
+              <StickyNote className="w-2.5 h-2.5 print:w-2 print:h-2 flex-shrink-0 text-amber-700" />
               <span className="italic font-medium">{slot.notes}</span>
             </div>
             <button
@@ -588,7 +588,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               <Plus className="w-2.5 h-2.5" />
               <span>{t('calendar.btn_dish')}</span>
             </button>
-            <span className="hidden print:inline-block text-[10px] text-slate-300 italic pl-0.5">-</span>
+            <span className="hidden print:inline-block text-[8px] text-slate-300 italic pl-0.5">-</span>
           </>
         ) : (
           slot.dishes.map((d) => {
@@ -602,14 +602,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <div
                 key={d.id}
-                className="group relative flex items-center justify-between text-xs py-0.5 px-1 rounded hover:bg-slate-100/80 transition-colors"
+                className="group relative flex items-center justify-between text-xs py-0.5 px-1 print:py-0 print:px-0.5 rounded hover:bg-slate-100/80 transition-colors"
               >
-                <div className="truncate pr-1 text-[11px] leading-snug flex-1 min-w-0">
+                <div className="truncate pr-1 text-[11px] print:text-[8.5px] leading-snug flex-1 min-w-0">
                   <button
                     type="button"
                     onClick={() => handleOpenEditSlotDishModal(slot, d)}
                     title={t('calendar.edit_dish_assignment_tooltip')}
-                    className="text-left font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate max-w-full inline-block print:pointer-events-none print:no-underline print:text-slate-900"
+                    className="text-left font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate max-w-full inline-block print:pointer-events-none print:no-underline print:text-slate-900 print:text-[8.5px] print:leading-tight"
                   >
                     • {d.dish_title}
                   </button>
@@ -618,7 +618,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       type="button"
                       onClick={() => handleOpenEditSlotDishModal(slot, d)}
                       title={t('calendar.edit_dish_assignment_tooltip')}
-                      className="ml-1 text-[10px] text-amber-700 hover:text-amber-800 font-semibold whitespace-nowrap cursor-pointer hover:underline print:pointer-events-none print:no-underline"
+                      className="ml-1 text-[10px] print:text-[7.5px] text-amber-700 hover:text-amber-800 font-semibold whitespace-nowrap cursor-pointer hover:underline print:pointer-events-none print:no-underline"
                     >
                       ({namesStr})
                     </button>
@@ -641,16 +641,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         )}
 
         {/* Bottom row of cell: Attendance on lower-left, actions on right */}
-        <div className="flex items-center justify-between gap-1 pt-0.5 min-w-0">
+        <div className="flex items-center justify-between gap-1 pt-0.5 print:pt-0 min-w-0">
           <button
             type="button"
             onClick={() => handleOpenAttendanceModal(slot)}
             className="flex items-center space-x-1 text-slate-500 hover:text-brand-700 hover:bg-slate-100/80 px-1 py-0.5 rounded transition-colors min-w-0 max-w-[62%] truncate group text-left cursor-pointer print:pointer-events-none print:p-0 print:border-none print:bg-transparent print:max-w-none"
             title={attSummary.fullTooltip || t('calendar.manage_attendance_tooltip')}
           >
-            <Users className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-brand-600 print:text-slate-600" />
+            <Users className="w-3 h-3 flex-shrink-0 text-slate-500 group-hover:text-brand-600 print:text-slate-600 print:w-2.5 print:h-2.5" />
             {attSummary.text ? (
-              <span className="truncate text-[9px] font-medium text-slate-600 group-hover:text-brand-700 print:text-slate-700">
+              <span className="truncate text-[9px] print:text-[8px] font-medium text-slate-600 group-hover:text-brand-700 print:text-slate-700">
                 {attSummary.text}
               </span>
             ) : null}
@@ -684,7 +684,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }
 
   return (
-    <div className="space-y-2.5 pb-6 md:pb-4">
+    <div className="space-y-2.5 pb-6 md:pb-4 print:space-y-0 print:p-0 print:m-0 print:h-screen print:max-h-screen print:overflow-hidden print:flex print:flex-col print:justify-between">
       {/* Top Header & Navigation (G002 / Issue #13: mobile compact) */}
       <div className="bg-white rounded-lg px-3 py-1.5 border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-2xs print:hidden">
         <div>
@@ -811,41 +811,41 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         @media print {
           @page {
             size: A4 ${printLayout === 'fridge' || viewMode === 'compact_h' ? 'landscape' : 'portrait'};
-            margin: ${printLayout === 'fridge' || viewMode === 'compact_h' ? '6mm' : '8mm'};
+            margin: 4mm;
           }
         }
       `}</style>
 
       {/* Issue #22: Dedicated Clean Print Header */}
-      <div className="hidden print:block mb-3 border-b-2 border-brand-500 pb-2">
-        <div className="flex items-center justify-between">
+      <div className="hidden print:flex print:items-center print:justify-between print:mb-1 print:pb-0.5 border-b border-brand-500 shrink-0">
+        <div className="flex items-center space-x-1.5">
+          <span className="text-sm leading-none">🍽️</span>
           <div>
-            <h1 className="text-base font-bold text-slate-900 tracking-tight flex items-center space-x-1.5">
-              <span className="text-brand-600">🍽️</span>
-              <span>{t('calendar.print_header_title')}</span>
+            <h1 className="text-[11px] font-bold text-slate-900 leading-tight">
+              {t('calendar.print_header_title')}
+              {householdName ? ` • ${householdName}` : ''}
             </h1>
-            <p className="text-[11px] text-slate-600 font-medium">
-              {householdName ? `${householdName} • ` : ''}
+            <p className="text-[8.5px] text-slate-500 font-medium leading-none">
               {startDate} ➔ {endDate}
             </p>
           </div>
-          <div className="text-right">
-            <span className="inline-block text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-brand-50 text-brand-800 border border-brand-200">
-              {printLayout === 'fridge'
-                ? t('calendar.print_layout_fridge')
-                : viewMode === 'compact_h'
-                ? t('calendar.view_horizontal')
-                : viewMode === 'compact_v'
-                ? t('calendar.view_vertical')
-                : t('calendar.view_detailed')}
-            </span>
-          </div>
+        </div>
+        <div className="text-right">
+          <span className="inline-block text-[8px] font-bold uppercase px-1.5 py-0.2 rounded bg-brand-50 text-brand-800 border border-brand-200">
+            {printLayout === 'fridge'
+              ? t('calendar.print_layout_fridge')
+              : viewMode === 'compact_h'
+              ? t('calendar.view_horizontal')
+              : viewMode === 'compact_v'
+              ? t('calendar.view_vertical')
+              : t('calendar.view_detailed')}
+          </span>
         </div>
       </div>
 
       {/* Issue #22: Planner da Frigo (8-Box Landscape Layout for Print) */}
-      <div className={printLayout === 'fridge' ? 'hidden print:block' : 'hidden'}>
-        <div className="grid grid-cols-4 grid-rows-2 gap-2 h-full print:h-[180mm]">
+      <div className={printLayout === 'fridge' ? 'hidden print:block print:flex-1 print:min-h-0 print:overflow-hidden' : 'hidden'}>
+        <div className="grid grid-cols-4 grid-rows-2 gap-1.5 h-full max-h-full">
           {weekDates.map((dateStr) => {
             const dateObj = parseDate(dateStr)
             const dayName = new Intl.DateTimeFormat(currentLocale, { weekday: 'long' }).format(dateObj)
@@ -859,34 +859,34 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <div
                 key={dateStr}
-                className="border border-slate-300 rounded-md p-1.5 bg-white flex flex-col justify-between print-avoid-break text-xs"
+                className="border border-slate-300 rounded-md p-1 bg-white flex flex-col justify-between print-avoid-break text-[8.5px] overflow-hidden"
               >
                 <div>
-                  <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-1">
-                    <span className="font-bold text-slate-900 uppercase text-[11px] tracking-wide">
+                  <div className="flex items-center justify-between border-b border-slate-200 pb-0.5 mb-1">
+                    <span className="font-bold text-slate-900 uppercase text-[9.5px] tracking-wide">
                       {dayName}
                     </span>
-                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-brand-50 text-brand-700 border border-brand-200">
+                    <span className="text-[8.5px] font-bold px-1 py-0.2 rounded bg-brand-50 text-brand-700 border border-brand-200">
                       {dayNum} {monthShort}
                     </span>
                   </div>
 
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     {daySlots.map(({ mealType, slot }) => {
                       if (!slot) return null
                       const attSummary = getAttendanceSummary(slot.absent_member_ids)
                       const dishesList = slot.dishes || []
 
                       return (
-                        <div key={mealType.id} className="text-[10px] space-y-0.5">
-                          <div className="font-bold uppercase text-[9px] text-slate-500 tracking-wider">
+                        <div key={mealType.id} className="text-[8.5px] space-y-0.2">
+                          <div className="font-bold uppercase text-[8px] text-slate-500 tracking-wider">
                             {getLocalizedMealTypeName(mealType, t)}
                           </div>
 
                           {dishesList.length === 0 ? (
-                            <div className="text-[10px] text-slate-300 italic pl-1">-</div>
+                            <div className="text-[8px] text-slate-300 italic pl-0.5">-</div>
                           ) : (
-                            <div className="space-y-0.5 pl-1">
+                            <div className="space-y-0.2 pl-0.5">
                               {dishesList.map((d) => {
                                 const hasAssigned = d.assigned_member_ids && d.assigned_member_ids.length > 0
                                 const assignedList = hasAssigned
@@ -895,10 +895,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                                 const namesStr = assignedList.map((m) => m.name).join(', ')
 
                                 return (
-                                  <div key={d.id} className="text-[10px] text-slate-800 leading-tight">
+                                  <div key={d.id} className="text-[8.5px] text-slate-800 leading-tight">
                                     <span className="font-semibold">• {d.dish_title}</span>
                                     {hasAssigned && (
-                                      <span className="text-[9px] text-amber-800 italic ml-1">
+                                      <span className="text-[7.5px] text-amber-800 italic ml-0.5">
                                         ({namesStr})
                                       </span>
                                     )}
@@ -909,14 +909,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           )}
 
                           {!attSummary.isAllPresent && attSummary.text && (
-                            <div className="text-[9px] text-slate-600 pl-1 flex items-center space-x-1">
-                              <Users className="w-2.5 h-2.5 text-slate-400 flex-shrink-0" />
+                            <div className="text-[7.5px] text-slate-600 pl-0.5 flex items-center space-x-0.5">
+                              <Users className="w-2 h-2 text-slate-400 flex-shrink-0" />
                               <span className="font-medium">{attSummary.text}</span>
                             </div>
                           )}
 
                           {slot.notes && (
-                            <div className="text-[9px] text-amber-900 italic bg-amber-50/70 border border-amber-200/60 rounded px-1 py-0.2 mt-0.5">
+                            <div className="text-[7.5px] text-amber-900 italic bg-amber-50/70 border border-amber-200/60 rounded px-0.5 py-0.2 mt-0.5">
                               📝 {slot.notes}
                             </div>
                           )}
@@ -930,20 +930,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           })}
 
           {/* Box 8: Note della Settimana / Promemoria da frigo */}
-          <div className="border border-slate-300 rounded-md p-1.5 bg-white flex flex-col justify-between print-avoid-break text-xs">
+          <div className="border border-slate-300 rounded-md p-1 bg-white flex flex-col justify-between print-avoid-break text-[8.5px] overflow-hidden">
             <div>
-              <div className="flex items-center justify-between border-b border-slate-200 pb-1 mb-1">
-                <span className="font-bold text-slate-900 uppercase text-[11px] tracking-wide flex items-center space-x-1">
-                  <StickyNote className="w-3 h-3 text-amber-600" />
+              <div className="flex items-center justify-between border-b border-slate-200 pb-0.5 mb-1">
+                <span className="font-bold text-slate-900 uppercase text-[9.5px] tracking-wide flex items-center space-x-1">
+                  <StickyNote className="w-2.5 h-2.5 text-amber-600" />
                   <span>{t('calendar.print_week_notes_title')}</span>
                 </span>
               </div>
-              <div className="space-y-3 pt-2">
-                <div className="border-b border-dashed border-slate-200 h-5"></div>
-                <div className="border-b border-dashed border-slate-200 h-5"></div>
-                <div className="border-b border-dashed border-slate-200 h-5"></div>
-                <div className="border-b border-dashed border-slate-200 h-5"></div>
-                <div className="border-b border-dashed border-slate-200 h-5"></div>
+              <div className="space-y-2.5 pt-1">
+                <div className="border-b border-dashed border-slate-200 h-3.5"></div>
+                <div className="border-b border-dashed border-slate-200 h-3.5"></div>
+                <div className="border-b border-dashed border-slate-200 h-3.5"></div>
+                <div className="border-b border-dashed border-slate-200 h-3.5"></div>
+                <div className="border-b border-dashed border-slate-200 h-3.5"></div>
               </div>
             </div>
           </div>
@@ -952,12 +952,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {viewMode === 'compact_h' ? (
         /* P003: Compact Horizontal Matrix View (7 days horizontally as columns, meal types as rows) */
-        <div className={`bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs ${printLayout === 'fridge' ? 'print:hidden' : ''} print:shadow-none print:border-slate-300`}>
-          <div className="overflow-x-auto print:overflow-visible">
-            <table className="w-full text-left border-collapse table-fixed min-w-[760px] print:min-w-0">
+        <div className={`bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs ${printLayout === 'fridge' ? 'print:hidden' : ''} print:shadow-none print:border-slate-300 print:flex-1 print:min-h-0 print:flex print:flex-col print:overflow-hidden`}>
+          <div className="overflow-x-auto print:overflow-visible print:h-full print:flex print:flex-col">
+            <table className="w-full text-left border-collapse table-fixed min-w-[760px] print:min-w-0 print:h-full print:text-[8px]">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="w-20 sm:w-24 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
+                  <th className="w-20 sm:w-24 px-2 py-1.5 print:py-0.5 print:px-1 print:text-[8px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
                     {t('calendar.meal_column')}
                   </th>
                   {weekDates.map((dateStr) => {
@@ -969,14 +969,14 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     return (
                       <th
                         key={dateStr}
-                        className={`px-1.5 py-1 text-center border-r border-slate-200 last:border-r-0 ${
+                        className={`px-1.5 py-1 print:py-0.5 print:px-0.5 text-center border-r border-slate-200 last:border-r-0 ${
                           isToday ? 'bg-brand-50/80 text-brand-900 font-bold' : 'text-slate-700 font-semibold'
                         }`}
                       >
-                        <div className="capitalize text-xs leading-tight">{dayShort}</div>
-                        <div className="text-[10px] text-slate-500 font-normal">
+                        <div className="capitalize text-xs print:text-[8.5px] leading-tight">{dayShort}</div>
+                        <div className="text-[10px] print:text-[7.5px] text-slate-500 font-normal">
                           {dayNum} {monthShort}
-                          {isToday && <span className="ml-1 text-[9px] text-brand-600 font-bold">• Oggi</span>}
+                          {isToday && <span className="ml-1 text-[9px] print:text-[7px] text-brand-600 font-bold">• Oggi</span>}
                         </div>
                       </th>
                     )
@@ -987,7 +987,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 {activeMealTypes.map((mt) => (
                   <tr key={mt.id} className="hover:bg-slate-50/40 transition-colors">
                     {/* Meal Type Row Header (P009) */}
-                    <td className="px-2 py-2 font-bold text-[11px] text-slate-700 uppercase bg-slate-50/60 border-r border-slate-200 align-top">
+                    <td className="px-2 py-2 print:py-0.5 print:px-1 font-bold text-[11px] print:text-[8.5px] text-slate-700 uppercase bg-slate-50/60 border-r border-slate-200 align-top">
                       <div className="flex items-center justify-between group">
                         <span className="truncate flex-1 text-center">{getLocalizedMealTypeName(mt, t)}</span>
                         {!hasDishesInWeek(mt.id) && onDeleteMealTypeSlots && (
@@ -1011,7 +1011,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       return (
                         <td
                           key={dateStr}
-                          className={`px-1.5 py-1.5 border-r border-slate-200 last:border-r-0 align-top transition-colors ${
+                          className={`px-1.5 py-1.5 print:py-0.5 print:px-1 border-r border-slate-200 last:border-r-0 align-top transition-colors ${
                             isToday ? 'bg-brand-50/25' : ''
                           }`}
                         >
@@ -1037,20 +1037,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       ) : viewMode === 'compact_v' ? (
         /* P004 / Issue #13: Compact Vertical View (Desktop Matrix + Mobile Single-Column Sequence) */
-        <div className={`space-y-2 ${printLayout === 'fridge' ? 'print:hidden' : ''}`}>
+        <div className={`space-y-2 ${printLayout === 'fridge' ? 'print:hidden' : ''} print:space-y-0 print:flex-1 print:min-h-0 print:flex print:flex-col print:overflow-hidden`}>
           {/* Desktop Table View (>= md): Days as rows, meal types as columns */}
-          <div className="hidden md:block print:block bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs print:shadow-none print:border-slate-300">
-            <div className="overflow-x-auto print:overflow-visible">
-              <table className="w-full text-left border-collapse min-w-[760px] print:min-w-0">
+          <div className="hidden md:block print:block bg-white rounded-lg border border-slate-200 overflow-hidden shadow-2xs print:shadow-none print:border-slate-300 print:h-full print:flex print:flex-col">
+            <div className="overflow-x-auto print:overflow-visible print:h-full print:flex print:flex-col">
+              <table className="w-full text-left border-collapse min-w-[760px] print:min-w-0 print:h-full print:text-[8.5px] print:table-fixed">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="w-28 sm:w-36 px-2 py-1.5 text-[10px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
+                    <th className="w-28 sm:w-36 print:w-16 px-2 py-1.5 print:py-0.5 print:px-1 text-[10px] print:text-[8px] font-bold text-slate-500 uppercase tracking-wider border-r border-slate-200 text-center">
                       {t('calendar.day_col')}
                     </th>
                     {activeMealTypes.map((mt) => (
                       <th
                         key={mt.id}
-                        className="px-2 py-1 text-center font-bold text-slate-700 uppercase text-[11px] border-r border-slate-200 last:border-r-0"
+                        className="px-2 py-1 print:py-0.5 print:px-1 text-center font-bold text-slate-700 uppercase text-[11px] print:text-[8.5px] border-r border-slate-200 last:border-r-0"
                       >
                         <div className="flex items-center justify-center space-x-1">
                           <span className="truncate">{getLocalizedMealTypeName(mt, t)}</span>
@@ -1080,21 +1080,21 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                     return (
                       <tr
                         key={dateStr}
-                        className={`hover:bg-slate-50/40 transition-colors ${isToday ? 'bg-brand-50/25' : ''}`}
+                        className={`hover:bg-slate-50/40 transition-colors print:h-[calc(100%/8)] ${isToday ? 'bg-brand-50/25' : ''}`}
                       >
                         {/* Day Header Cell (Row Header) */}
                         <td
-                          className={`px-2 py-2 border-r border-slate-200 align-top ${
+                          className={`px-2 py-2 print:py-0.5 print:px-1 border-r border-slate-200 align-top ${
                             isToday ? 'bg-brand-50/70 text-brand-900' : 'bg-slate-50/60 text-slate-800'
                           }`}
                         >
                           <div className="flex flex-col items-center justify-center text-center">
-                            <span className="capitalize font-bold text-xs">{dayShort}</span>
-                            <span className="text-[11px] text-slate-600 font-medium">
+                            <span className="capitalize font-bold text-xs print:text-[8.5px]">{dayShort}</span>
+                            <span className="text-[11px] print:text-[7.5px] text-slate-600 font-medium">
                               {dayNum} {monthShort}
                             </span>
                             {isToday && (
-                              <span className="mt-0.5 bg-brand-600 text-white text-[8px] font-bold px-1.5 py-0.2 rounded uppercase">
+                              <span className="mt-0.5 bg-brand-600 text-white text-[8px] print:text-[6.5px] font-bold px-1.5 py-0.2 rounded uppercase">
                                 {t('calendar.today_badge')}
                               </span>
                             )}
@@ -1115,7 +1115,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           return (
                             <td
                               key={mt.id}
-                              className="px-2 py-1.5 border-r border-slate-200 last:border-r-0 align-top min-w-[140px]"
+                              className="px-2 py-1.5 print:py-0.5 print:px-1 border-r border-slate-200 last:border-r-0 align-top min-w-[140px] print:min-w-0"
                             >
                               {slot ? (
                                 renderCompactSlotBody(slot)
@@ -1236,7 +1236,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         </div>
       ) : (
         /* Detailed Days List */
-        <div className={`space-y-2 ${printLayout === 'fridge' ? 'print:hidden' : ''}`}>
+        <div className={`space-y-2 ${printLayout === 'fridge' ? 'print:hidden' : ''} print:space-y-0 print:flex-1 print:min-h-0 print:grid print:grid-cols-2 print:gap-1.5 print:overflow-hidden`}>
         {sortedDates.map((dateStr) => {
           const daySlots = slotsByDate[dateStr]
           const dateObj = new Date(dateStr)
@@ -1252,20 +1252,20 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               key={dateStr}
               className={`bg-white rounded-lg border ${
                 isToday ? 'border-brand-400 shadow-2xs' : 'border-slate-200'
-              } overflow-hidden print-avoid-break print:shadow-none print:border-slate-300`}
+              } overflow-hidden print-avoid-break print:shadow-none print:border-slate-300 print:p-1 print:h-full print:flex print:flex-col print:justify-between`}
             >
               {/* Day Header (compact) */}
               <div
-                className={`px-3 py-1 flex items-center justify-between border-b ${
+                className={`px-3 py-1 print:px-1.5 print:py-0.5 flex items-center justify-between border-b ${
                   isToday
                     ? 'bg-brand-50 border-brand-200 text-brand-900'
                     : 'bg-slate-50/80 border-slate-200/80 text-slate-800'
                 }`}
               >
                 <div className="flex items-center space-x-2">
-                  <span className="font-bold capitalize text-xs sm:text-sm">{dayTitle}</span>
+                  <span className="font-bold capitalize text-xs sm:text-sm print:text-[9px]">{dayTitle}</span>
                   {isToday && (
-                    <span className="bg-brand-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-full uppercase">
+                    <span className="bg-brand-600 text-white text-[9px] print:text-[7px] font-bold px-1.5 py-0.2 rounded-full uppercase">
                       {t('calendar.today_badge')}
                     </span>
                   )}
@@ -1281,11 +1281,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
 
               {/* Day's Meal Slots */}
-              <div className="p-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+              <div className="p-2 print:p-0.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 gap-2 print:gap-1">
                 {daySlots.map((slot) => (
                   <div
                     key={slot.id}
-                    className="rounded-md border border-slate-200 bg-white p-2 flex flex-col justify-between space-y-1.5 shadow-2xs print:shadow-none print:border-slate-200"
+                    className="rounded-md border border-slate-200 bg-white p-2 print:p-1 flex flex-col justify-between space-y-1.5 print:space-y-0.5 shadow-2xs print:shadow-none print:border-slate-200"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1.5">

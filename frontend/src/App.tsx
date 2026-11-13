@@ -415,7 +415,7 @@ export function App() {
   const todaySlots = calendarSlots.filter((s) => s.date === todayStr)
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans print:min-h-0 print:h-screen print:max-h-screen print:overflow-hidden print:bg-white">
       <Navbar
         household={household}
         activeTab={activeTab}
@@ -423,7 +423,7 @@ export function App() {
         onLogout={handleLogout}
       />
 
-      <main className="flex-1 max-w-full xl:max-w-[1550px] w-full min-w-0 mx-auto px-2 sm:px-3 pt-1.5 pb-6 sm:pb-4">
+      <main className="flex-1 max-w-full xl:max-w-[1550px] w-full min-w-0 mx-auto px-2 sm:px-3 pt-1.5 pb-6 sm:pb-4 print:p-0 print:m-0 print:max-w-none print:w-full print:h-full print:overflow-hidden">
         {activeTab === 'today' && (
           <TodayView
             slots={todaySlots}
