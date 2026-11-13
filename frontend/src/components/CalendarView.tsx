@@ -519,7 +519,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const attSummary = getAttendanceSummary(slot.absent_member_ids)
 
     return (
-      <div className="space-y-1 print:space-y-0.5">
+      <div className="space-y-1 print:space-y-0.5 flex flex-col justify-start">
         {/* P010: Meal Slot Note */}
         {editingSlotNoteId === slot.id ? (
           <div className="flex items-center space-x-1 p-0.5 bg-amber-50 rounded border border-amber-300 mb-1 print:hidden">
@@ -684,7 +684,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   }
 
   return (
-    <div className="space-y-2.5 pb-6 md:pb-4 print:space-y-0 print:p-0 print:m-0 print:h-screen print:max-h-screen print:overflow-hidden print:flex print:flex-col print:justify-between">
+    <div className="space-y-2.5 pb-6 md:pb-4 print:space-y-0 print:p-0 print:m-0 print:h-screen print:max-h-screen print:overflow-hidden print:flex print:flex-col print:justify-start">
       {/* Top Header & Navigation (G002 / Issue #13: mobile compact) */}
       <div className="bg-white rounded-lg px-3 py-1.5 border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-2 shadow-2xs print:hidden">
         <div>
@@ -859,7 +859,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return (
               <div
                 key={dateStr}
-                className="border border-slate-300 rounded-md p-1 bg-white flex flex-col justify-between print-avoid-break text-[8.5px] overflow-hidden"
+                className="border border-slate-300 rounded-md p-1 bg-white flex flex-col justify-start print-avoid-break text-[8.5px] overflow-hidden"
               >
                 <div>
                   <div className="flex items-center justify-between border-b border-slate-200 pb-0.5 mb-1">
@@ -930,7 +930,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           })}
 
           {/* Box 8: Note della Settimana / Promemoria da frigo */}
-          <div className="border border-slate-300 rounded-md p-1 bg-white flex flex-col justify-between print-avoid-break text-[8.5px] overflow-hidden">
+          <div className="border border-slate-300 rounded-md p-1 bg-white flex flex-col justify-start print-avoid-break text-[8.5px] overflow-hidden">
             <div>
               <div className="flex items-center justify-between border-b border-slate-200 pb-0.5 mb-1">
                 <span className="font-bold text-slate-900 uppercase text-[9.5px] tracking-wide flex items-center space-x-1">
@@ -1084,11 +1084,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                       >
                         {/* Day Header Cell (Row Header) */}
                         <td
-                          className={`px-2 py-2 print:py-0.5 print:px-1 border-r border-slate-200 align-top ${
+                          valign="top"
+                          className={`px-2 py-2 print:py-0.5 print:px-1 border-r border-slate-200 align-top print:align-top ${
                             isToday ? 'bg-brand-50/70 text-brand-900' : 'bg-slate-50/60 text-slate-800'
                           }`}
                         >
-                          <div className="flex flex-col items-center justify-center text-center">
+                          <div className="flex flex-col items-center justify-start text-center">
                             <span className="capitalize font-bold text-xs print:text-[8.5px]">{dayShort}</span>
                             <span className="text-[11px] print:text-[7.5px] text-slate-600 font-medium">
                               {dayNum} {monthShort}
@@ -1115,7 +1116,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           return (
                             <td
                               key={mt.id}
-                              className="px-2 py-1.5 print:py-0.5 print:px-1 border-r border-slate-200 last:border-r-0 align-top min-w-[140px] print:min-w-0"
+                              valign="top"
+                              className="px-2 py-1.5 print:py-0.5 print:px-1 border-r border-slate-200 last:border-r-0 align-top print:align-top min-w-[140px] print:min-w-0"
                             >
                               {slot ? (
                                 renderCompactSlotBody(slot)
@@ -1252,7 +1254,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               key={dateStr}
               className={`bg-white rounded-lg border ${
                 isToday ? 'border-brand-400 shadow-2xs' : 'border-slate-200'
-              } overflow-hidden print-avoid-break print:shadow-none print:border-slate-300 print:p-1 print:h-full print:flex print:flex-col print:justify-between`}
+              } overflow-hidden print-avoid-break print:shadow-none print:border-slate-300 print:p-1 print:h-full print:flex print:flex-col justify-start print:justify-start`}
             >
               {/* Day Header (compact) */}
               <div
@@ -1281,11 +1283,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
               </div>
 
               {/* Day's Meal Slots */}
-              <div className="p-2 print:p-0.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 gap-2 print:gap-1">
+              <div className="p-2 print:p-0.5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 print:grid-cols-2 gap-2 print:gap-1 content-start print:content-start">
                 {daySlots.map((slot) => (
                   <div
                     key={slot.id}
-                    className="rounded-md border border-slate-200 bg-white p-2 print:p-1 flex flex-col justify-between space-y-1.5 print:space-y-0.5 shadow-2xs print:shadow-none print:border-slate-200"
+                    className="rounded-md border border-slate-200 bg-white p-2 print:p-1 flex flex-col justify-between print:justify-start space-y-1.5 print:space-y-0.5 shadow-2xs print:shadow-none print:border-slate-200"
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-1.5">

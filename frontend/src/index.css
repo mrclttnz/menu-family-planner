@@ -97,6 +97,11 @@ html {
     break-inside: avoid !important;
   }
 
+  table th,
+  table td {
+    vertical-align: top !important;
+  }
+
   tr {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
