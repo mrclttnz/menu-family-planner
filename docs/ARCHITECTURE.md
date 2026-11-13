@@ -341,3 +341,21 @@ To ensure an optimal kitchen dashboard experience on smartphones (360px–430px 
   - Calendar header switches to icon-only buttons on small viewports with tooltip titles, reducing header width footprint.
   - Dish cards expand tap areas (min 36–40px) for edit, delete, expand/collapse toggles, and diner preference rating selectors (`ThumbsUp`, `Meh`, `ThumbsDown`).
   - Catalog actions toolbar renders primary action `+ Nuovo Piatto` with compact icon-first secondary actions (Export count badge, Import icon, Expand/Collapse icon).
+
+## 11. Print Engine & Fridge Planner Architecture (`Issue #22`)
+
+The application incorporates a zero-dependency, native browser print engine designed for paper and PDF export:
+- **Print Trigger & Modal Selection (`CalendarView.tsx`)**:
+  - Accessible via a dedicated `Printer` button on the planning toolbar.
+  - Presents a modal dialog allowing users to choose between:
+    1. **Current View (`Vista Corrente`)**: Faithfully prints the active view (`compact_h`, `compact_v`, or `detailed`).
+    2. **Fridge Planner (`Planner da Frigo`)**: Generates an 8-box grid (7 week days + dedicated notes/reminders box) tailored for magnetic fridge pin-boards.
+- **Dynamic `@page` Orientation**:
+  - `compact_h` and `Planner da Frigo` automatically configure `@page { size: A4 landscape; margin: 6mm; }`.
+  - `compact_v` and `detailed` automatically configure `@page { size: A4 portrait; margin: 8mm; }`.
+- **Theme Palette & Visual Fidelity**:
+  - Leverages `-webkit-print-color-adjust: exact` and `print-color-adjust: exact` in `frontend/src/index.css`.
+  - Accurately renders dynamic CSS variables (`--color-brand-*`), course badges, member attendance pills, and category accents on printed paper.
+- **Selective Data Presentation (Clean Output)**:
+  - Automatically suppresses all interactive controls (`nav`, `#navbar`, toolbar navigation arrows, `+ Pasto`, `+ Altro`, `+ Nota`, `+ Piatto`, delete trashcans, and rating toggles) via CSS `print:hidden`.
+  - Emits a dedicated clean print header containing the household space name, formatted date interval, and layout badge.

@@ -32,3 +32,55 @@ html {
   overflow-x: hidden;
   max-width: 100vw;
 }
+
+/* Print Stylesheet (Issue #22: Stampa Menù Settimanale & Planner da Frigo) */
+@media print {
+  /* Force exact color reproduction for theme palette, badges and tags */
+  *,
+  *::before,
+  *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Reset viewport and eliminate page overflow */
+  html,
+  body,
+  #root {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 0 !important;
+  }
+
+  /* Hide app header, navigation bar, interactive modals and designated no-print elements */
+  nav,
+  header,
+  aside,
+  .no-print,
+  [data-no-print="true"] {
+    display: none !important;
+  }
+
+  /* Prevent awkward page break cuts across table rows, cards or slots */
+  .print-avoid-break {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Ensure tables use 100% printable width without horizontal scrollbars */
+  table {
+    width: 100% !important;
+    page-break-inside: auto;
+  }
+
+  tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+}

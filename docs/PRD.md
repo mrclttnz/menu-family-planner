@@ -204,6 +204,14 @@ Planning daily meals for a family is a recurring source of friction and mental e
   5. **Import & Export Roundtrip**: *Given* dish export or import in XLSX, CSV, or JSON, *When* processed, *Then* tags are exported as a clean comma-separated list and correctly imported and linked.
   6. **Inline Quick Create Support**: *Given* adding a new dish directly from the meal planner modal, *When* creating the dish on the fly, *Then* the user can assign tags using `DishTagSelector` (with any active tag filters prefilled), saving and scheduling the dish in a single seamless flow.
 
+### `US-21`: Weekly Menu Print & Fridge Planner (`S21` / Issue #22)
+- **Story**: As a busy parent or household organizer, I want to print or save as PDF the weekly menu in the active layout or as an 8-box Fridge Planner containing all dishes, attendance details, and notes without interactive UI buttons, so that I can hang it on the kitchen refrigerator or share it offline.
+- **Acceptance Criteria**:
+  1. **Print Modal & Layout Options**: *Given* the meal planner toolbar, *When* clicking "Stampa", *Then* a modal presents the option to print either the "Vista Corrente" (Horizontal, Vertical, or Detailed) or "Planner da Frigo".
+  2. **Fridge Planner Layout**: *Given* selecting "Planner da Frigo", *When* printed, *Then* an 8-box landscape grid (7 days + 1 note/promemoria box) fits onto an A4 page with clean dish titles, attendance exceptions, and meal notes.
+  3. **Clean Output**: *Given* printing, *When* previewed or printed, *Then* all interactive controls (`+ Altro`, `+ Nota`, `+ Pasto`, delete buttons, modals, navigation) are hidden, leaving only genuine planned data.
+  4. **Palette Fidelity & Single-Page A4 Containment**: *Given* any selected household color theme, *When* printed, *Then* colors, borders, and tags match the theme palette with exact print color adjustment, fitting cleanly on single-sheet A4.
+
 ---
 
 ## 5. Non-Functional & Security Requirements

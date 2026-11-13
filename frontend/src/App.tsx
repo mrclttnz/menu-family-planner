@@ -444,6 +444,7 @@ export function App() {
 
         {activeTab === 'calendar' && (
           <CalendarView
+            householdName={household?.name}
             slots={calendarSlots}
             members={members}
             dishes={dishes}
