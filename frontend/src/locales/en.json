@@ -172,7 +172,11 @@
     "print_orientation_landscape": "A4 Landscape",
     "print_orientation_portrait": "A4 Portrait",
     "print_format_badge": "A4 Format",
-    "print_palette_badge": "Active palette"
+    "print_palette_badge": "Active palette",
+    "print_font_size_label": "Text Size",
+    "print_font_size_normal": "Normal",
+    "print_font_size_large": "Large (Recommended)",
+    "print_font_size_xlarge": "Extra Large"
   },
   "dishes": {
     "catalog_title": "Recipe Catalog",

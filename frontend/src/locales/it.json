@@ -172,7 +172,11 @@
     "print_orientation_landscape": "A4 Orizzontale (Landscape)",
     "print_orientation_portrait": "A4 Verticale (Portrait)",
     "print_format_badge": "Formato A4",
-    "print_palette_badge": "Palette attiva"
+    "print_palette_badge": "Palette attiva",
+    "print_font_size_label": "Dimensione del testo",
+    "print_font_size_normal": "Normale",
+    "print_font_size_large": "Grande (Consigliata)",
+    "print_font_size_xlarge": "Molto Grande"
   },
   "dishes": {
     "catalog_title": "Catalogo Ricette",
