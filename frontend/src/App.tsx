@@ -415,7 +415,7 @@ export function App() {
   const todaySlots = calendarSlots.filter((s) => s.date === todayStr)
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans print:min-h-0 print:h-screen print:max-h-screen print:overflow-hidden print:bg-white">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans print:min-h-0 print:h-full print:max-h-full print:overflow-hidden print:bg-white">
       <Navbar
         household={household}
         activeTab={activeTab}
