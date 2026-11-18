@@ -427,9 +427,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           {/* Dish Description from Catalog */}
                           {fullDish?.description && (
                             <div className="p-1.5 rounded bg-slate-50 border border-slate-100 text-slate-700 text-[11px] leading-relaxed">
-                              <span className="font-semibold text-slate-800 block text-[9px] uppercase tracking-wider mb-0.5">
-                                {t('today.dish_description_label')}
-                              </span>
                               <p className="whitespace-pre-wrap">{fullDish.description}</p>
                             </div>
                           )}
@@ -437,9 +434,6 @@ export const TodayView: React.FC<TodayViewProps> = ({
                           {/* Permanent Dish Recipe Notes from Catalog */}
                           {fullDish?.notes && (
                             <div className="p-1.5 rounded bg-amber-50/50 border border-amber-200/60 text-amber-900 text-[11px] leading-relaxed">
-                              <span className="font-semibold text-amber-800 block text-[9px] uppercase tracking-wider mb-0.5">
-                                {t('today.dish_notes_label')}
-                              </span>
                               <p className="italic whitespace-pre-wrap">{fullDish.notes}</p>
                             </div>
                           )}
