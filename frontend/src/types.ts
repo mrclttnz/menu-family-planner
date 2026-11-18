@@ -96,6 +96,18 @@ export interface Dish {
   updated_at: string;
 }
 
+export interface DishPayload {
+  title: string;
+  description?: string;
+  notes?: string;
+  status_id: number;
+  course_ids: number[];
+  tags?: Array<{ name: string; color?: string }>;
+  source_type_id?: number;
+  source_reference?: string;
+  source_url?: string;
+}
+
 export interface SlotDishNote {
   id: number;
   meal_slot_dish_id: number;

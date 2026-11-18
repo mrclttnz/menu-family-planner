@@ -34,7 +34,10 @@ import {
   Search,
   Tag as TagIcon,
   Printer,
+  Pencil,
 } from 'lucide-react'
+import { DishModal } from './DishModal'
+import { SourceType, Tag, DishPayload } from '../types'
 
 export type CalendarViewMode = 'compact_h' | 'compact_v' | 'detailed'
 
@@ -46,6 +49,8 @@ interface CalendarViewProps {
   mealTypes: MealType[]
   courses?: CourseType[]
   statuses?: DishStatus[]
+  sources?: SourceType[]
+  availableTags?: Tag[]
   startDate: string
   endDate: string
   weekStartDay: number
@@ -67,6 +72,8 @@ interface CalendarViewProps {
     course_ids: number[]
     tags?: Array<{ name: string; color?: string }>
   }) => Promise<Dish>
+  onUpdateDish?: (dishId: number, payload: DishPayload) => Promise<void>
+  onSetPreference?: (dishId: number, memberId: number, rating: 'favorite' | 'neutral' | 'dislike') => Promise<void>
   onRemoveDish: (slotId: number, dishId: number) => void
   onAddSlotDishNote: (slotId: number, dishId: number, note: string) => void
   onDeleteSlotDishNote: (slotId: number, dishId: number, noteId: number) => void
@@ -82,6 +89,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   mealTypes,
   courses = [],
   statuses = [],
+  sources = [],
+  availableTags = [],
   startDate,
   endDate,
   weekStartDay,
@@ -101,6 +110,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   onDeleteSlotDishNote,
   onSetSlotDishRating,
   onDeleteSlotDishRating,
+  onUpdateDish,
+  onSetPreference,
 }) => {
   const { t, i18n } = useTranslation()
   const currentLocale = i18n.language && i18n.language.startsWith('en') ? 'en-US' : 'it-IT'
@@ -226,6 +237,16 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       console.error('Failed to update dish assignment:', err)
     } finally {
       setIsSavingSlotDish(false)
+    }
+  }
+
+  // View & Edit Dish Info Modal
+  const [editingDishForDetail, setEditingDishForDetail] = useState<Dish | null>(null)
+
+  const handleOpenDishDetail = (dishId: number) => {
+    const found = dishes.find((d) => d.id === dishId)
+    if (found) {
+      setEditingDishForDetail(found)
     }
   }
 
@@ -609,37 +630,59 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 key={d.id}
                 className="group relative flex items-center justify-between text-xs py-0.5 px-1 print:py-0.5 print:px-1 rounded hover:bg-slate-100/80 transition-colors"
               >
-                <div className="truncate pr-1 text-[11px] leading-snug flex-1 min-w-0">
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditSlotDishModal(slot, d)}
-                    title={t('calendar.edit_dish_assignment_tooltip')}
-                    className="text-left font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate max-w-full inline-block print:pointer-events-none print:no-underline print:text-slate-900 print-dish-title"
+                <div className="truncate pr-1 text-[11px] leading-snug flex-1 min-w-0 flex items-center">
+                  <span
+                    onClick={() => handleOpenDishDetail(d.dish_id)}
+                    title={t('calendar.view_edit_dish_tooltip')}
+                    className="font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate inline-block print:pointer-events-none print:no-underline print:text-slate-900 print-dish-title"
                   >
                     • {d.dish_title}
-                  </button>
+                  </span>
                   {hasAssignedMembers && (
-                    <button
-                      type="button"
+                    <span
                       onClick={() => handleOpenEditSlotDishModal(slot, d)}
                       title={t('calendar.edit_dish_assignment_tooltip')}
                       className="ml-1 text-[10px] text-amber-700 hover:text-amber-800 font-semibold whitespace-nowrap cursor-pointer hover:underline print:pointer-events-none print:no-underline print:italic print-meta-text"
                     >
                       ({namesStr})
-                    </button>
+                    </span>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    onRemoveDish(slot.id, d.dish_id)
-                  }}
-                  title={t('calendar.remove_dish_tooltip')}
-                  className="opacity-70 sm:opacity-0 sm:group-hover:opacity-100 text-slate-400 hover:text-rose-500 text-[10px] p-0.5 flex-shrink-0 transition-opacity cursor-pointer print:hidden"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center space-x-0.5 flex-shrink-0 print:hidden">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleOpenEditSlotDishModal(slot, d)
+                    }}
+                    title={t('calendar.edit_dish_assignment_tooltip')}
+                    className="p-0.5 text-slate-400 hover:text-brand-600 hover:bg-slate-200/60 rounded transition-colors cursor-pointer"
+                  >
+                    <Users className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleOpenDishDetail(d.dish_id)
+                    }}
+                    title={t('calendar.view_edit_dish_tooltip')}
+                    className="p-0.5 text-slate-400 hover:text-brand-600 hover:bg-slate-200/60 rounded transition-colors cursor-pointer"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      onRemoveDish(slot.id, d.dish_id)
+                    }}
+                    title={t('calendar.remove_dish_tooltip')}
+                    className="p-0.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               </div>
             )
           })
@@ -1461,37 +1504,59 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             >
                               <div className="flex items-start justify-between font-medium text-slate-800">
                                 <div className="min-w-0 flex-1">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleOpenEditSlotDishModal(slot, d)}
-                                    title={t('calendar.edit_dish_assignment_tooltip')}
-                                    className="text-left font-semibold text-xs text-slate-800 hover:text-brand-600 hover:underline cursor-pointer block truncate print:pointer-events-none print:no-underline print-dish-title"
+                                  <span
+                                    onClick={() => handleOpenDishDetail(d.dish_id)}
+                                    title={t('calendar.view_edit_dish_tooltip')}
+                                    className="font-semibold text-xs text-slate-800 hover:text-brand-600 hover:underline cursor-pointer block truncate print:pointer-events-none print:no-underline print-dish-title"
                                   >
                                     {d.dish_title}
-                                  </button>
+                                  </span>
                                   {/* P002: Badge for alternative dish */}
                                   {hasAssignedMembers && (
-                                    <button
-                                      type="button"
+                                    <span
                                       onClick={() => handleOpenEditSlotDishModal(slot, d)}
                                       title={t('calendar.edit_dish_assignment_tooltip')}
                                       className="text-[9px] text-amber-800 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1 py-0.2 rounded mt-0.5 inline-block cursor-pointer transition-colors print:pointer-events-none print:no-underline print-meta-text"
                                     >
                                       {t('calendar.for_diners', { names: assignedMembersList.map((m) => m.name).join(', ') })}
-                                    </button>
+                                    </span>
                                   )}
                                 </div>
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    onRemoveDish(slot.id, d.dish_id)
-                                  }}
-                                  className="text-slate-400 hover:text-rose-500 text-xs px-1 flex-shrink-0 cursor-pointer print:hidden"
-                                  title={t('common.delete')}
-                                >
-                                  ✕
-                                </button>
+                                <div className="flex items-center space-x-1 flex-shrink-0 print:hidden ml-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleOpenEditSlotDishModal(slot, d)
+                                    }}
+                                    title={t('calendar.edit_dish_assignment_tooltip')}
+                                    className="p-1 text-slate-400 hover:text-brand-600 hover:bg-slate-200/60 rounded transition-colors cursor-pointer"
+                                  >
+                                    <Users className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleOpenDishDetail(d.dish_id)
+                                    }}
+                                    title={t('calendar.view_edit_dish_tooltip')}
+                                    className="p-1 text-slate-400 hover:text-brand-600 hover:bg-slate-200/60 rounded transition-colors cursor-pointer"
+                                  >
+                                    <Pencil className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      onRemoveDish(slot.id, d.dish_id)
+                                    }}
+                                    className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                                    title={t('common.delete')}
+                                  >
+                                    <X className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                               </div>
 
                               {/* Smart Compatibility Alert */}
@@ -2582,6 +2647,27 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             </div>
           </div>
         </div>
+      )}
+
+      {/* Dish View & Edit Modal */}
+      {editingDishForDetail && (
+        <DishModal
+          isOpen={true}
+          onClose={() => setEditingDishForDetail(null)}
+          dish={editingDishForDetail}
+          courses={courses}
+          statuses={statuses}
+          sources={sources}
+          availableTags={availableTags}
+          dishes={dishes}
+          onSave={async (payload, dishId) => {
+            if (dishId && onUpdateDish) {
+              await onUpdateDish(dishId, payload)
+            }
+            setEditingDishForDetail(null)
+          }}
+          onSetPreference={onSetPreference}
+        />
       )}
     </div>
   )

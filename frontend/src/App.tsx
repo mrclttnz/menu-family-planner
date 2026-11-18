@@ -470,6 +470,10 @@ export function App() {
             onDeleteSlotDishNote={handleDeleteSlotDishNote}
             onSetSlotDishRating={handleSetSlotDishRating}
             onDeleteSlotDishRating={handleDeleteSlotDishRating}
+            onUpdateDish={handleUpdateDish}
+            onSetPreference={handleSetPreference}
+            sources={sources}
+            availableTags={tags}
           />
         )}
 
