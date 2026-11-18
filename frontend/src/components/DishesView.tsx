@@ -672,18 +672,19 @@ export const DishesView: React.FC<DishesViewProps> = ({
                   <div>
                     <h3 className="font-bold text-slate-900 text-sm leading-snug">{dish.title}</h3>
                     {isExpanded && (
-                      <>
+                      <div className="mt-1 space-y-1">
                         {dish.description && (
-                          <p className="text-xs text-slate-500 mt-0.5 line-clamp-2">
+                          <p className="text-xs text-slate-600 line-clamp-3">
                             {dish.description}
                           </p>
                         )}
-                        {dish.notes && !dish.description && (
-                          <p className="text-[11px] text-slate-400 italic mt-0.5 line-clamp-2">
-                            {dish.notes}
+                        {dish.notes && (
+                          <p className="text-[11px] text-slate-500 italic line-clamp-3 flex items-start space-x-1">
+                            <span className="font-semibold text-slate-600 not-italic shrink-0">{t('dishes.dish_notes_badge')}</span>
+                            <span>{dish.notes}</span>
                           </p>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
 
@@ -996,15 +997,30 @@ export const DishesView: React.FC<DishesViewProps> = ({
                 onChange={setFormTags}
               />
 
+              {/* Description / Short recipe */}
               <div>
                 <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                  Note o Suggerimenti di Preparazione
+                  {t('dishes.dish_description')}
+                </label>
+                <textarea
+                  rows={2}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder={t('dishes.dish_description_placeholder')}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm"
+                />
+              </div>
+
+              {/* Cooking Notes & Tips */}
+              <div>
+                <label className="block text-[11px] font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  {t('dishes.dish_notes')}
                 </label>
                 <textarea
                   rows={2}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="es. Tostare bene il riso, variante con brodo vegetale..."
+                  placeholder={t('dishes.dish_notes_placeholder')}
                   className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-brand-500 text-xs sm:text-sm"
                 />
               </div>

@@ -149,6 +149,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [isCreatingDish, setIsCreatingDish] = useState(false)
   const [newDishTitle, setNewDishTitle] = useState('')
   const [newDishCourseIds, setNewDishCourseIds] = useState<number[]>([])
+  const [newDishDescription, setNewDishDescription] = useState('')
   const [newDishNotes, setNewDishNotes] = useState('')
   const [newDishTags, setNewDishTags] = useState<SelectedTagItem[]>([])
   const [isSavingDish, setIsSavingDish] = useState(false)
@@ -321,6 +322,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     setIsCreatingDish(false)
     setNewDishTitle('')
     setNewDishCourseIds([])
+    setNewDishDescription('')
     setNewDishNotes('')
     setCreateDishError(null)
   }
@@ -352,6 +354,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
           ? [courses[0].id]
           : []
     )
+    setNewDishDescription('')
     setNewDishNotes('')
     // Prefill tags if any tag filters were active in calendar dish picker
     const prefilledTags: SelectedTagItem[] = selectedCalendarTagFilters.map((tagName) => {
@@ -409,6 +412,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         const created = await onCreateDish({
           title: trimmedTitle,
           course_ids: newDishCourseIds,
+          description: newDishDescription.trim() || undefined,
           notes: newDishNotes.trim() || undefined,
           status_id: statusId,
           tags: newDishTags.map((t) => ({ name: t.name, color: t.color })),
@@ -1894,9 +1898,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                   </label>
                   <textarea
                     rows={2}
+                    value={newDishDescription}
+                    onChange={(e) => setNewDishDescription(e.target.value)}
+                    placeholder={t('dishes.dish_description_placeholder')}
+                    className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden resize-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 mb-1">
+                    {t('dishes.dish_notes')}
+                  </label>
+                  <textarea
+                    rows={2}
                     value={newDishNotes}
                     onChange={(e) => setNewDishNotes(e.target.value)}
-                    placeholder={t('dishes.dish_description_placeholder')}
+                    placeholder={t('dishes.dish_notes_placeholder')}
                     className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:ring-1 focus:ring-brand-500 focus:outline-hidden resize-none"
                   />
                 </div>
@@ -2078,6 +2095,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                           <h4 className="font-semibold text-slate-900 text-xs">{dish.title}</h4>
                           {dish.description && (
                             <p className="text-[10px] text-slate-500 truncate max-w-xs">{dish.description}</p>
+                          )}
+                          {!dish.description && dish.notes && (
+                            <p className="text-[10px] text-slate-400 italic truncate max-w-xs">{dish.notes}</p>
                           )}
                           <div className="flex flex-wrap gap-1 mt-0.5">
                             {dish.courses.map((c) => (
