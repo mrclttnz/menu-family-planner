@@ -78,7 +78,17 @@
     "add_note": "+ Aggiungi nota",
     "delete_note_title": "Elimina nota",
     "note_placeholder": "Scrivi nota o osservazione...",
-    "save": "Salva"
+    "save": "Salva",
+    "slot_notes_title": "Note pasto",
+    "slot_notes_placeholder": "Aggiungi nota per questo pasto (es. cena fuori, ospiti)...",
+    "add_slot_note": "+ Nota pasto",
+    "edit_slot_note": "Modifica nota pasto",
+    "delete_slot_note": "Elimina nota pasto",
+    "dish_description_label": "Descrizione piatto",
+    "dish_notes_label": "Note ricetta & preparazione",
+    "recipe_source": "Fonte ricetta",
+    "recipe_link": "Link ricetta",
+    "family_preferences": "Gusti famiglia"
   },
   "calendar": {
     "title": "Pianificatore Pasti",

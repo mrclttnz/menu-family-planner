@@ -55,6 +55,7 @@
 | `S20` | Remove Fake Default Credentials from Login Form ([#21](https://github.com/mrclttnz/menu-family-planner/issues/21)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S21` | Weekly Menu Print & Fridge Planner ([#22](https://github.com/mrclttnz/menu-family-planner/issues/22)) — Tech Debt tracked in [#23](https://github.com/mrclttnz/menu-family-planner/issues/23) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 | `S22` | Clarify Dish Description vs Notes in Forms & Catalog Views ([#20](https://github.com/mrclttnz/menu-family-planner/issues/20)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+| `S23` | Today View Meal Slot Notes & Full Dish Details Visibility ([#19](https://github.com/mrclttnz/menu-family-planner/issues/19)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
 
 ## 5. Quality & Security Gate Log
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.

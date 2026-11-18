@@ -342,6 +342,20 @@ To ensure an optimal kitchen dashboard experience on smartphones (360px–430px 
   - Dish cards expand tap areas (min 36–40px) for edit, delete, expand/collapse toggles, and diner preference rating selectors (`ThumbsUp`, `Meh`, `ThumbsDown`).
   - Catalog actions toolbar renders primary action `+ Nuovo Piatto` with compact icon-first secondary actions (Export count badge, Import icon, Expand/Collapse icon).
 
+### 7.4 Today View Meal Slot Notes & Full Dish Details Visibility (Slice S23 / Issue #19)
+
+To make "Oggi a Tavola" (`TodayView.tsx`) a complete, high-information kitchen dashboard:
+- **Meal Slot Notes (`slot.notes`)**:
+  - Displays any slot-level notes (e.g. "Cena fuori", "Ospiti a cena", "Avanzi del pranzo") in an amber-tinted callout banner right below attendance.
+  - Supports inline creation and editing directly from Today View via `onUpdateSlotNotes(slot.id, notes)` without requiring navigation back to the Calendar.
+- **Complete Dish Catalog Details (`fullDish`)**:
+  - Slices across `dishes` to display all relevant metadata for each assigned dish:
+    - **Description** (`fullDish.description`): Main ingredients and summary recipe preparation.
+    - **Permanent Recipe Notes** (`fullDish.notes`): Preparation notes, culinary tips, and variants from the catalog.
+    - **Course & Status Badges**: Colored course pills (`courses`) and dish status tag (`status` with custom household color).
+    - **Recipe Source**: Book/magazine reference text or clickable external link (`source_url`).
+    - **Family Preferences Summary**: Visual pill summary of household members' sentiment towards the dish (`favorite` 👍, `dislike` 👎, `neutral` 😐).
+
 ## 11. Print Engine & Fridge Planner Architecture (`Issue #22`)
 
 The application incorporates a zero-dependency, native browser print engine designed for paper and PDF export:

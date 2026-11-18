@@ -438,6 +438,7 @@ export function App() {
               setActiveTab('calendar')
               console.log(slotId)
             }}
+            onUpdateSlotNotes={handleUpdateSlotNotes}
             onUpdateSlotDish={handleUpdateSlotDish}
             onUpdateDish={handleUpdateDish}
             onSetPreference={handleSetPreference}

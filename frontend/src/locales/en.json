@@ -78,7 +78,17 @@
     "add_note": "+ Add note",
     "delete_note_title": "Delete note",
     "note_placeholder": "Write a note or observation...",
-    "save": "Save"
+    "save": "Save",
+    "slot_notes_title": "Meal notes",
+    "slot_notes_placeholder": "Add a note for this meal (e.g. eating out, guests)...",
+    "add_slot_note": "+ Meal note",
+    "edit_slot_note": "Edit meal note",
+    "delete_slot_note": "Delete meal note",
+    "dish_description_label": "Dish description",
+    "dish_notes_label": "Recipe notes & prep",
+    "recipe_source": "Recipe source",
+    "recipe_link": "Online recipe",
+    "family_preferences": "Family tastes"
   },
   "calendar": {
     "title": "Meal Planner",

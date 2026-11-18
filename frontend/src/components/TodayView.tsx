@@ -1,7 +1,13 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { MealSlot, Member, Dish, CourseType, DishStatus, SourceType, Tag, DishPayload } from '../types'
-import { getLocalizedMealTypeName, getLocalizedCompatibilityMessage } from '../taxonomyUtils'
+import {
+  getLocalizedMealTypeName,
+  getLocalizedCompatibilityMessage,
+  getLocalizedCourseName,
+  getLocalizedStatusName,
+  getLocalizedSourceName,
+} from '../taxonomyUtils'
 import { DishModal } from './DishModal'
 import { EditSlotDishModal } from './EditSlotDishModal'
 import {
@@ -18,6 +24,10 @@ import {
   ThumbsUp,
   ThumbsDown,
   Pencil,
+  FileText,
+  Trash2,
+  Book,
+  ExternalLink,
 } from 'lucide-react'
 
 interface TodayViewProps {
@@ -38,6 +48,7 @@ interface TodayViewProps {
   onDeleteSlotDishNote: (slotId: number, dishId: number, noteId: number) => void
   onSetSlotDishRating: (slotId: number, dishId: number, memberId: number, rating: 'thumbs_up' | 'neutral' | 'thumbs_down') => Promise<void>
   onDeleteSlotDishRating: (slotId: number, dishId: number, memberId: number) => Promise<void>
+  onUpdateSlotNotes?: (slotId: number, notes: string | null) => Promise<void>
 }
 
 export const TodayView: React.FC<TodayViewProps> = ({
@@ -58,10 +69,15 @@ export const TodayView: React.FC<TodayViewProps> = ({
   onDeleteSlotDishNote,
   onSetSlotDishRating,
   onDeleteSlotDishRating,
+  onUpdateSlotNotes,
 }) => {
   const { t, i18n } = useTranslation()
   const [activeNoteDishId, setActiveNoteDishId] = useState<{ slotId: number; dishId: number } | null>(null)
   const [noteText, setNoteText] = useState('')
+
+  // Slot notes edit state
+  const [editingSlotId, setEditingSlotId] = useState<number | null>(null)
+  const [slotNoteText, setSlotNoteText] = useState('')
 
   // Edit Slot Dish Diners State
   const [editingSlotDish, setEditingSlotDish] = useState<{
@@ -75,6 +91,29 @@ export const TodayView: React.FC<TodayViewProps> = ({
 
   // View & Edit Dish Info Modal
   const [editingDishForDetail, setEditingDishForDetail] = useState<Dish | null>(null)
+
+  const handleStartEditSlotNote = (slotId: number, currentNote?: string) => {
+    setEditingSlotId(slotId)
+    setSlotNoteText(currentNote || '')
+  }
+
+  const handleSaveSlotNote = async (slotId: number) => {
+    if (onUpdateSlotNotes) {
+      await onUpdateSlotNotes(slotId, slotNoteText.trim() ? slotNoteText.trim() : null)
+    }
+    setEditingSlotId(null)
+    setSlotNoteText('')
+  }
+
+  const handleDeleteSlotNote = async (slotId: number) => {
+    if (onUpdateSlotNotes) {
+      await onUpdateSlotNotes(slotId, null)
+    }
+    if (editingSlotId === slotId) {
+      setEditingSlotId(null)
+      setSlotNoteText('')
+    }
+  }
 
   const handleOpenDishDetail = (dishId: number) => {
     const found = dishes?.find((d) => d.id === dishId)
@@ -164,37 +203,118 @@ export const TodayView: React.FC<TodayViewProps> = ({
                   </button>
                 </div>
 
-                {/* Diners Attendance Pills (Exception-based) */}
-                <div className="px-3 py-1.5 bg-slate-50/40 border-b border-slate-100 flex items-center space-x-2 flex-wrap gap-y-1">
-                  <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex-shrink-0">
-                    {t('today.attendance')}
-                  </span>
-                  <div className="flex flex-wrap gap-1">
-                    {members.map((m) => {
-                      const isAbsent = absentSet.has(m.id)
-                      return (
-                        <button
-                          key={m.id}
-                          onClick={() => onToggleAttendance(slot.id, m.id, isAbsent)}
-                          className={`flex items-center space-x-1 px-1.5 py-0.2 rounded-full text-[10px] font-medium transition-all ${
-                            !isAbsent
-                              ? 'bg-brand-50 text-brand-800 border border-brand-200 hover:bg-brand-100'
-                              : 'bg-slate-100 text-slate-400 line-through border border-dashed border-slate-300'
-                          }`}
-                        >
-                          <span
-                            className="w-1.5 h-1.5 rounded-full"
-                            style={{ backgroundColor: m.avatar_color || '#3B82F6' }}
-                          />
-                          <span>{m.name}</span>
-                          {isAbsent ? (
-                            <UserX className="w-2.5 h-2.5 text-slate-400" />
-                          ) : null}
-                        </button>
-                      )
-                    })}
+                {/* Diners Attendance Pills (Exception-based) & Slot Note Trigger */}
+                <div className="px-3 py-1.5 bg-slate-50/40 border-b border-slate-100 flex items-center justify-between flex-wrap gap-1.5">
+                  <div className="flex items-center space-x-2 flex-wrap gap-y-1">
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider flex-shrink-0">
+                      {t('today.attendance')}
+                    </span>
+                    <div className="flex flex-wrap gap-1">
+                      {members.map((m) => {
+                        const isAbsent = absentSet.has(m.id)
+                        return (
+                          <button
+                            key={m.id}
+                            onClick={() => onToggleAttendance(slot.id, m.id, isAbsent)}
+                            className={`flex items-center space-x-1 px-1.5 py-0.2 rounded-full text-[10px] font-medium transition-all ${
+                              !isAbsent
+                                ? 'bg-brand-50 text-brand-800 border border-brand-200 hover:bg-brand-100'
+                                : 'bg-slate-100 text-slate-400 line-through border border-dashed border-slate-300'
+                            }`}
+                          >
+                            <span
+                              className="w-1.5 h-1.5 rounded-full"
+                              style={{ backgroundColor: m.avatar_color || '#3B82F6' }}
+                            />
+                            <span>{m.name}</span>
+                            {isAbsent ? (
+                              <UserX className="w-2.5 h-2.5 text-slate-400" />
+                            ) : null}
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
+
+                  {!slot.notes && editingSlotId !== slot.id && onUpdateSlotNotes && (
+                    <button
+                      type="button"
+                      onClick={() => handleStartEditSlotNote(slot.id, '')}
+                      className="flex items-center space-x-1 text-[10px] font-medium text-amber-700 hover:text-amber-800 bg-amber-50 hover:bg-amber-100 border border-amber-200/80 px-2 py-0.5 rounded transition-colors cursor-pointer"
+                      title={t('today.slot_notes_placeholder')}
+                    >
+                      <FileText className="w-2.5 h-2.5" />
+                      <span>{t('today.add_slot_note')}</span>
+                    </button>
+                  )}
                 </div>
+
+                {/* Meal Slot Note Editor or Display */}
+                {editingSlotId === slot.id ? (
+                  <div className="px-3 py-1.5 bg-amber-50/80 border-b border-amber-200 flex items-center space-x-1.5 text-xs">
+                    <FileText className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <input
+                      type="text"
+                      autoFocus
+                      value={slotNoteText}
+                      onChange={(e) => setSlotNoteText(e.target.value)}
+                      placeholder={t('today.slot_notes_placeholder')}
+                      className="flex-1 px-2 py-0.5 text-xs rounded border border-amber-300 focus:outline-none focus:ring-1 focus:ring-brand-500 bg-white"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault()
+                          handleSaveSlotNote(slot.id)
+                        } else if (e.key === 'Escape') {
+                          setEditingSlotId(null)
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleSaveSlotNote(slot.id)}
+                      className="px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white font-medium text-[11px] rounded transition-colors cursor-pointer"
+                    >
+                      {t('today.save')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingSlotId(null)}
+                      className="px-1.5 py-0.5 text-slate-500 hover:bg-slate-200/60 text-[11px] rounded cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ) : slot.notes ? (
+                  <div className="px-3 py-1.5 bg-amber-50/70 border-b border-amber-200/70 flex items-start justify-between text-xs text-amber-950">
+                    <div className="flex items-start space-x-1.5 flex-1 min-w-0">
+                      <FileText className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
+                      <div className="text-[11px] leading-snug break-words">
+                        <span className="font-semibold text-amber-900 mr-1">{t('today.slot_notes_title')}:</span>
+                        <span className="italic">{slot.notes}</span>
+                      </div>
+                    </div>
+                    {onUpdateSlotNotes && (
+                      <div className="flex items-center space-x-1 ml-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => handleStartEditSlotNote(slot.id, slot.notes)}
+                          title={t('today.edit_slot_note')}
+                          className="p-1 text-amber-700 hover:text-amber-900 hover:bg-amber-100 rounded transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSlotNote(slot.id)}
+                          title={t('today.delete_slot_note')}
+                          className="p-1 text-amber-700 hover:text-rose-600 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : null}
 
                 {/* Dishes in this Slot */}
                 <div className="p-2.5 space-y-2 flex-1">
@@ -204,6 +324,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
                     </div>
                   ) : (
                     slot.dishes.map((dishAssign) => {
+                      const fullDish = dishes?.find((d) => d.id === dishAssign.dish_id)
                       const comp = dishAssign.compatibility
                       const hasAssignedMembers =
                         dishAssign.assigned_member_ids && dishAssign.assigned_member_ids.length > 0
@@ -217,10 +338,10 @@ export const TodayView: React.FC<TodayViewProps> = ({
                       return (
                         <div
                           key={dishAssign.id}
-                          className="p-2 rounded-md border border-slate-200/80 hover:border-slate-300 bg-white transition-all space-y-1.5 text-xs"
+                          className="p-2.5 rounded-md border border-slate-200/80 hover:border-slate-300 bg-white transition-all space-y-2 text-xs"
                         >
                           <div className="flex items-start justify-between">
-                            <div>
+                            <div className="space-y-1 flex-1 min-w-0 pr-1">
                               <div className="flex items-center space-x-1.5 flex-wrap">
                                 <h4 className="font-semibold text-slate-900 text-xs sm:text-sm">
                                   {dishAssign.dish_title}
@@ -239,24 +360,38 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                 </p>
                               )}
 
-                              {/* Dish Tags (Issue #7) */}
-                              {(() => {
-                                const fullDish = dishes?.find((d) => d.id === dishAssign.dish_id)
-                                if (!fullDish?.tags || fullDish.tags.length === 0) return null
-                                return (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {fullDish.tags.map((tg) => (
-                                      <span
-                                        key={tg.id || tg.name}
-                                        className="text-[9px] font-semibold text-white px-1.5 py-0.2 rounded-full shadow-2xs"
-                                        style={{ backgroundColor: tg.color || '#16a34a' }}
-                                      >
-                                        {tg.name}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )
-                              })()}
+                              {/* Course, Status & Tags Badges */}
+                              <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                {fullDish?.courses && fullDish.courses.map((c) => (
+                                  <span
+                                    key={c.id}
+                                    className="text-[9px] font-medium bg-slate-100 text-slate-700 px-1.5 py-0.2 rounded"
+                                  >
+                                    {getLocalizedCourseName(c.name, t)}
+                                  </span>
+                                ))}
+                                {fullDish?.status && (
+                                  <span
+                                    className="text-[9px] font-semibold px-1.5 py-0.2 rounded-full border"
+                                    style={{
+                                      borderColor: fullDish.status.color || '#94a3b8',
+                                      backgroundColor: `${fullDish.status.color || '#94a3b8'}15`,
+                                      color: fullDish.status.color || '#334155',
+                                    }}
+                                  >
+                                    {getLocalizedStatusName(fullDish.status, t)}
+                                  </span>
+                                )}
+                                {fullDish?.tags && fullDish.tags.map((tg) => (
+                                  <span
+                                    key={tg.id || tg.name}
+                                    className="text-[9px] font-semibold text-white px-1.5 py-0.2 rounded-full shadow-2xs"
+                                    style={{ backgroundColor: tg.color || '#16a34a' }}
+                                  >
+                                    {tg.name}
+                                  </span>
+                                ))}
+                              </div>
                             </div>
                             <div className="flex items-center space-x-1 flex-shrink-0 ml-1">
                               {/* Pulsante 1: Modifica Assegnazione Commensali */}
@@ -288,6 +423,86 @@ export const TodayView: React.FC<TodayViewProps> = ({
                               </button>
                             </div>
                           </div>
+
+                          {/* Dish Description from Catalog */}
+                          {fullDish?.description && (
+                            <div className="p-1.5 rounded bg-slate-50 border border-slate-100 text-slate-700 text-[11px] leading-relaxed">
+                              <span className="font-semibold text-slate-800 block text-[9px] uppercase tracking-wider mb-0.5">
+                                {t('today.dish_description_label')}
+                              </span>
+                              <p className="whitespace-pre-wrap">{fullDish.description}</p>
+                            </div>
+                          )}
+
+                          {/* Permanent Dish Recipe Notes from Catalog */}
+                          {fullDish?.notes && (
+                            <div className="p-1.5 rounded bg-amber-50/50 border border-amber-200/60 text-amber-900 text-[11px] leading-relaxed">
+                              <span className="font-semibold text-amber-800 block text-[9px] uppercase tracking-wider mb-0.5">
+                                {t('today.dish_notes_label')}
+                              </span>
+                              <p className="italic whitespace-pre-wrap">{fullDish.notes}</p>
+                            </div>
+                          )}
+
+                          {/* Recipe Source Link / Reference */}
+                          {fullDish?.source && (fullDish.source.source_reference || fullDish.source.source_url) && (
+                            <div className="p-1.5 rounded bg-slate-50 border border-slate-200/70 flex items-center justify-between text-xs text-slate-600">
+                              <div className="flex items-center space-x-1.5 truncate text-[11px]">
+                                <Book className="w-3.5 h-3.5 text-slate-400 flex-shrink-0" />
+                                <span className="font-medium text-slate-700">{t('today.recipe_source')}:</span>
+                                <span className="truncate">
+                                  {fullDish.source.source_reference || (fullDish.source.source_type_name ? getLocalizedSourceName(fullDish.source.source_type_name, t) : '')}
+                                </span>
+                              </div>
+                              {fullDish.source.source_url && (
+                                <a
+                                  href={fullDish.source.source_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex items-center space-x-0.5 text-brand-600 hover:text-brand-700 font-semibold ml-1.5 flex-shrink-0 text-[11px]"
+                                >
+                                  <span>{t('today.recipe_link')}</span>
+                                  <ExternalLink className="w-2.5 h-2.5" />
+                                </a>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Family Preferences Summary */}
+                          {fullDish?.preferences && fullDish.preferences.length > 0 && (
+                            <div className="flex items-center space-x-1.5 flex-wrap text-[10px] text-slate-500 pt-0.5">
+                              <span className="font-semibold text-slate-600 uppercase tracking-wider text-[9px]">
+                                {t('today.family_preferences')}:
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {fullDish.preferences.map((p) => {
+                                  const isFav = p.rating === 'favorite'
+                                  const isDis = p.rating === 'dislike'
+                                  return (
+                                    <span
+                                      key={p.member_id}
+                                      className={`inline-flex items-center space-x-1 px-1.5 py-0.2 rounded border text-[10px] ${
+                                        isFav
+                                          ? 'bg-sky-50 text-sky-800 border-sky-200'
+                                          : isDis
+                                          ? 'bg-rose-50 text-rose-800 border-rose-200'
+                                          : 'bg-slate-50 text-slate-600 border-slate-200'
+                                      }`}
+                                    >
+                                      <span
+                                        className="w-1.5 h-1.5 rounded-full"
+                                        style={{ backgroundColor: p.avatar_color || '#3B82F6' }}
+                                      />
+                                      <span>{p.member_name}</span>
+                                      {isFav && <span className="font-bold text-sky-600">👍</span>}
+                                      {isDis && <span className="font-bold text-rose-600">👎</span>}
+                                      {!isFav && !isDis && <span className="text-slate-400">😐</span>}
+                                    </span>
+                                  )
+                                })}
+                              </div>
+                            </div>
+                          )}
 
                           {/* Smart Compatibility Alert */}
                           {comp.status === 'warning' && (
