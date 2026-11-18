@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { MealSlot, Member, Dish } from '../types'
+import { MealSlot, Member, Dish, CourseType, DishStatus, SourceType, Tag, DishPayload } from '../types'
 import { getLocalizedMealTypeName, getLocalizedCompatibilityMessage } from '../taxonomyUtils'
+import { DishModal } from './DishModal'
+import { EditSlotDishModal } from './EditSlotDishModal'
 import {
   AlertTriangle,
   Star,
@@ -15,14 +17,22 @@ import {
   Meh,
   ThumbsUp,
   ThumbsDown,
+  Pencil,
 } from 'lucide-react'
 
 interface TodayViewProps {
   slots: MealSlot[]
   members: Member[]
   dishes?: Dish[]
+  statuses?: DishStatus[]
+  courses?: CourseType[]
+  sources?: SourceType[]
+  availableTags?: Tag[]
   onToggleAttendance: (slotId: number, memberId: number, isAttending: boolean) => void
   onAssignDish: (slotId: number) => void
+  onUpdateSlotDish?: (slotId: number, dishId: number, assignedMemberIds?: number[]) => Promise<void>
+  onUpdateDish?: (dishId: number, payload: DishPayload) => Promise<void>
+  onSetPreference?: (dishId: number, memberId: number, rating: 'favorite' | 'neutral' | 'dislike') => Promise<void>
   onRemoveDish: (slotId: number, dishId: number) => void
   onAddSlotDishNote: (slotId: number, dishId: number, note: string) => void
   onDeleteSlotDishNote: (slotId: number, dishId: number, noteId: number) => void
@@ -33,9 +43,16 @@ interface TodayViewProps {
 export const TodayView: React.FC<TodayViewProps> = ({
   slots,
   members,
-  dishes,
+  dishes = [],
+  statuses = [],
+  courses = [],
+  sources = [],
+  availableTags = [],
   onToggleAttendance,
   onAssignDish,
+  onUpdateSlotDish,
+  onUpdateDish,
+  onSetPreference,
   onRemoveDish,
   onAddSlotDishNote,
   onDeleteSlotDishNote,
@@ -45,6 +62,40 @@ export const TodayView: React.FC<TodayViewProps> = ({
   const { t, i18n } = useTranslation()
   const [activeNoteDishId, setActiveNoteDishId] = useState<{ slotId: number; dishId: number } | null>(null)
   const [noteText, setNoteText] = useState('')
+
+  // Edit Slot Dish Diners State
+  const [editingSlotDish, setEditingSlotDish] = useState<{
+    slotId: number
+    slotDate: string
+    mealTypeName: string
+    dishId: number
+    dishTitle: string
+    assignedMemberIds: number[]
+  } | null>(null)
+
+  // View & Edit Dish Info Modal
+  const [editingDishForDetail, setEditingDishForDetail] = useState<Dish | null>(null)
+
+  const handleOpenDishDetail = (dishId: number) => {
+    const found = dishes?.find((d) => d.id === dishId)
+    if (found) {
+      setEditingDishForDetail(found)
+    }
+  }
+
+  const handleOpenEditSlotDishModal = (
+    slot: MealSlot,
+    dish: { dish_id: number; dish_title: string; assigned_member_ids?: number[] }
+  ) => {
+    setEditingSlotDish({
+      slotId: slot.id,
+      slotDate: slot.date,
+      mealTypeName: getLocalizedMealTypeName(slot.meal_type, t),
+      dishId: dish.dish_id,
+      dishTitle: dish.dish_title,
+      assignedMemberIds: dish.assigned_member_ids || [],
+    })
+  }
 
   const currentLocale = i18n.language && i18n.language.startsWith('en') ? 'en-US' : 'it-IT'
   const todayFormatted = new Intl.DateTimeFormat(currentLocale, {
@@ -207,13 +258,35 @@ export const TodayView: React.FC<TodayViewProps> = ({
                                 )
                               })()}
                             </div>
-                            <button
-                              onClick={() => onRemoveDish(slot.id, dishAssign.dish_id)}
-                              className="text-slate-400 hover:text-rose-500 text-xs px-1 rounded transition-colors"
-                              title={t('today.remove_dish_title')}
-                            >
-                              ✕
-                            </button>
+                            <div className="flex items-center space-x-1 flex-shrink-0 ml-1">
+                              {/* Pulsante 1: Modifica Assegnazione Commensali */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditSlotDishModal(slot, dishAssign)}
+                                title={t('calendar.edit_dish_assignment_tooltip')}
+                                className="p-1 text-slate-400 hover:text-brand-600 hover:bg-slate-100 rounded transition-colors cursor-pointer"
+                              >
+                                <Users className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Pulsante 2: Visualizza / Modifica Dettagli Piatto */}
+                              <button
+                                type="button"
+                                onClick={() => handleOpenDishDetail(dishAssign.dish_id)}
+                                title={t('calendar.view_edit_dish_tooltip')}
+                                className="p-1 text-slate-400 hover:text-brand-600 hover:bg-slate-100 rounded transition-colors cursor-pointer"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              {/* Rimuovi piatto */}
+                              <button
+                                type="button"
+                                onClick={() => onRemoveDish(slot.id, dishAssign.dish_id)}
+                                className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded transition-colors cursor-pointer"
+                                title={t('today.remove_dish_title')}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </div>
 
                           {/* Smart Compatibility Alert */}
@@ -418,6 +491,47 @@ export const TodayView: React.FC<TodayViewProps> = ({
             )
           })}
         </div>
+      )}
+
+      {/* Edit Slot Dish Diners Modal */}
+      {editingSlotDish && (
+        <EditSlotDishModal
+          isOpen={true}
+          onClose={() => setEditingSlotDish(null)}
+          slotId={editingSlotDish.slotId}
+          slotDate={editingSlotDish.slotDate}
+          mealTypeName={editingSlotDish.mealTypeName}
+          dishId={editingSlotDish.dishId}
+          dishTitle={editingSlotDish.dishTitle}
+          assignedMemberIds={editingSlotDish.assignedMemberIds}
+          members={members}
+          onSave={async (slotId, dishId, targetMemberIds) => {
+            if (onUpdateSlotDish) {
+              await onUpdateSlotDish(slotId, dishId, targetMemberIds)
+            }
+          }}
+        />
+      )}
+
+      {/* Dish View & Edit Modal */}
+      {editingDishForDetail && (
+        <DishModal
+          isOpen={true}
+          onClose={() => setEditingDishForDetail(null)}
+          dish={editingDishForDetail}
+          courses={courses || []}
+          statuses={statuses || []}
+          sources={sources || []}
+          availableTags={availableTags || []}
+          dishes={dishes || []}
+          onSave={async (payload, dishId) => {
+            if (dishId && onUpdateDish) {
+              await onUpdateDish(dishId, payload)
+            }
+            setEditingDishForDetail(null)
+          }}
+          onSetPreference={onSetPreference}
+        />
       )}
     </div>
   )

@@ -37,6 +37,7 @@ import {
   Pencil,
 } from 'lucide-react'
 import { DishModal } from './DishModal'
+import { EditSlotDishModal } from './EditSlotDishModal'
 import { SourceType, Tag, DishPayload } from '../types'
 
 export type CalendarViewMode = 'compact_h' | 'compact_v' | 'detailed'
@@ -193,15 +194,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     dishTitle: string
     assignedMemberIds: number[]
   } | null>(null)
-  const [editAssignForSpecific, setEditAssignForSpecific] = useState(false)
-  const [editSelectedMemberIds, setEditSelectedMemberIds] = useState<number[]>([])
-  const [isSavingSlotDish, setIsSavingSlotDish] = useState(false)
 
   const handleOpenEditSlotDishModal = (
     slot: MealSlot,
     dish: { dish_id: number; dish_title: string; assigned_member_ids?: number[] }
   ) => {
-    const hasSpecific = Boolean(dish.assigned_member_ids && dish.assigned_member_ids.length > 0)
     setEditingSlotDish({
       slotId: slot.id,
       slotDate: slot.date,
@@ -210,34 +207,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       dishTitle: dish.dish_title,
       assignedMemberIds: dish.assigned_member_ids || [],
     })
-    setEditAssignForSpecific(hasSpecific)
-    setEditSelectedMemberIds(hasSpecific ? [...(dish.assigned_member_ids || [])] : members.map((m) => m.id))
-  }
-
-  const handleToggleEditMember = (memberId: number) => {
-    if (editSelectedMemberIds.includes(memberId)) {
-      setEditSelectedMemberIds(editSelectedMemberIds.filter((id) => id !== memberId))
-    } else {
-      setEditSelectedMemberIds([...editSelectedMemberIds, memberId])
-    }
-  }
-
-  const handleSaveEditSlotDish = async () => {
-    if (!editingSlotDish) return
-    setIsSavingSlotDish(true)
-    try {
-      const targetMemberIds = editAssignForSpecific ? editSelectedMemberIds : []
-      if (onUpdateSlotDish) {
-        await onUpdateSlotDish(editingSlotDish.slotId, editingSlotDish.dishId, targetMemberIds)
-      } else {
-        onAssignDish(editingSlotDish.slotId, editingSlotDish.dishId, targetMemberIds)
-      }
-      setEditingSlotDish(null)
-    } catch (err) {
-      console.error('Failed to update dish assignment:', err)
-    } finally {
-      setIsSavingSlotDish(false)
-    }
   }
 
   // View & Edit Dish Info Modal
@@ -631,19 +600,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 className="group relative flex items-center justify-between text-xs py-0.5 px-1 print:py-0.5 print:px-1 rounded hover:bg-slate-100/80 transition-colors"
               >
                 <div className="truncate pr-1 text-[11px] leading-snug flex-1 min-w-0 flex items-center">
-                  <span
-                    onClick={() => handleOpenDishDetail(d.dish_id)}
-                    title={t('calendar.view_edit_dish_tooltip')}
-                    className="font-medium text-slate-800 hover:text-brand-600 hover:underline cursor-pointer truncate inline-block print:pointer-events-none print:no-underline print:text-slate-900 print-dish-title"
-                  >
+                  <span className="font-medium text-slate-800 truncate inline-block print:text-slate-900 print-dish-title">
                     • {d.dish_title}
                   </span>
                   {hasAssignedMembers && (
-                    <span
-                      onClick={() => handleOpenEditSlotDishModal(slot, d)}
-                      title={t('calendar.edit_dish_assignment_tooltip')}
-                      className="ml-1 text-[10px] text-amber-700 hover:text-amber-800 font-semibold whitespace-nowrap cursor-pointer hover:underline print:pointer-events-none print:no-underline print:italic print-meta-text"
-                    >
+                    <span className="ml-1 text-[10px] text-amber-700 font-semibold whitespace-nowrap print:italic print-meta-text">
                       ({namesStr})
                     </span>
                   )}
@@ -1504,20 +1465,12 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             >
                               <div className="flex items-start justify-between font-medium text-slate-800">
                                 <div className="min-w-0 flex-1">
-                                  <span
-                                    onClick={() => handleOpenDishDetail(d.dish_id)}
-                                    title={t('calendar.view_edit_dish_tooltip')}
-                                    className="font-semibold text-xs text-slate-800 hover:text-brand-600 hover:underline cursor-pointer block truncate print:pointer-events-none print:no-underline print-dish-title"
-                                  >
+                                  <span className="font-semibold text-xs text-slate-800 block truncate print:no-underline print-dish-title">
                                     {d.dish_title}
                                   </span>
                                   {/* P002: Badge for alternative dish */}
                                   {hasAssignedMembers && (
-                                    <span
-                                      onClick={() => handleOpenEditSlotDishModal(slot, d)}
-                                      title={t('calendar.edit_dish_assignment_tooltip')}
-                                      className="text-[9px] text-amber-800 hover:text-amber-900 font-medium bg-amber-50 hover:bg-amber-100 border border-amber-200 px-1 py-0.2 rounded mt-0.5 inline-block cursor-pointer transition-colors print:pointer-events-none print:no-underline print-meta-text"
-                                    >
+                                    <span className="text-[9px] text-amber-800 font-medium bg-amber-50 border border-amber-200 px-1 py-0.2 rounded mt-0.5 inline-block print:no-underline print-meta-text">
                                       {t('calendar.for_diners', { names: assignedMembersList.map((m) => m.name).join(', ') })}
                                     </span>
                                   )}
@@ -2337,135 +2290,24 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
       {/* Edit Slot Dish Diners Modal (Issue #9) */}
       {editingSlotDish && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-900/40 backdrop-blur-xs animate-in fade-in duration-150"
-          onClick={() => !isSavingSlotDish && setEditingSlotDish(null)}
-        >
-          <div
-            className="bg-white rounded-lg shadow-xl w-full max-w-md p-4 space-y-4 border border-slate-200 animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <div className="flex items-center space-x-2">
-                <Utensils className="w-4 h-4 text-brand-600" />
-                <h3 className="text-sm font-semibold text-slate-800">
-                  {t('calendar.edit_dish_assignment_title')}
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEditingSlotDish(null)}
-                disabled={isSavingSlotDish}
-                className="text-slate-400 hover:text-slate-600 p-1 rounded-md hover:bg-slate-100 transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            {/* Dish & Slot Info */}
-            <div className="bg-slate-50 p-2.5 rounded-md border border-slate-200/80 space-y-1">
-              <div className="text-xs font-semibold text-slate-900">
-                {editingSlotDish.dishTitle}
-              </div>
-              <div className="text-[11px] text-slate-500">
-                {new Intl.DateTimeFormat(currentLocale, {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                }).format(parseDate(editingSlotDish.slotDate))} • {editingSlotDish.mealTypeName}
-              </div>
-            </div>
-
-            {/* Diners Assignment Section */}
-            <div className="space-y-2 border border-slate-200/80 rounded-md p-3 bg-white">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-slate-700 flex items-center space-x-1.5">
-                  <Users className="w-3.5 h-3.5 text-slate-500" />
-                  <span>{t('calendar.dish_diners_label')}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditAssignForSpecific(!editAssignForSpecific)
-                    if (!editAssignForSpecific) {
-                      setEditSelectedMemberIds(
-                        editingSlotDish.assignedMemberIds.length > 0
-                          ? [...editingSlotDish.assignedMemberIds]
-                          : members.map((m) => m.id)
-                      )
-                    } else {
-                      setEditSelectedMemberIds([])
-                    }
-                  }}
-                  className="text-[11px] font-medium text-brand-600 hover:text-brand-700 underline cursor-pointer"
-                >
-                  {editAssignForSpecific ? t('calendar.assign_all_diners') : t('calendar.alternative_dish_help')}
-                </button>
-              </div>
-
-              {editAssignForSpecific ? (
-                <div className="space-y-2 pt-1">
-                  <span className="text-[11px] text-slate-500 block">
-                    {t('calendar.select_diners')}
-                  </span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {members.map((m) => {
-                      const isSelected = editSelectedMemberIds.includes(m.id)
-                      return (
-                        <button
-                          type="button"
-                          key={m.id}
-                          onClick={() => handleToggleEditMember(m.id)}
-                          className={`flex items-center space-x-1.5 px-2 py-1 rounded-full text-xs transition-all border cursor-pointer ${
-                            isSelected
-                              ? 'bg-brand-50 text-brand-800 border-brand-300 font-semibold shadow-xs'
-                              : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                          }`}
-                        >
-                          <span
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: m.avatar_color || '#3B82F6' }}
-                          />
-                          <span>{m.name}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                  {editSelectedMemberIds.length === 0 && (
-                    <p className="text-[11px] text-rose-500 italic">
-                      {t('calendar.select_at_least_one_diner')}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <p className="text-[11px] text-slate-500 italic pt-0.5">
-                  {t('calendar.assigned_to_all_diners')}
-                </p>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="flex items-center justify-end space-x-2 pt-2 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setEditingSlotDish(null)}
-                disabled={isSavingSlotDish}
-                className="px-3 py-1.5 text-xs font-semibold text-slate-700 bg-white border border-slate-300 hover:bg-slate-50 rounded-md transition-colors cursor-pointer"
-              >
-                {t('common.cancel')}
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEditSlotDish}
-                disabled={isSavingSlotDish || (editAssignForSpecific && editSelectedMemberIds.length === 0)}
-                className="px-3 py-1.5 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors shadow-2xs cursor-pointer"
-              >
-                {isSavingSlotDish ? '...' : t('common.save')}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditSlotDishModal
+          isOpen={true}
+          onClose={() => setEditingSlotDish(null)}
+          slotId={editingSlotDish.slotId}
+          slotDate={editingSlotDish.slotDate}
+          mealTypeName={editingSlotDish.mealTypeName}
+          dishId={editingSlotDish.dishId}
+          dishTitle={editingSlotDish.dishTitle}
+          assignedMemberIds={editingSlotDish.assignedMemberIds}
+          members={members}
+          onSave={async (slotId, dishId, targetMemberIds) => {
+            if (onUpdateSlotDish) {
+              await onUpdateSlotDish(slotId, dishId, targetMemberIds)
+            } else {
+              onAssignDish(slotId, dishId, targetMemberIds)
+            }
+          }}
+        />
       )}
 
       {/* Issue #22: Print Weekly Menu Modal */}

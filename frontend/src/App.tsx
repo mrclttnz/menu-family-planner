@@ -429,11 +429,18 @@ export function App() {
             slots={todaySlots}
             members={members}
             dishes={dishes}
+            statuses={statuses}
+            courses={courses}
+            sources={sources}
+            availableTags={tags}
             onToggleAttendance={handleToggleAttendance}
             onAssignDish={(slotId) => {
               setActiveTab('calendar')
               console.log(slotId)
             }}
+            onUpdateSlotDish={handleUpdateSlotDish}
+            onUpdateDish={handleUpdateDish}
+            onSetPreference={handleSetPreference}
             onRemoveDish={handleRemoveDish}
             onAddSlotDishNote={handleAddSlotDishNote}
             onDeleteSlotDishNote={handleDeleteSlotDishNote}
