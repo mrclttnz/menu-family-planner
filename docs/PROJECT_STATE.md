@@ -64,6 +64,7 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S21` | `#22` | Weekly Menu Print & Fridge Planner (tech debt: #23) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
 | `S22` | `#20` | Clarify Dish Description vs Notes in Forms & Catalog Views | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
 | `S23` | `#19` | Today View Meal Slot Notes & Full Dish Details Visibility | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S23a` | `#34` | Test isolation from the real database by default (prerequisite of S24) | — | — | `S` | no | `DONE` | `N/A` | `DONE` | `DONE` | `PASS` | `PENDING` |
 | `S24` | `#24` | Auth endpoint rate limiting (SEC-F02) | SEC-F02 | — | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S25` | `#25` | Security hardening batch + audit report refresh (SEC-F01 close, F03, F04) | SEC-F01/3/4 | — | `S` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S26` | `#26` | Quality foundation I: CI, linters, typecheck | QF-1..3 | — | `M` | partly | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |

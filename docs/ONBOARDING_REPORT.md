@@ -36,7 +36,7 @@ No dependency was installed and no service started (`backend/.venv` and `fronten
 | Dependency audit | `pip-audit -r requirements.txt` / `npm audit` | pip: no known vulns · npm: **1 high + 1 moderate** (esbuild <=0.24.2 via vite <=6.4.3, dev-server only; fix needs a vite major bump) |
 | Outdated / EOL | not measured | Python 3.14 / Node 24 are current |
 
-Note: tests were run with `DATABASE_URL` overridden because the app lifespan runs `create_all` + seeding against the engine from `.env` (possibly the real DB) even under `TestClient`.
+Note (resolved by S23a, #34: `conftest.py` now forces a throwaway DB): tests were run with `DATABASE_URL` overridden because the app lifespan runs `create_all` + seeding against the engine from `.env` (possibly the real DB) even under `TestClient`.
 
 ## 4. Findings
 | ID | Severity | Area | Finding | Evidence |
