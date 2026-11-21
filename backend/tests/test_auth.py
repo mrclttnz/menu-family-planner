@@ -74,3 +74,14 @@ def test_get_me(client, auth_headers):
 def test_get_me_unauthorized(client):
     res = client.get("/api/v1/auth/me")
     assert res.status_code == 401
+
+
+def test_login_unknown_email_still_runs_bcrypt(client, monkeypatch):
+    """Timing equalization: unknown emails must trigger a hash verification too."""
+    from app.routers import auth as auth_router
+    calls = []
+    real = auth_router.verify_password
+    monkeypatch.setattr(auth_router, "verify_password", lambda p, h: calls.append(h) or real(p, h))
+    res = client.post("/api/v1/auth/login", json={"email": "ghost@example.com", "password": "Password123!"})
+    assert res.status_code == 401
+    assert calls == [auth_router._DUMMY_HASH]

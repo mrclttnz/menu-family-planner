@@ -20,7 +20,7 @@ Order is the recommended execution order. "Sec" = security-sensitive.
 | Order | Slice | Title | Issue | Covers | Depends on | Size | Sec | Status |
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
 | 0 | `S23a` | Test isolation from the real database by default (prerequisite of S24) | #34 | test infra | none | S | No | DONE |
-| 1 | `S24` | Auth endpoint rate limiting | N/A | SEC-F02 | none | M | Yes | READY |
+| 1 | `S24` | Auth endpoint rate limiting | #24 | SEC-F02 | S23a | M | Yes | DONE |
 | 2 | `S25` | Security hardening batch and audit report refresh | N/A | SEC-F01 (close), SEC-F03, SEC-F04 | none (S24 recommended first, same files) | S | Yes | READY |
 | 3 | `S26` | Quality foundation I: CI, linters, typecheck | N/A | QF-1, QF-2, QF-3 | none | M | Partly (supply chain scan) | READY |
 | 4 | `S27` | Quality foundation II: frontend test harness | N/A | QF-4 | S26 | S | No | READY |

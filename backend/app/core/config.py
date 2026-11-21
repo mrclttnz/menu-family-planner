@@ -11,12 +11,25 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     DATABASE_URL: str = "sqlite:///./app.db"
     CORS_ORIGINS: str = "http://localhost:5173,http://127.0.0.1:5173"
+    # Auth rate limiting (SEC-F02): max attempts per client IP per minute, per endpoint
+    AUTH_RATE_LIMIT_ENABLED: bool = True
+    AUTH_RATE_LIMIT_PER_MINUTE: int = 10
+    # Comma-separated IPs/CIDRs of reverse proxies whose CF-Connecting-IP / X-Forwarded-For
+    # headers are trusted (e.g. the docker network of cloudflared). Empty = never trust them.
+    TRUSTED_PROXY_IPS: str = ""
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
+
+    @field_validator("AUTH_RATE_LIMIT_PER_MINUTE")
+    @classmethod
+    def validate_rate_limit(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("AUTH_RATE_LIMIT_PER_MINUTE must be >= 1 (use AUTH_RATE_LIMIT_ENABLED=false to disable).")
+        return v
 
     @field_validator("SECRET_KEY")
     @classmethod

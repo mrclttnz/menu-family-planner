@@ -40,7 +40,19 @@ POSTGRES_USER=menu_user
 POSTGRES_PASSWORD=<tua_password_sicura>
 CORS_ORIGINS=http://localhost:8000,http://<IP_LOCALE_SERVER>:8000,https://menu.tuodominio.it
 TUNNEL_TOKEN=<token_cloudflare_opzionale>
+AUTH_RATE_LIMIT_PER_MINUTE=10
+TRUSTED_PROXY_IPS=<IP_container_cloudflared>/32
 ```
+
+### Rate limiting di login/registrazione e IP del client (SEC-F02)
+`POST /api/v1/auth/login` e `/register` sono limitati a `AUTH_RATE_LIMIT_PER_MINUTE` richieste al minuto per IP e per endpoint (risposta `429` con header `Retry-After`). Lo stato è in memoria nel processo: l'immagine usa un solo worker uvicorn; con più worker/repliche il limite andrebbe spostato su uno store condiviso.
+
+- **Accesso diretto in LAN (porta 8000)**: lascia `TRUSTED_PROXY_IPS` vuoto o limitato al proxy; l'IP usato è quello della connessione.
+- **Dietro Cloudflare Tunnel**: `cloudflared` raggiunge l'app dalla rete Docker, quindi senza configurazione tutti gli utenti condividono lo stesso IP (un attaccante bloccherebbe tutti). Imposta `TRUSTED_PROXY_IPS` sul **solo IP del container `cloudflared` come `/32`** (es. `172.18.0.3/32`; `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container_cloudflared>`, meglio se fissato con `ipv4_address` nel compose così non cambia al riavvio). **Non fidarti dell'intera subnet**: con NAT/userland proxy di Docker i client LAN sulla porta 8000 possono apparire con l'IP del gateway della bridge, dentro la subnet, e potrebbero falsificare `CF-Connecting-IP` aggirando il limite. Solo i peer fidati fanno leggere `CF-Connecting-IP` e `X-Forwarded-For`.
+- Se usi un file compose di produzione separato (`docker-compose.prod.yml`, non versionato), deve passare all'app anche `TRUSTED_PROXY_IPS` e `AUTH_RATE_LIMIT_PER_MINUTE`, come `docker-compose.yml`.
+- Sono conteggiati tutti i tentativi (anche login riusciti e richieste con body non valido). Gli indirizzi IPv6 sono raggruppati per /64; gli IPv4-mapped sono normalizzati a IPv4.
+- **Se il tunnel è l'unico ingresso**: non pubblicare la porta 8000 sull'host. In `docker-compose.yml` rimuovi `"8000:8000"` dalla sezione `ports` del servizio `app` (o usa `expose: ["8000"]`): `cloudflared` raggiunge comunque l'app sulla rete Docker interna e nessun client LAN può più aggirare il tunnel o apparire con l'IP del gateway. Se invece ti serve l'accesso LAN diretto, lascia la porta pubblicata e mantieni `TRUSTED_PROXY_IPS` ristretto al solo `/32` di `cloudflared`.
+- Facoltativo: aggiungere una regola di rate limiting WAF su Cloudflare per `/api/v1/auth/*` come difesa a monte (non copre l'accesso LAN).
 
 ---
 

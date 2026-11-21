@@ -39,6 +39,15 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+@pytest.fixture(autouse=True)
+def _reset_auth_rate_limiter():
+    """Limiter state is process-global: start every test with an empty window."""
+    from app.core.rate_limit import auth_limiter
+    auth_limiter.reset()
+    yield
+    auth_limiter.reset()
+
+
 @pytest.fixture(scope="function")
 def db_session():
     Base.metadata.create_all(bind=engine)

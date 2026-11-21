@@ -31,6 +31,7 @@ const BACKEND_MESSAGE_TO_KEY: Record<string, string> = {
   'System meal types cannot be deleted.': 'errors.system_meal_type_cannot_delete',
   'Tag with this name already exists.': 'errors.tag_name_exists',
   'Tag not found.': 'errors.not_found',
+  'Too many requests. Please try again later.': 'errors.too_many_requests',
 }
 
 /**
@@ -135,6 +136,8 @@ export function parseApiError(
       return i18n.t('errors.forbidden')
     case 404:
       return i18n.t('errors.not_found')
+    case 429:
+      return i18n.t('errors.too_many_requests')
     case 422:
       return i18n.t('errors.invalid_input')
     case 500:

@@ -11,6 +11,11 @@ def hash_password(plain_password: str) -> str:
     return bcrypt.hashpw(pwd_bytes, salt).decode("utf-8")
 
 
+# Valid bcrypt hash (cost 12) of a random secret, used to equalize login timing when the
+# account does not exist, so response time does not reveal which emails are registered.
+_DUMMY_HASH = bcrypt.hashpw(b"dummy-password-for-timing-equalization", bcrypt.gensalt(rounds=12)).decode("utf-8")
+
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     try:
         pwd_bytes = plain_password.encode("utf-8")
