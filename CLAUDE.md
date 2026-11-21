@@ -13,8 +13,8 @@ Family meal-planning web app (dish catalog, per-member preferences, exception-ba
 | :--- | :--- |
 | Install dependencies | `TBD` (not run during onboarding; `backend/.venv` and `frontend/node_modules` already exist. Expected: `pip install -r backend/requirements.txt` / `cd frontend && npm ci`) |
 | Run locally | `./run_dev.sh` (unverified; serves API + built SPA on :8000; DB is whatever `DATABASE_URL` in `.env` points to) |
-| Full test suite | `cd backend && DATABASE_URL=sqlite:////tmp/menu-test.db .venv/bin/python -m pytest -q` (40 pass) |
-| Single test | `cd backend && DATABASE_URL=sqlite:////tmp/menu-test.db .venv/bin/python -m pytest tests/test_auth.py::<name>` |
+| Full test suite | `cd backend && .venv/bin/python -m pytest -q` (40 pass; isolated from the real DB by `tests/conftest.py`) |
+| Single test | `cd backend && .venv/bin/python -m pytest tests/test_auth.py::<name>` |
 | Lint + format check | `TBD` (no linter configured) |
 | Typecheck | `cd frontend && node_modules/.bin/tsc --noEmit` |
 | Build | `cd frontend && npm run build` (= `tsc && vite build`; verified with `--outDir` elsewhere) |
@@ -24,7 +24,7 @@ Family meal-planning web app (dish catalog, per-member preferences, exception-ba
 
 ## Conventions
 - Layout: `backend/app/{routers,schemas,models,services,core,api}`, `frontend/src/components`; details in `docs/ARCHITECTURE.md`. API prefix `/api/v1`.
-- Always override `DATABASE_URL` when running tests: the app lifespan runs `create_all` + seeding against the engine from `.env`, which may be the real DB.
+- Tests are isolated by default: `tests/conftest.py` forces `DATABASE_URL` to a throwaway SQLite before importing `app.*` (the app lifespan runs `create_all` + seeding on that engine) and asserts it. Keep that block above any `app` import.
 - Every query is scoped by household (anti-IDOR); Pydantic schemas use `extra="forbid"`.
 - UI strings go through i18n (`frontend/src/locales/{it,en}.json`), no hardcoded text.
 - Commits: Conventional Commits (`feat(scope): ...`), referencing the GitHub Issue `#ID`.
