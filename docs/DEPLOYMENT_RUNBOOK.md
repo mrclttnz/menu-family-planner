@@ -41,7 +41,7 @@ POSTGRES_PASSWORD=<tua_password_sicura>
 CORS_ORIGINS=http://localhost:8000,http://<IP_LOCALE_SERVER>:8000,https://menu.tuodominio.it
 TUNNEL_TOKEN=<token_cloudflare_opzionale>
 AUTH_RATE_LIMIT_PER_MINUTE=10
-TRUSTED_PROXY_IPS=<subnet_docker_di_cloudflared>
+TRUSTED_PROXY_IPS=<IP_container_cloudflared>/32
 ```
 
 ### Rate limiting di login/registrazione e IP del client (SEC-F02)
