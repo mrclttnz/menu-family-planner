@@ -337,6 +337,7 @@
     "forbidden": "Non disponi dei permessi per eseguire questa operazione.",
     "not_found": "Elemento non trovato.",
     "server_error": "Errore interno del server. Riprova più tardi.",
+    "too_many_requests": "Troppi tentativi. Attendi un minuto e riprova.",
     "field_required": "Il campo \"{{field}}\" è obbligatorio.",
     "invalid_input": "Uno o più dati inseriti non sono validi.",
     "courses_required": "È necessario inserire almeno una portata.",

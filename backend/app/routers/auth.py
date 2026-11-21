@@ -6,11 +6,13 @@ from app.models.household import Household
 from app.schemas.auth import HouseholdRegisterRequest, HouseholdLoginRequest, TokenResponse, HouseholdResponse
 from app.services.seed_defaults import seed_household_statuses
 from app.api.deps import get_current_household
+from app.core.rate_limit import rate_limit_login, rate_limit_register
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(rate_limit_register)])
 def register_household(req: HouseholdRegisterRequest, db: Session = Depends(get_db)):
     # Check duplicate email
     existing = db.query(Household).filter(Household.email == req.email.lower().strip()).first()
@@ -43,7 +45,7 @@ def register_household(req: HouseholdRegisterRequest, db: Session = Depends(get_
     )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, dependencies=[Depends(rate_limit_login)])
 def login_household(req: HouseholdLoginRequest, db: Session = Depends(get_db)):
     household = db.query(Household).filter(Household.email == req.email.lower().strip()).first()
     if not household or not verify_password(req.password, household.password_hash):

@@ -32,6 +32,8 @@ services:
       - SECRET_KEY=${SECRET_KEY:-menu-design-production-secret-key-must-be-changed-in-prod-min-32-chars!}
       - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-menu_user}:${POSTGRES_PASSWORD:-change_this_postgres_password_in_production!}@postgres:5432/${POSTGRES_DB:-menu_design}
       - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
+      - AUTH_RATE_LIMIT_PER_MINUTE=${AUTH_RATE_LIMIT_PER_MINUTE:-10}
     depends_on:
       postgres:
         condition: service_healthy

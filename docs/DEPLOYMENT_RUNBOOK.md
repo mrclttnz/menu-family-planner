@@ -40,7 +40,16 @@ POSTGRES_USER=menu_user
 POSTGRES_PASSWORD=<tua_password_sicura>
 CORS_ORIGINS=http://localhost:8000,http://<IP_LOCALE_SERVER>:8000,https://menu.tuodominio.it
 TUNNEL_TOKEN=<token_cloudflare_opzionale>
+AUTH_RATE_LIMIT_PER_MINUTE=10
+TRUSTED_PROXY_IPS=<subnet_docker_di_cloudflared>
 ```
+
+### Rate limiting di login/registrazione e IP del client (SEC-F02)
+`POST /api/v1/auth/login` e `/register` sono limitati a `AUTH_RATE_LIMIT_PER_MINUTE` richieste al minuto per IP e per endpoint (risposta `429` con header `Retry-After`). Lo stato è in memoria nel processo: l'immagine usa un solo worker uvicorn; con più worker/repliche il limite andrebbe spostato su uno store condiviso.
+
+- **Accesso diretto in LAN (porta 8000)**: lascia `TRUSTED_PROXY_IPS` vuoto o limitato al proxy; l'IP usato è quello della connessione.
+- **Dietro Cloudflare Tunnel**: `cloudflared` raggiunge l'app dalla rete Docker, quindi senza configurazione tutti gli utenti condividono lo stesso IP (un attaccante bloccherebbe tutti). Imposta `TRUSTED_PROXY_IPS` sulla subnet Docker del container `cloudflared` (`docker network inspect <progetto>_default`): solo allora vengono letti `CF-Connecting-IP` e `X-Forwarded-For`. Non impostarlo mai su un range raggiungibile da client non fidati: gli header sarebbero falsificabili e il limite aggirabile.
+- Facoltativo: aggiungere una regola di rate limiting WAF su Cloudflare per `/api/v1/auth/*` come difesa a monte (non copre l'accesso LAN).
 
 ---
 

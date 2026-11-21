@@ -62,7 +62,7 @@
 - **Risk**: An attacker could perform dictionary or brute-force attacks against `/api/v1/auth/login`. Furthermore, because `bcrypt` work factor is 12 (computationally intensive by design), burst requests can cause CPU exhaustion.
 - **Remediation**:
   Integrate rate limiting middleware (e.g. `slowapi` with in-memory or Redis backend) or configure rate limiting at the reverse proxy layer (e.g. Nginx `limit_req_zone` or Cloudflare WAF) limiting `/api/v1/auth/*` to 5-10 requests/minute per IP.
-- **Status**: `OPEN` (Documented / Recommended before public exposure)
+- **Status**: `REMEDIATED` in S24 (#24): in-app limiter on login/register (`backend/app/core/rate_limit.py`), 429 + `Retry-After`, forwarded headers trusted only from `TRUSTED_PROXY_IPS`; tests in `backend/tests/test_rate_limit.py`. Pending independent re-verification at the S24 security gate. Residual: per-process state (single worker), no per-account lockout.
 
 ---
 
