@@ -99,3 +99,35 @@ def test_disabled_flag_turns_limiter_off(client, monkeypatch):
 ])
 def test_resolve_client_ip(peer, trusted, headers, expected):
     assert resolve_client_ip(peer, headers, trusted) == expected
+
+
+def test_ipv4_mapped_peer_matches_ipv4_trusted_cidr():
+    assert resolve_client_ip("::ffff:172.18.0.3", {"CF-Connecting-IP": "1.2.3.4"}, "172.18.0.0/16") == "1.2.3.4"
+    assert resolve_client_ip("::ffff:1.2.3.4", {}, "") == "1.2.3.4"
+
+
+def test_gateway_peer_not_trusted_when_only_proxy_32_is_trusted():
+    # LAN client NATed to the bridge gateway must not be able to choose its bucket.
+    assert resolve_client_ip("172.18.0.1", {"CF-Connecting-IP": "9.9.9.9"}, "172.18.0.2/32") == "172.18.0.1"
+    assert resolve_client_ip("172.18.0.2", {"CF-Connecting-IP": "9.9.9.9"}, "172.18.0.2/32") == "9.9.9.9"
+
+
+def test_ipv6_clients_share_bucket_per_64():
+    from app.core.rate_limit import limiter_key
+    assert limiter_key("2001:db8:1:2::1") == limiter_key("2001:db8:1:2:ffff::9")
+    assert limiter_key("2001:db8:1:3::1") != limiter_key("2001:db8:1:2::1")
+    assert limiter_key("1.2.3.4") == "1.2.3.4"
+
+
+def test_tracked_keys_are_hard_capped(monkeypatch):
+    import app.core.rate_limit as rl
+    monkeypatch.setattr(rl, "_MAX_TRACKED_KEYS", 50)
+    for i in range(500):
+        auth_limiter.hit(f"k{i}", 5)
+    assert len(auth_limiter._hits) <= 50
+
+
+def test_non_positive_limit_is_rejected_by_settings():
+    from app.core.config import Settings
+    with pytest.raises(ValueError):
+        Settings(AUTH_RATE_LIMIT_PER_MINUTE=0)

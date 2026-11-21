@@ -24,6 +24,13 @@ class Settings(BaseSettings):
         extra="ignore"
     )
 
+    @field_validator("AUTH_RATE_LIMIT_PER_MINUTE")
+    @classmethod
+    def validate_rate_limit(cls, v: int) -> int:
+        if v < 1:
+            raise ValueError("AUTH_RATE_LIMIT_PER_MINUTE must be >= 1 (use AUTH_RATE_LIMIT_ENABLED=false to disable).")
+        return v
+
     @field_validator("SECRET_KEY")
     @classmethod
     def validate_secret_key(cls, v: str, info) -> str:

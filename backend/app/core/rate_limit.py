@@ -7,8 +7,8 @@ import ipaddress
 import math
 import threading
 import time
-from collections import deque
-from typing import Dict, Deque, Mapping, Optional, List
+from collections import OrderedDict, deque
+from typing import Deque, Mapping, Optional, List
 
 from fastapi import HTTPException, Request, status
 
@@ -21,7 +21,8 @@ _MAX_TRACKED_KEYS = 10_000
 class SlidingWindowLimiter:
     def __init__(self, window_seconds: int = WINDOW_SECONDS) -> None:
         self.window = window_seconds
-        self._hits: Dict[str, Deque[float]] = {}
+        # Ordered by last hit (oldest first) so the size cap can evict in O(1).
+        self._hits: "OrderedDict[str, Deque[float]]" = OrderedDict()
         self._lock = threading.Lock()
 
     def _now(self) -> float:
@@ -31,19 +32,19 @@ class SlidingWindowLimiter:
         """Register one attempt. Returns None if allowed, else seconds until retry."""
         now = self._now()
         with self._lock:
-            if len(self._hits) > _MAX_TRACKED_KEYS:
-                self._purge(now)
-            q = self._hits.setdefault(key, deque())
+            q = self._hits.get(key)
+            if q is None:
+                q = self._hits[key] = deque()
+                # Hard cap: evict the least recently used key (O(1)); expired keys age out first.
+                while len(self._hits) > _MAX_TRACKED_KEYS:
+                    self._hits.popitem(last=False)
             while q and now - q[0] >= self.window:
                 q.popleft()
             if len(q) >= limit:
                 return max(1, math.ceil(self.window - (now - q[0])))
             q.append(now)
+            self._hits.move_to_end(key)
             return None
-
-    def _purge(self, now: float) -> None:
-        for k in [k for k, q in self._hits.items() if not q or now - q[-1] >= self.window]:
-            del self._hits[k]
 
     def reset(self) -> None:
         with self._lock:
@@ -67,10 +68,22 @@ def _parse_networks(raw: str) -> List[ipaddress._BaseNetwork]:
 
 
 def _valid_ip(value: str) -> Optional[ipaddress._BaseAddress]:
+    """Parse an IP; IPv4-mapped IPv6 (::ffff:a.b.c.d) is normalized to plain IPv4."""
     try:
-        return ipaddress.ip_address(value.strip())
+        ip = ipaddress.ip_address(value.strip())
     except ValueError:
         return None
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
+        return ip.ipv4_mapped
+    return ip
+
+
+def limiter_key(ip: str) -> str:
+    """Bucket key: IPv6 clients are grouped per /64 (one subscriber owns a whole /64)."""
+    parsed = _valid_ip(ip)
+    if isinstance(parsed, ipaddress.IPv6Address):
+        return str(ipaddress.ip_network(f"{parsed}/64", strict=False))
+    return str(parsed) if parsed is not None else ip
 
 
 def resolve_client_ip(peer: str, headers: Mapping[str, str], trusted_proxies: str) -> str:
@@ -78,8 +91,10 @@ def resolve_client_ip(peer: str, headers: Mapping[str, str], trusted_proxies: st
     nets = _parse_networks(trusted_proxies)
     peer_ip = _valid_ip(peer)
     is_trusted = lambda ip: any(ip in n for n in nets)  # noqa: E731
-    if peer_ip is None or not is_trusted(peer_ip):
+    if peer_ip is None:
         return peer
+    if not is_trusted(peer_ip):
+        return str(peer_ip)
 
     headers = {k.lower(): v for k, v in headers.items()}
     cf = headers.get("cf-connecting-ip")
@@ -95,15 +110,16 @@ def resolve_client_ip(peer: str, headers: Mapping[str, str], trusted_proxies: st
                 break
             if not is_trusted(ip):
                 return str(ip)
-    return peer
+    return str(peer_ip)
 
 
 def _enforce(scope: str, request: Request) -> None:
     if not settings.AUTH_RATE_LIMIT_ENABLED:
         return
+    # No peer info (should not happen over TCP): all such requests share one bucket.
     peer = request.client.host if request.client else "unknown"
     ip = resolve_client_ip(peer, request.headers, settings.TRUSTED_PROXY_IPS)
-    retry_after = auth_limiter.hit(f"{scope}:{ip}", settings.AUTH_RATE_LIMIT_PER_MINUTE)
+    retry_after = auth_limiter.hit(f"{scope}:{limiter_key(ip)}", settings.AUTH_RATE_LIMIT_PER_MINUTE)
     if retry_after is not None:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,

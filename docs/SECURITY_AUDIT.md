@@ -62,7 +62,7 @@
 - **Risk**: An attacker could perform dictionary or brute-force attacks against `/api/v1/auth/login`. Furthermore, because `bcrypt` work factor is 12 (computationally intensive by design), burst requests can cause CPU exhaustion.
 - **Remediation**:
   Integrate rate limiting middleware (e.g. `slowapi` with in-memory or Redis backend) or configure rate limiting at the reverse proxy layer (e.g. Nginx `limit_req_zone` or Cloudflare WAF) limiting `/api/v1/auth/*` to 5-10 requests/minute per IP.
-- **Status**: `REMEDIATED` in S24 (#24): in-app limiter on login/register (`backend/app/core/rate_limit.py`), 429 + `Retry-After`, forwarded headers trusted only from `TRUSTED_PROXY_IPS`; tests in `backend/tests/test_rate_limit.py`. Pending independent re-verification at the S24 security gate. Residual: per-process state (single worker), no per-account lockout.
+- **Status**: `REMEDIATED` in S24 (#24): in-app limiter on login/register (`backend/app/core/rate_limit.py`), 429 + `Retry-After`, forwarded headers trusted only from `TRUSTED_PROXY_IPS`; tests in `backend/tests/test_rate_limit.py`. Independently audited at the S24 gate (section 6). Residual: per-process state (single worker), no per-account lockout.
 
 ---
 
@@ -113,3 +113,24 @@ Every single resource operation is strictly scoped:
 - **Gate Status**: **`APPROVED (PASS_WITH_WARNINGS)`**
 - **Condition for Production Release (Phase 7)**:
   Ensure `SECRET_KEY` is overridden in production environment (`.env` or Docker secrets) and rate-limiting is configured at ingress.
+
+---
+
+## 6. Slice S24 Addendum (2026-11-21): Auth Rate Limiting (#24, SEC-F02)
+
+Scope: `git diff 234ed5b..d12a45f` (`rate_limit.py`, `config.py`, `auth.py`, compose, `.env.example`, runbook, tests). Test suite: 54 passed.
+
+**Verdict: PASS_WITH_WARNINGS** (no CRITICAL/HIGH). Trusted-proxy logic is correct and fails closed on malformed headers/CIDRs; forwarded headers are ignored unless the direct peer is trusted; XFF is walked right-to-left; Retry-After is correct; limiter state is lock-protected; throttled attempts are not recorded (no self-extending lockout).
+
+| # | Sev | Location | Finding | Remediation |
+|---|-----|----------|---------|-------------|
+| 1 | MEDIUM | `rate_limit.py` `_enforce`/`hit`, `_purge` | Unbounded key growth. Purge only removes expired keys and only above 10k keys; with >10k active keys (reachable via IPv6 address rotation in a /64, or spoofed headers if a trusted range is misconfigured) memory grows without bound and each hit runs an O(n) purge under the global lock (CPU DoS of auth). | Hard cap (evict oldest / fail closed to a shared overflow bucket); amortize purge (time-based, not per hit). |
+| 2 | MEDIUM | `resolve_client_ip` | IPv6 clients are keyed per /128, so one attacker with a /64 gets effectively unlimited buckets (bypass of bcrypt-CPU protection). IPv4-mapped forms are not normalized: `::ffff:1.2.3.4` and `1.2.3.4` are different keys; a mapped peer (`::ffff:172.18.0.2`) is not matched by an IPv4 trusted CIDR (verified), so it silently degrades to one shared bucket. | Normalize via `ipv4_mapped`; key IPv6 on /64. |
+| 3 | MEDIUM | runbook / `.env.example` | Advice to trust the whole docker subnet. Docker NAT/userland-proxy can make LAN clients hitting published port 8000 appear from the bridge gateway (inside that subnet); then `CF-Connecting-IP` is attacker-controlled (CF header also takes precedence over XFF) and the limit is bypassed. | Document trusting only the cloudflared container (static IP/`/32`) and not publishing 8000 on the LAN when the tunnel is used; verify with a spoofed-header test. |
+| 4 | LOW | `hit()` | `AUTH_RATE_LIMIT_PER_MINUTE<=0` raises IndexError (verified) -> HTTP 500 on all auth (fail-closed but an outage, bad UX). `AUTH_RATE_LIMIT_ENABLED=false` silently disables the limiter. | Validate `>=1` in settings (Pydantic `Field(ge=1)`); log a warning when disabled. |
+| 5 | LOW | design | Per-IP only; no per-account throttling, so distributed credential stuffing on one account is not slowed. Unset `TRUSTED_PROXY_IPS` behind the tunnel puts all users in one bucket (self-DoS, documented). In-memory, single worker only (documented). | Optional per-email counter; keep Cloudflare WAF rule. |
+| 6 | LOW (pre-existing) | `auth.py` | Enumeration: register returns 409 for existing email; login skips bcrypt for unknown email (timing). 429 is IP-based and adds no new oracle. | Dummy-hash verify on login; consider generic register response. |
+
+Positives: spoofed XFF/CF headers from untrusted peers ignored (verified); malformed hop or CIDR -> peer IP (fail closed); the limiter sits before the bcrypt work and counts 422/401/409 attempts alike.
+
+**Remediation (same slice, tests 59/59):** #1 fixed (LRU hard cap, O(1) eviction, no per-hit purge); #2 fixed (IPv4-mapped normalized, IPv6 keyed per /64); #3 fixed (docs and `.env.example` now require the exact cloudflared IP as `/32`; tests for gateway peer and mapped peer); #4 fixed (`AUTH_RATE_LIMIT_PER_MINUTE >= 1` validated, warning logged when disabled). #5 and #6 tracked as backlog in GitHub issue #35. Gate result stays **PASS_WITH_WARNINGS**; no re-audit of the fixes by `security-engineer` yet.

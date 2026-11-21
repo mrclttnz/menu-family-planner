@@ -1,4 +1,5 @@
 from contextlib import asynccontextmanager
+import logging
 import os
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -23,6 +24,8 @@ async def lifespan(app: FastAPI):
         seed_system_lookups(db)
     finally:
         db.close()
+    if not settings.AUTH_RATE_LIMIT_ENABLED:
+        logging.getLogger("app").warning("AUTH_RATE_LIMIT_ENABLED=false: auth rate limiting is OFF")
     yield
 
 
