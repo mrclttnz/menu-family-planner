@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
-from app.core.security import hash_password, verify_password, create_access_token
+from app.core.security import hash_password, verify_password, create_access_token, _DUMMY_HASH
 from app.models.household import Household
 from app.schemas.auth import HouseholdRegisterRequest, HouseholdLoginRequest, TokenResponse, HouseholdResponse
 from app.services.seed_defaults import seed_household_statuses
@@ -48,7 +48,9 @@ def register_household(req: HouseholdRegisterRequest, db: Session = Depends(get_
 @router.post("/login", response_model=TokenResponse, dependencies=[Depends(rate_limit_login)])
 def login_household(req: HouseholdLoginRequest, db: Session = Depends(get_db)):
     household = db.query(Household).filter(Household.email == req.email.lower().strip()).first()
-    if not household or not verify_password(req.password, household.password_hash):
+    # Always run one bcrypt verification, even for unknown emails (timing equalization).
+    password_ok = verify_password(req.password, household.password_hash if household else _DUMMY_HASH)
+    if not household or not password_ok:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password.",
