@@ -6,7 +6,9 @@
 - **Project Name**: Menu Design
 - **One-Line Vision**: Family-first meal planning web application to catalog favorite dishes, track recipe sources, manage diner attendance by exception, and eliminate mealtime friction.
 - **Active Bottega Profile**: `forge`
-- **Current Phase**: `Phase 7: Deployment & Delivery Complete`
+- **Rationale for Profile**: Authenticated multi-tenant (household) data, internet-exposed via Cloudflare Tunnel, personal/family data (no payments, no regulated PII) -> `forge`. Unchanged from original Phase 0 triage.
+- **Current Phase**: `Evolution`
+- **Origin**: `greenfield` (built with Bottega on Antigravity; tooling migrated to Claude Code / `bottega-dev` on 2026-11-21, see `docs/ONBOARDING_REPORT.md`)
 
 ## 2. Key Technology & Architecture Decisions
 | Layer | Chosen Technology | Rationale / Trade-off | Status |
@@ -19,49 +21,73 @@
 | **Deployment Target** | Self-Hosted Docker Compose (App + Postgres 16) + Cloudflare Tunnel | Accesso locale LAN + accesso sicuro HTTPS remoto senza esporre porte router | Implemented |
 
 ## 3. Artifact Index
+- **Project Context (stack, commands, conventions, rules)**: `CLAUDE.md` — `[Created - commands verified 2026-11-21; install/lint/migrations TBD]`
 - **Requirements Spec**: `docs/PRD.md` — `[Approved - Gate 1]`
 - **System Architecture**: `docs/ARCHITECTURE.md` — `[Approved - Gate 2]`
 - **Threat Model**: Inline in `docs/ARCHITECTURE.md` (§6) — `[Approved - Gate 2]`
 - **Database Design**: `docs/DB_SCHEMA.md` — `[Approved - Gate 3]`
-- **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (27/27 Tests Passing)]`
-- **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS)]`
+- **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (40/40 backend tests passing, re-verified 2026-11-21; no frontend tests)]`
+- **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS); dated 2026-10-25, stale: predates S8-S23, SEC-F01 already fixed in code]`
 - **Deployment Runbook**: `docs/DEPLOYMENT_RUNBOOK.md` — `[Approved - Gate 7 (Ready)]`
 - **External Docker Runbook (QNAP & Docker Hub)**: `docs/DEPLOYMENT_DOCKER_EXTERNAL.md` — `[Production Ready]`
+- **Delivery Plan**: `docs/DELIVERY_PLAN.md` — `[Approved - Gate B]`
+- **Onboarding Report**: `docs/ONBOARDING_REPORT.md` — `[Approved - Gate B]`
 - **Dynamic Work-Item Backlog**: GitHub Issues ([mrclttnz/menu-family-planner/issues](https://github.com/mrclttnz/menu-family-planner/issues)) — `[Active Backlog]`
 - **Archived Suggestions & Feedback**: `docs/archive/suggerimenti.md` — `[Migrated to Issues #1-#4]`
 
 ## 4. Vertical Slices & Implementation Backlog
-| Slice ID | Feature / Module | Owner Role | Dev Status | QA Status | Review & Sec Gate |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `S1` | Household Setup, Auth & Member Profiles | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S2` | Master Lookups (`meal_types`, `dish_status_lookups`) & Configurable Taxonomies | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S3` | Multi-Course Dish Catalog & Recipe Sources | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S4` | Member Dish Preferences (`favorite` / `neutral` / `dislike`) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S5` | Dynamic Daily Meal Slots (Pranzo/Cena/Brunch/Merenda) & Exception-Based Attendance | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S6` | Meal Calendar & Smart Preference/Attendance Compatibility Alerts | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S7` | Mobile Dashboard & Kitchen Overview (React SPA) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S8` | Usability & Planning Extensions (Alternative Dishes, Meal Notes, Multi-Views, Quick Create, Meal Ratings) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S9` | Dish Catalog Import & Export (Excel, CSV, JSON) ([#2](https://github.com/mrclttnz/menu-family-planner/issues/2)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S10` | Multi-language Support (i18n: IT/EN) ([#1](https://github.com/mrclttnz/menu-family-planner/issues/1)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S11` | Meal Planner Attendance Indicator & Modal ([#8](https://github.com/mrclttnz/menu-family-planner/issues/8)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S12` | Meal Planner: Edit Assigned Dish & Diners ([#9](https://github.com/mrclttnz/menu-family-planner/issues/9)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S13` | Compact Card View for Dish Catalog ([#10](https://github.com/mrclttnz/menu-family-planner/issues/10)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S14` | Dish Tags & Cross-View Filtered Selection ([#7](https://github.com/mrclttnz/menu-family-planner/issues/7)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S15` | Responsive Mobile Optimization & Compact Vertical Single-Column Flow ([#13](https://github.com/mrclttnz/menu-family-planner/issues/13)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S16` | Dish Name Trimming & Whitespace Sanitization ([#16](https://github.com/mrclttnz/menu-family-planner/issues/16)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S17` | Prevent Duplicate Dish Name in Catalog ([#17](https://github.com/mrclttnz/menu-family-planner/issues/17)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S18` | User-Friendly Localized Error Messages & Validation Feedback ([#18](https://github.com/mrclttnz/menu-family-planner/issues/18)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S19` | Dynamic UI Theme & Base Color Palette Customization ([#12](https://github.com/mrclttnz/menu-family-planner/issues/12)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S20` | Remove Fake Default Credentials from Login Form ([#21](https://github.com/mrclttnz/menu-family-planner/issues/21)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S21` | Weekly Menu Print & Fridge Planner ([#22](https://github.com/mrclttnz/menu-family-planner/issues/22)) — Tech Debt tracked in [#23](https://github.com/mrclttnz/menu-family-planner/issues/23) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S22` | Clarify Dish Description vs Notes in Forms & Catalog Views ([#20](https://github.com/mrclttnz/menu-family-planner/issues/20)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
-| `S23` | Today View Meal Slot Notes & Full Dish Details Visibility ([#19](https://github.com/mrclttnz/menu-family-planner/issues/19)) | `software-craftsman` | `DONE` | `PASS` | `APPROVE` |
+Each slice runs the slice loop (Phases 4–6) and is `DONE` only when its gates have passed. `N/A` = step not required by the profile (Red Tests outside `citadel`).
+S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/5/6 values are carried over from the legacy table; Covers/Depends/Size/Docs Sync were not recorded (`—`). S24+ planned by `delivery-planner` (details in `docs/DELIVERY_PLAN.md`).
+
+| Slice ID | Issue Ref | Feature / Module | Covers (US / AC) | Depends On | Size | Sec-Sensitive | Status | Red Tests (4a) | Gate 4 Impl | Docs Sync | Gate 5 QA | Gate 6 Review & Sec |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `S1` | `N/A` | Household Setup, Auth & Member Profiles | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S2` | `N/A` | Master Lookups (`meal_types`, `dish_status_lookups`) & Configurable Taxonomies | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S3` | `N/A` | Multi-Course Dish Catalog & Recipe Sources | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S4` | `N/A` | Member Dish Preferences (`favorite` / `neutral` / `dislike`) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S5` | `N/A` | Dynamic Daily Meal Slots (Pranzo/Cena/Brunch/Merenda) & Exception-Based Attendance | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S6` | `N/A` | Meal Calendar & Smart Preference/Attendance Compatibility Alerts | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S7` | `N/A` | Mobile Dashboard & Kitchen Overview (React SPA) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S8` | `N/A` | Usability & Planning Extensions (Alternative Dishes, Meal Notes, Multi-Views, Quick Create, Meal Ratings) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S9` | `#2` | Dish Catalog Import & Export (Excel, CSV, JSON) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S10` | `#1` | Multi-language Support (i18n: IT/EN) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S11` | `#8` | Meal Planner Attendance Indicator & Modal | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S12` | `#9` | Meal Planner: Edit Assigned Dish & Diners | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S13` | `#10` | Compact Card View for Dish Catalog | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S14` | `#7` | Dish Tags & Cross-View Filtered Selection | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S15` | `#13` | Responsive Mobile Optimization & Compact Vertical Single-Column Flow | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S16` | `#16` | Dish Name Trimming & Whitespace Sanitization | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S17` | `#17` | Prevent Duplicate Dish Name in Catalog | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S18` | `#18` | User-Friendly Localized Error Messages & Validation Feedback | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S19` | `#12` | Dynamic UI Theme & Base Color Palette Customization | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S20` | `#21` | Remove Fake Default Credentials from Login Form | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S21` | `#22` | Weekly Menu Print & Fridge Planner (tech debt: #23) | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S22` | `#20` | Clarify Dish Description vs Notes in Forms & Catalog Views | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S23` | `#19` | Today View Meal Slot Notes & Full Dish Details Visibility | — | — | — | — | `DONE` | `N/A` | `DONE` | `N/A (legacy)` | `PASS` | `APPROVE` |
+| `S24` | `#24` | Auth endpoint rate limiting (SEC-F02) | SEC-F02 | — | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S25` | `#25` | Security hardening batch + audit report refresh (SEC-F01 close, F03, F04) | SEC-F01/3/4 | — | `S` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S26` | `#26` | Quality foundation I: CI, linters, typecheck | QF-1..3 | — | `M` | partly | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S27` | `#27` | Quality foundation II: frontend test harness | QF-4 | S26 | `S` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S28` | `#28` | Frontend toolchain upgrade (vite/esbuild advisories) | NPM-AUDIT | S26, S27 | `S` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S29` | `#29` | Decision (Alembic, ADR) + docs: duplicate psycopg, prod compose | DOC-1..3 | — | `S` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S30` | `#30` | Backend characterization tests (config, headers, migrations, import/export, auth) | TG-1..3 | S24, S25 | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S31` | `#31` | Frontend characterization tests (print, theme, i18n, utils) | TG-4, TG-5 | S27 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S32` | `#23` | Print layout tech debt | GH#23 AC | S31 | `M` | no | `READY after S31` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S33` | `#11` | Weekly default attendance | GH#11 (AC derived, confirm at start) | S29, S30, S34 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S35` | `#5` | User management I: identity model split + auth refactor | GH#5 AC | S24, S34, S30 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S36` | `#5` | User management II: manage users in a household | GH#5 AC | S35 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S37` | `#3` | Guest attendance in planned meals | — | — | `—` | — | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S38` | `#4` | Automatic weekly menu suggestion | — | — | `—` | — | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S39` | `#6` | Recipe scraping from source URL | — | — | `—` | yes (SSRF) | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S40` | `#14, #15` | Native Android / iOS apps | — | — | `—` | — | `OUT OF SCOPE (epic only)` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 
 ## 5. Quality & Security Gate Log
+- **[x] Gate B (Baseline Approved)**: 2026-11-21. User confirmed profile `forge`, existing PRD kept (no reconstruction), backlog priorities (security S24/S25 first, then S26–S28), decision to adopt Alembic (S29/S34). Questions on #5 deferred to just before coding S35. Baseline in `docs/ONBOARDING_REPORT.md`.
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
 - [x] **Gate 2 (Architecture & Threat Model Approved)**: Decoupled FastAPI + React SPA with SQLite/Postgres and Option 1 (`favorite` / `neutral` / `dislike`).
 - [x] **Gate 3 (DB Schema & Modules Approved)**: Normalized `dish_status_lookups`, dynamic daily `meal_types`, exception-based attendance, and normalized `tags`/`dish_tags`.
-- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded)**: 40 automated tests passing with 100% success rate in `backend/tests/` and frontend bundle verified with dynamic CSS variable theme generation and localized UI error handling.
+- [x] **Gate 5 (Automated Tests Passing — Evidence Recorded; historical, global)**: 40 automated tests passing with 100% success rate in `backend/tests/` and frontend bundle verified with dynamic CSS variable theme generation and localized UI error handling.
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).
