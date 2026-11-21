@@ -83,6 +83,13 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S39` | `#6` | Recipe scraping from source URL | — | — | `—` | yes (SSRF) | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S40` | `#14, #15` | Native Android / iOS apps | — | — | `—` | — | `OUT OF SCOPE (epic only)` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 
+## Release Prerequisites
+Actions that must be done in an environment before (or during) the next release. Whoever introduces one adds a row in the same task (e.g. a production variable with no safe default, an external setup step, a one-off data migration, a secret to rotate). Gate 7 can't pass while a row for the target environment is `OPEN`.
+
+| ID | Action before release | Environment | Introduced by | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| `RP-01` | Set `TRUSTED_PROXY_IPS` to the exact IP of the cloudflared container as `/32` (never the whole docker subnet); if `docker-compose.prod.yml` is separate from `docker-compose.yml`, also pass `TRUSTED_PROXY_IPS` and `AUTH_RATE_LIMIT_PER_MINUTE` through to the `app` service. See `docs/DEPLOYMENT_RUNBOOK.md` (rate limiting section). | `prod` | `S24` | `OPEN` |
+
 ## 5. Quality & Security Gate Log
 - **[x] Gate B (Baseline Approved)**: 2026-11-21. User confirmed profile `forge`, existing PRD kept (no reconstruction), backlog priorities (security S24/S25 first, then S26–S28), decision to adopt Alembic (S29/S34). Questions on #5 deferred to just before coding S35. Baseline in `docs/ONBOARDING_REPORT.md`.
 - [x] **Gate 1 (Requirements Approved)**: PRD signed off with multi-course support, configurable classifications, and member dish preferences.
