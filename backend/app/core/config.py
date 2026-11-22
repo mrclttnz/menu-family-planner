@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     def validate_secret_key(cls, v: str, info) -> str:
         if len(v) < 32:
             raise ValueError("SECRET_KEY must be at least 32 characters long for security.")
-        env = info.data.get("ENVIRONMENT", "development")
+        env = str(info.data.get("ENVIRONMENT", "development")).strip().lower()
         if env == "production" and "change-in-production" in v:
             raise ValueError("Default development SECRET_KEY is not allowed in production.")
         return v
