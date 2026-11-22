@@ -26,8 +26,8 @@
 - **System Architecture**: `docs/ARCHITECTURE.md` — `[Approved - Gate 2]`
 - **Threat Model**: Inline in `docs/ARCHITECTURE.md` (§6) — `[Approved - Gate 2]`
 - **Database Design**: `docs/DB_SCHEMA.md` — `[Approved - Gate 3]`
-- **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (40/40 backend tests passing, re-verified 2026-11-21; no frontend tests)]`
-- **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS); dated 2026-10-25, stale: predates S8-S23, SEC-F01 already fixed in code]`
+- **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5; per-slice evidence in the slice table: 219 backend tests (S34) + 7 frontend tests (S27/S28), CI green]`
+- **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS); dated 2026-10-25, refreshed 2026-11-22 with S24/S25 addenda (SEC-F01/F02/F03/F04 closed); still does not cover S8-S23 in depth; no addendum yet for S30/S34 findings]`
 - **ADR-0001 (Alembic adoption)**: `docs/adr/0001-adopt-alembic-for-migrations.md` — `[Accepted; implemented in S34]`
 - **Deployment Runbook**: `docs/DEPLOYMENT_RUNBOOK.md` — `[Approved - Gate 7 (Ready)]`
 - **External Docker Runbook (QNAP & Docker Hub)**: `docs/DEPLOYMENT_DOCKER_EXTERNAL.md` — `[Production Ready]`
