@@ -55,14 +55,16 @@ def test_production_check_ignores_case_and_surrounding_whitespace(monkeypatch, e
 
 
 def test_custom_secret_key_is_accepted_in_production(monkeypatch):
-    cfg = _make_settings(monkeypatch, ENVIRONMENT="production", SECRET_KEY="a-real-random-secret-" + "z" * 20)
+    custom_key = "a-real-random-secret-" + "z" * 20
+    cfg = _make_settings(monkeypatch, ENVIRONMENT="production", SECRET_KEY=custom_key)
     assert cfg.ENVIRONMENT == "production"
 
 
 def test_secret_key_containing_marker_is_rejected_in_production_even_if_custom(monkeypatch):
     # The production guard is a substring check on "change-in-production".
     with pytest.raises(ValidationError, match="not allowed in production"):
-        _make_settings(monkeypatch, ENVIRONMENT="production", SECRET_KEY="my-own-but-change-in-production-" + "k" * 10)
+        marker_key = "my-own-but-change-in-production-" + "k" * 10
+        _make_settings(monkeypatch, ENVIRONMENT="production", SECRET_KEY=marker_key)
 
 
 @pytest.mark.parametrize("value", ["0", "-5"])
