@@ -48,6 +48,7 @@ The testing strategy ensures high test confidence without brittle mocks:
 | **`US-19` Meal Planner Edit Assigned Dish & Diners (`S12` / Issue #9)** | `backend/tests/test_calendar_and_attendance.py`, `frontend/` build | Clickable dish title in all matrix views (`compact_h`, `compact_v`, `detailed`) opening edit modal to modify diner assignment (`PATCH /calendar/slots/{id}/dishes/{dish_id}` or all diners). | **PASS** |
 | **`US-22` Prevent Duplicate Dish Name (`S17` / Issue #17)** | `backend/tests/test_dishes_and_preferences.py`, `frontend/` build | Case-insensitive and trimmed duplicate rejection on creation (400) and title rename (400); identical title allowed across different households (multi-tenant isolation); client-side instant validation on both catalog modal and quick create form. | **PASS** |
 | **`QF-4` Frontend test harness (`S27` / Issue #27)** | `frontend/src/dateUtils.test.ts`, `frontend/src/components/TagColorPicker.test.tsx` | Vitest + React Testing Library + jsdom run by `npm test` locally and in CI; smoke tests: pure util (date range/format) and i18n-rendered component (language switch, localized validation error). Characterization coverage follows in S31. | **PASS** |
+| **`NPM-AUDIT` Frontend toolchain upgrade (`S28` / Issue #28)** | `frontend/` lint, typecheck, `npm test`, build, `npm audit`, Docker build | vite 8 / vitest 5 upgrade: `npm audit` 0 vulnerabilities, 7 frontend tests pass, production build and Docker image build OK, CI audit step enforcing. Manual browser check of print/theme/i18n NOT done (deferred, see PROJECT_STATE). | **PASS** |
 | **`US-07` Frontend SPA Verification** | `frontend/` build pipeline | TypeScript compile (`tsc`), JSX bundling with Vite, production assets generated without errors, static mount verified on FastAPI. | **PASS** |
 
 ---
@@ -112,10 +113,10 @@ tests/test_members.py::test_delete_member PASSED                         [100%]
 > menu-design-frontend@1.0.0 build
 > tsc && vite build
 
-vite v5.4.21 building for production...
-✓ 1991 modules transformed.
-dist/index.html                   0.74 kB │ gzip:   0.49 kB
-dist/assets/index-T4isYaV8.css   36.83 kB │ gzip:   6.56 kB
-dist/assets/index-CzFcvtqJ.js   378.03 kB │ gzip: 102.25 kB
-✓ built in 3.63s
+vite v8.3.8 building client environment for production...
+✓ 1977 modules transformed.
+dist/index.html                   0.76 kB │ gzip:   0.50 kB
+dist/assets/index-B6IgYBJ6.css   44.85 kB │ gzip:   7.97 kB
+dist/assets/index-CKb5S8Aq.js   415.36 kB │ gzip: 110.36 kB
+✓ built in 1.04s
 ```
