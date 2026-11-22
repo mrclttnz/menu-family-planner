@@ -2,7 +2,7 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Updated Draft for User Sign-Off (Gate 3)  
+> **Status**: Approved (Gate 3); migrations via Alembic since S34  
 > **Author**: Bottega Data Architect (`data-architect`)
 
 ---
