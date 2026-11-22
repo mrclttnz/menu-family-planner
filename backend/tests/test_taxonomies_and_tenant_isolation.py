@@ -60,6 +60,7 @@ def test_course_and_source_create_validate_payload(client, auth_headers):
     assert client.post(f"{TAX}/sources", headers=auth_headers, json={"name": "x", "bogus": 1}).status_code == 422
 
 
+# pins #53
 def test_whitespace_only_course_name_is_currently_accepted_as_empty_name(client, auth_headers):
     """Characterization / FINDING: min_length=1 passes for '   ' and the router strips it afterwards, so a
     course with an empty name is created. Logged as a separate issue, not fixed here."""

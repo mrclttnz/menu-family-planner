@@ -172,6 +172,7 @@ def test_token_for_unknown_household_is_rejected(client, auth_headers):
     assert client.get(ME_URL, headers=_bearer(create_access_token(subject=987654))).status_code == 401
 
 
+# pins #56
 def test_token_without_exp_is_currently_accepted(client, auth_headers):
     """Characterization: PyJWT does not require `exp` unless asked, so a validly signed token
     with no expiry is accepted. Pinned as current behavior (not an endorsement)."""

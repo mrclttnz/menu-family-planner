@@ -151,6 +151,7 @@ def test_binary_content_named_csv_creates_nothing(client, auth_headers):
 
 # --- size limit ---------------------------------------------------------------------------------------
 
+# related to #55 (the late size check itself is not pinned)
 def test_file_over_max_size_is_rejected_with_row_zero_error(client, auth_headers):
     big = b"a" * (MAX_FILE_SIZE + 1)
     body = _import(client, auth_headers, big).json()
@@ -176,6 +177,7 @@ def test_utf8_bom_csv_is_supported(client, auth_headers):
     assert _dishes(client, auth_headers)[0]["title"] == "Crème brûlée"
 
 
+# pins #54
 def test_semicolon_delimited_csv_is_currently_not_supported(client, auth_headers):
     """Characterization: Italian Excel exports use ';' but the parser only splits on ','. The whole header
     collapses into a single unknown column, so every row fails the mandatory 'title' check."""
@@ -186,6 +188,7 @@ def test_semicolon_delimited_csv_is_currently_not_supported(client, auth_headers
     assert "obbligatorio" in body["errors"][0]["error"]
 
 
+# pins #54
 def test_italian_headers_are_currently_not_recognized(client, auth_headers):
     content = "titolo,descrizione,stato,portate\nPasta,Buona,OK,Primo\n"
     body = _import(client, auth_headers, content).json()
@@ -252,6 +255,7 @@ def test_status_can_be_matched_by_code_by_name_and_by_custom_label(client, auth_
     assert body["created"] == 4, body["errors"]
 
 
+# pins #54
 def test_unknown_course_is_currently_auto_created_as_a_household_course(client, auth_headers):
     """Characterization: a typo in 'courses' silently creates a new custom course type."""
     body = _import(client, auth_headers, "title,status,courses\nPasta,OK,Piattino\n").json()
@@ -261,6 +265,7 @@ def test_unknown_course_is_currently_auto_created_as_a_household_course(client, 
     assert created["is_custom"] is True
 
 
+# pins #54
 def test_unknown_source_type_is_currently_auto_created_as_a_household_source(client, auth_headers):
     _import(client, auth_headers, "title,status,courses,source_type\nPasta,OK,Primo,Rivista di cucina\n")
     sources = client.get("/api/v1/taxonomies/sources", headers=auth_headers).json()
@@ -281,6 +286,7 @@ def test_row_without_status_is_an_error(client, auth_headers):
 
 # --- long values -----------------------------------------------------------------------------------------
 
+# pins #49 (SQLite-only behavior: will change if a PostgreSQL CI job is added)
 def test_title_over_200_chars_is_currently_accepted_on_sqlite(client, auth_headers):
     """Characterization / FINDING: the import path does not enforce the 200-char title limit that
     POST /dishes enforces (and `dishes.title` is VARCHAR(200)). SQLite ignores the length; PostgreSQL would
@@ -325,6 +331,7 @@ def test_import_creates_missing_tags_with_default_color_and_reuses_existing_ones
     assert sorted(t["name"] for t in _dishes(client, auth_headers)[0]["tags"]) == ["Estivo", "Nuovo", "Veloce"]
 
 
+# pins #50
 def test_json_import_accepts_tags_as_a_list(client, auth_headers):
     items = json.dumps([{"title": "Pasta", "status": "OK", "courses": ["Primo"], "tags": ["Veloce", "Light"]}])
     assert _import(client, auth_headers, items, filename="t.json").json()["created"] == 1
@@ -361,6 +368,7 @@ def test_duplicates_inside_the_same_file_are_skipped_in_skip_mode(client, auth_h
     assert (body["created"], body["skipped"], body["updated"]) == (1, 2, 0)
 
 
+# pins #51
 def test_duplicates_inside_the_same_file_in_update_mode_currently_accumulate_courses(client, auth_headers):
     """Characterization / FINDING: the row that creates a dish queues its DishCourse rows without flushing,
     so the bulk DELETE issued by the next 'update' row for the same title does not see them. Both rows'
@@ -438,6 +446,7 @@ def test_imported_formula_is_stored_with_a_quote_prefix(client, auth_headers):
     assert dish["title"] == "'=1+2" and dish["description"] == "'@x"
 
 
+# pins #52
 def test_export_then_import_roundtrip_of_a_formula_title_currently_creates_a_second_dish(client, auth_headers):
     """Characterization / FINDING: import stores '=1+2' as "'=1+2"; export keeps "'=1+2"; re-importing that
     file strips the leading quote, so the title no longer matches the stored one and a new dish '=1+2' is
