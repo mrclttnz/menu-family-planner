@@ -89,7 +89,7 @@ Actions that must be done in an environment before (or during) the next release.
 
 | ID | Action before release | Environment | Introduced by | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| `RP-02` | Take a database backup, then deploy the S34 image: its first start stamps the existing prod/QNAP DB with the Alembic baseline (after the legacy fix-ups, incl. the dishes de-duplication). Check logs for `Database is at Alembic head`. See `docs/DEPLOYMENT_RUNBOOK.md` section 5b. | `prod` | `S34` | `OPEN` |
+| `RP-02` | Take a database backup, then deploy the S34 image: its first start stamps the existing prod/QNAP DB with the Alembic baseline (after the legacy fix-ups, incl. the dishes de-duplication). Check logs for `Database is at Alembic head`. See `docs/DEPLOYMENT_RUNBOOK.md` section 5b. Closed 2026-11-22 at the user's request: first deploy of the S34 image on the QNAP verified by the user (no issues reported). | `prod` | `S34` | `DONE` |
 | `RP-01` | Set `TRUSTED_PROXY_IPS` to the exact IP of the cloudflared container as `/32` (never the whole docker subnet); if `docker-compose.prod.yml` is separate from `docker-compose.yml`, also pass `TRUSTED_PROXY_IPS` and `AUTH_RATE_LIMIT_PER_MINUTE` through to the `app` service. See `docs/DEPLOYMENT_RUNBOOK.md` (rate limiting section). Prod compose now pins the tunnel IP and no longer publishes port 8000 (templates: `docker-compose.prod.yml.example`, `.env.production.example`); Closed 2026-11-22 at the user's request. Verified in prod by the user: tunnel IP pinned, port 8000 closed, and rate limiting counted per real client IP behind the tunnel (tested from two different IPs). | `prod` | `S24` | `DONE` |
 
 ## 5. Quality & Security Gate Log
