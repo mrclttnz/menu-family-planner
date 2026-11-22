@@ -83,7 +83,10 @@ def _describe(op: tuple) -> str:
         return f"{kind} {op[1].name}"
     if kind == "add_column":
         return f"{kind} {op[2]}.{op[3].name}"
-    return f"{kind} {getattr(op[1], 'name', op[1])}"
+    if kind in ("add_fk", "add_constraint", "add_index"):
+        obj = op[1]
+        return f"{kind} {getattr(obj, 'name', None) or repr(obj)}"
+    return f"{kind} {getattr(op[1], 'name', None) or repr(op[1])}"
 
 
 def _legacy_schema_problems(connection: Connection) -> list[str]:

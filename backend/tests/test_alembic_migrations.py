@@ -153,7 +153,11 @@ def test_legacy_database_with_an_unrecoverable_gap_is_not_stamped(make_engine):
 
 
 def test_baseline_revision_id_is_the_stamp_target():
-    assert BASELINE_REVISION == "0001"
+    from alembic.script import ScriptDirectory
+
+    script = ScriptDirectory.from_config(alembic_config())
+    assert script.get_revision(BASELINE_REVISION) is not None
+    assert script.get_revision(BASELINE_REVISION).down_revision is None
 
 
 def test_assert_schema_current_rejects_empty_and_accepts_head(make_engine):

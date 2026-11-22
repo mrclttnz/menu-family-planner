@@ -76,7 +76,7 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S31` | `#31` | Frontend characterization tests (print, theme, i18n, utils) | TG-4, TG-5 | S27 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S32` | `#23` | Print layout tech debt | GH#23 AC | S31 | `M` | no | `READY after S31` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S33` | `#11` | Weekly default attendance | GH#11 (AC derived, confirm at start) | S29, S30, S34 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
-| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `DONE` | `N/A` | `DONE` | `DONE` | `PASS (219/219; Postgres 16 fresh vs legacy schema identical, Docker image e2e OK)` | `APPROVE_WITH_NITS + PASS_WITH_WARNINGS (MEDIUM dedupe-consent and rollback-doc fixed, nits fixed; LOW backlog: SQLite FK pragma in bootstrap, dependency pinning, Postgres CI job; RP-02 OPEN)` |
 | `S35` | `#5` | User management I: identity model split + auth refactor | GH#5 AC | S24, S34, S30 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S36` | `#5` | User management II: manage users in a household | GH#5 AC | S35 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S37` | `#3` | Guest attendance in planned meals | — | — | `—` | — | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
