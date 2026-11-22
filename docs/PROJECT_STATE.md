@@ -71,7 +71,7 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S26` | `#26` | Quality foundation I: CI, linters, typecheck | QF-1..3 | — | `M` | partly | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S27` | `#27` | Quality foundation II: frontend test harness | QF-4 | S26 | `S` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S28` | `#28` | Frontend toolchain upgrade (vite/esbuild advisories) | NPM-AUDIT | S26, S27 | `S` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
-| `S29` | `#29` | Decision (Alembic, ADR) + docs: duplicate psycopg, prod compose | DOC-1..3 | — | `S` | no | `IN REVIEW` | `N/A` | `DONE` | `DONE` | `PASS (60/60, Docker build OK)` | `APPROVE_WITH_NITS` |
+| `S29` | `#29` | Decision (Alembic, ADR) + docs: duplicate psycopg, prod compose | DOC-1..3 | — | `S` | no | `DONE` | `N/A` | `DONE` | `DONE` | `PASS (60/60, Docker build OK)` | `APPROVE_WITH_NITS` |
 | `S30` | `#30` | Backend characterization tests (config, headers, migrations, import/export, auth) | TG-1..3 | S24, S25 | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S31` | `#31` | Frontend characterization tests (print, theme, i18n, utils) | TG-4, TG-5 | S27 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S32` | `#23` | Print layout tech debt | GH#23 AC | S31 | `M` | no | `READY after S31` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
