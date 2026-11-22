@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Any, Union
+from typing import Any, Optional, Union
+
 import bcrypt
 import jwt
+
 from app.core.config import settings
 
 

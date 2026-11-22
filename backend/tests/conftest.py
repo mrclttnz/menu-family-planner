@@ -14,12 +14,13 @@ _TEST_DB_URL = f"sqlite:///{os.path.join(_TEST_DB_DIR, 'lifespan.db')}"
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 
 import pytest
+from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
-from fastapi.testclient import TestClient
 
-from app.core.database import Base, engine as app_engine, get_db
+from app.core.database import Base, get_db
+from app.core.database import engine as app_engine
 from app.main import app
 from app.services.seed_defaults import seed_system_lookups
 

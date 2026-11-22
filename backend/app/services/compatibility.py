@@ -1,8 +1,10 @@
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from sqlalchemy.orm import Session
-from app.models.household import Member
+
 from app.models.dish import Dish
-from app.models.meal_plan import MealSlot, Attendance
+from app.models.household import Member
+from app.models.meal_plan import Attendance, MealSlot
 
 
 def evaluate_dish_compatibility(

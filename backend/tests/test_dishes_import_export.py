@@ -1,8 +1,8 @@
-import io
 import csv
+import io
 import json
+
 import openpyxl
-import pytest
 
 
 def test_export_dishes_csv_xlsx_and_json(client, auth_headers):

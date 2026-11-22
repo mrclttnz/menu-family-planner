@@ -64,6 +64,7 @@ def test_forwarded_header_ignored_when_proxy_untrusted(client):
 
 def test_different_clients_are_independent_behind_trusted_proxy(client, monkeypatch):
     from fastapi.testclient import TestClient
+
     from app.main import app
 
     monkeypatch.setattr(settings, "TRUSTED_PROXY_IPS", "172.18.0.0/16")

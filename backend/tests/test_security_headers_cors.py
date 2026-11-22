@@ -2,6 +2,7 @@ import pytest
 
 from app.core.config import settings
 
+
 @pytest.fixture
 def origin():
     # CORSMiddleware was built at import time from settings.cors_origin_list;

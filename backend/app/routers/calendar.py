@@ -1,34 +1,36 @@
 from datetime import date, timedelta
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import List
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_household
 from app.core.database import get_db
-from app.models.household import Household, Member
-from app.models.taxonomy import MealType
 from app.models.dish import Dish
+from app.models.household import Household, Member
 from app.models.meal_plan import (
+    Attendance,
     MealSlot,
     MealSlotDish,
     MealSlotDishMember,
     MealSlotDishNote,
     MealSlotDishRating,
-    Attendance,
 )
+from app.models.taxonomy import MealType
 from app.schemas.meal_plan import (
     MealSlotCreate,
     MealSlotNotesUpdate,
     MealSlotResponse,
     SlotDishCreate,
-    SlotDishUpdate,
-    SlotDishResponse,
     SlotDishNoteCreate,
     SlotDishNoteResponse,
     SlotDishRatingCreate,
     SlotDishRatingResponse,
+    SlotDishResponse,
+    SlotDishUpdate,
 )
 from app.schemas.taxonomy import MealTypeResponse
 from app.services.compatibility import evaluate_dish_compatibility
-from app.api.deps import get_current_household
 
 router = APIRouter(prefix="/calendar", tags=["Meal Plan & Calendar"])
 

@@ -1,14 +1,16 @@
-from contextlib import asynccontextmanager
 import logging
 import os
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+
 from app.core.config import settings
-from app.core.database import engine, Base, SessionLocal
+from app.core.database import Base, SessionLocal, engine
 from app.core.migrations import run_auto_migrations
-from app.routers import auth, members, taxonomies, dishes, calendar, attendance
+from app.routers import attendance, auth, calendar, dishes, members, taxonomies
 from app.services.seed_defaults import seed_system_lookups
 
 

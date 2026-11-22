@@ -1,10 +1,12 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_household
 from app.core.database import get_db
 from app.models.household import Household, Member
-from app.schemas.member import MemberCreate, MemberUpdate, MemberResponse
-from app.api.deps import get_current_household
+from app.schemas.member import MemberCreate, MemberResponse, MemberUpdate
 
 router = APIRouter(prefix="/members", tags=["Family Members"])
 

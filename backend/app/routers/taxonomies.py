@@ -1,24 +1,26 @@
 from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
 from sqlalchemy import or_
+from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_household
 from app.core.database import get_db
-from app.models.household import Household
-from app.models.taxonomy import DishStatusLookup, DishStatus, MealType, CourseType, SourceType
 from app.models.dish import Tag
+from app.models.household import Household
+from app.models.taxonomy import CourseType, DishStatus, DishStatusLookup, MealType, SourceType
 from app.schemas.taxonomy import (
-    MealTypeResponse,
-    DishStatusResponse,
-    DishStatusUpdate,
     CourseTypeCreate,
     CourseTypeResponse,
+    DishStatusResponse,
+    DishStatusUpdate,
+    MealTypeResponse,
     SourceTypeCreate,
     SourceTypeResponse,
     TagCreate,
-    TagUpdate,
     TagResponse,
+    TagUpdate,
 )
-from app.api.deps import get_current_household
 
 router = APIRouter(prefix="/taxonomies", tags=["Taxonomies & Lookups"])
 

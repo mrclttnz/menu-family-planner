@@ -1,17 +1,19 @@
 from datetime import date
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+
+from app.api.deps import get_current_household
 from app.core.database import get_db
 from app.models.household import Household, Member
-from app.models.meal_plan import MealSlot, Attendance
+from app.models.meal_plan import Attendance, MealSlot
+from app.routers.calendar import ensure_default_slots_for_dates
 from app.schemas.meal_plan import (
     AttendanceToggle,
     MealSlotAttendanceResponse,
     MemberAttendanceSummary,
 )
-from app.routers.calendar import ensure_default_slots_for_dates
-from app.api.deps import get_current_household
 
 router = APIRouter(prefix="/attendance", tags=["Meal Attendance"])
 

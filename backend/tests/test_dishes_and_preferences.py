@@ -402,7 +402,6 @@ def test_prevent_duplicate_dish_names(client, auth_headers):
         "course_ids": [course_id],
     })
     assert res_create.status_code == 201
-    dish_id = res_create.json()["id"]
     assert res_create.json()["title"] == "Spaghetti alla Carbonara"
 
     # 2. Duplicate with exact same name should fail (400)
