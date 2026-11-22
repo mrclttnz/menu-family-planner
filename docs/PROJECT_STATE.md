@@ -21,7 +21,7 @@
 | **Deployment Target** | Self-Hosted Docker Compose (App + Postgres 16) + Cloudflare Tunnel | Accesso locale LAN + accesso sicuro HTTPS remoto senza esporre porte router | Implemented |
 
 ## 3. Artifact Index
-- **Project Context (stack, commands, conventions, rules)**: `CLAUDE.md` — `[Created - commands verified 2026-11-21; install/lint/migrations TBD]`
+- **Project Context (stack, commands, conventions, rules)**: `CLAUDE.md` — `[Created - commands verified 2026-11-21; updated for Alembic in S34; install command TBD]`
 - **Requirements Spec**: `docs/PRD.md` — `[Approved - Gate 1]`
 - **System Architecture**: `docs/ARCHITECTURE.md` — `[Approved - Gate 2]`
 - **Threat Model**: Inline in `docs/ARCHITECTURE.md` (§6) — `[Approved - Gate 2]`
@@ -76,7 +76,7 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S31` | `#31` | Frontend characterization tests (print, theme, i18n, utils) | TG-4, TG-5 | S27 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S32` | `#23` | Print layout tech debt | GH#23 AC | S31 | `M` | no | `READY after S31` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S33` | `#11` | Weekly default attendance | GH#11 (AC derived, confirm at start) | S29, S30, S34 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
-| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `DONE` | `N/A` | `DONE` | `DONE` | `PASS (219/219; Postgres 16 fresh vs legacy schema identical, Docker image e2e OK)` | `APPROVE_WITH_NITS + PASS_WITH_WARNINGS (MEDIUM dedupe-consent and rollback-doc fixed, nits fixed; LOW backlog: SQLite FK pragma in bootstrap, dependency pinning, Postgres CI job; RP-02 OPEN)` |
+| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `DONE` | `N/A` | `DONE` | `DONE` | `PASS (219/219; Postgres 16 fresh vs legacy schema identical, Docker image e2e OK)` | `APPROVE_WITH_NITS + PASS_WITH_WARNINGS (MEDIUM dedupe-consent and rollback-doc fixed, nits fixed; LOW backlog: #64 SQLite FK pragma in bootstrap, #65 dependency pinning, #60 Postgres CI job; RP-02 closed after the verified QNAP deploy, PR #63)` |
 | `S35` | `#5` | User management I: identity model split + auth refactor | GH#5 AC | S24, S34, S30 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S36` | `#5` | User management II: manage users in a household | GH#5 AC | S35 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S37` | `#3` | Guest attendance in planned meals | — | — | `—` | — | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
@@ -101,4 +101,4 @@ Actions that must be done in an environment before (or during) the next release.
 - [x] **Gate 6 (Security Audit & Adversarial Code Review Passed)**:
   - `security-engineer`: **`PASS_WITH_WARNINGS`** (0 Critical, 0 High). Report in `docs/SECURITY_AUDIT.md`.
   - `code-reviewer`: **`APPROVE`** (All 3 blockers remediated and verified).
-- [x] **Gate 7 (Deployment Verified)**: Hardened non-root `Dockerfile`, `docker-compose.yml` con PostgreSQL 16 Alpine e Cloudflare Tunnel verificati. Servizi `app` e `postgres` attivi e testati con esito `healthy` su porta 8000 e 5432.
+- [x] **Gate 7 (Deployment Verified)** (S34 addendum, 2026-11-22: first deploy of the Alembic-enabled image on the QNAP verified by the user, `RP-02` closed; no Release Prerequisite is `OPEN`). Original entry: Hardened non-root `Dockerfile`, `docker-compose.yml` con PostgreSQL 16 Alpine e Cloudflare Tunnel verificati. Servizi `app` e `postgres` attivi e testati con esito `healthy` su porta 8000 e 5432.
