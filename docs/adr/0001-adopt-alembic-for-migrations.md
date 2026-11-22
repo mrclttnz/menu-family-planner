@@ -1,6 +1,6 @@
 # ADR-0001: Adopt Alembic for schema migrations
 
-- **Status**: Accepted (decision 2026-11-21, recorded in slice S29, issue #29). Implementation pending in S34 (issue #32).
+- **Status**: Accepted (decision 2026-11-21, slice S29, issue #29). Implemented in S34 (issue #32).
 - **Deciders**: project owner (Gate B, `docs/ONBOARDING_REPORT.md`)
 
 ## Context
@@ -17,9 +17,13 @@ Adopt Alembic as the only schema-migration mechanism.
 
 ## Consequences
 - Migrations become versioned, reviewable and reversible; fresh and legacy databases must both reach `head` with identical schema.
-- Existing prod/QNAP databases need a one-off `alembic stamp` after a backup (procedure to be written in S34 and in `docs/DEPLOYMENT_RUNBOOK.md`).
-- The container entrypoint will run `alembic upgrade head` (S34); until then the runtime mechanism stays active.
+- Existing prod/QNAP databases are stamped automatically by the bootstrap (see below) after a manual backup (procedure in `docs/DEPLOYMENT_RUNBOOK.md`, section 6).
+- The container entrypoint (`backend/docker-entrypoint.sh`) runs `python -m app.core.db_bootstrap` (= `alembic upgrade head`) before starting the server; if it fails the server does not start.
 - Ordering: S29 (this decision + docs) -> S30 (characterization tests, including `migrations.py`) -> S34 (implementation) -> S33 / S35.
 
-## Current state (until S34 is done)
-Schema creation and upgrades still run through `create_all` + `app/core/migrations.py` at startup. There is no `backend/alembic/` yet.
+## Implementation (S34)
+- `backend/alembic.ini` + `backend/alembic/` (`env.py` takes the URL from `settings.DATABASE_URL`, never from the ini; `render_as_batch` on SQLite). Baseline revision `0001` is the full schema, including the expression index `uq_dishes_household_lower_title` (hand-added: autogenerate skips it, and that index is excluded from autogenerate comparisons because SQLite cannot reflect it and PostgreSQL renders it with different text).
+- `app/core/db_bootstrap.py` (`python -m app.core.db_bootstrap`): empty or Alembic-managed DB -> `upgrade head`. **Pre-Alembic ("legacy") DB** -> `create_all` for missing tables + the old idempotent fix-ups in `app/core/migrations.py`, verify nothing is missing against the models (nullability/default drift left by old `ALTER ... ADD COLUMN` is tolerated and logged), `stamp 0001`, then `upgrade head`. If something is missing it refuses to stamp and exits non-zero.
+- The app no longer creates or alters schema at startup: the lifespan only checks the DB is at head (`assert_schema_current`) and seeds data. `app/core/migrations.py` survives solely as the legacy bridge and can be deleted once every deployed DB is stamped.
+- Rollback: a pre-S34 image is harmless on a stamped DB (it ignores `alembic_version` and runs its own `create_all` + fix-ups); restore the backup only if data was affected.
+- Future revisions: `cd backend && alembic revision --autogenerate -m "..."`, always against a throwaway `DATABASE_URL`, then review by hand.

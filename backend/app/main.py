@@ -8,18 +8,18 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
-from app.core.database import Base, SessionLocal, engine
-from app.core.migrations import run_auto_migrations
+from app.core.database import SessionLocal, engine
+from app.core.db_bootstrap import assert_schema_current
 from app.routers import attendance, auth, calendar, dishes, members, taxonomies
 from app.services.seed_defaults import seed_system_lookups
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Create all tables on startup (safe for SQLite/dev)
-    Base.metadata.create_all(bind=engine)
-    run_auto_migrations(engine)
-    
+    # Schema is managed by Alembic (ADR-0001): `python -m app.core.db_bootstrap` runs before the server
+    # starts (container entrypoint, run_dev.sh). Here we only refuse to serve on a stale/empty schema.
+    assert_schema_current(engine)
+
     # Seed default system master lookups
     db = SessionLocal()
     try:

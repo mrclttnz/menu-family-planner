@@ -13,6 +13,12 @@ atexit.register(shutil.rmtree, _TEST_DB_DIR, ignore_errors=True)
 _TEST_DB_URL = f"sqlite:///{os.path.join(_TEST_DB_DIR, 'lifespan.db')}"
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 
+from app.core.db_bootstrap import upgrade_database
+
+# The app lifespan no longer creates the schema (Alembic, ADR-0001): migrate the throwaway DB to head,
+# exactly like the container entrypoint does. Every test run therefore exercises the migrations.
+upgrade_database()
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine

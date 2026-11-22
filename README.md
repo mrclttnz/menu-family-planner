@@ -130,7 +130,7 @@ frontend/src/locales/{it,en}.json                        i18n strings
 docs/                                                    PRD, architecture, DB schema, ADRs, runbooks
 ```
 
-API prefix: `/api/v1`. Schema is created at startup; a move to Alembic is decided in [ADR-0001](docs/adr/0001-adopt-alembic-for-migrations.md) and pending implementation.
+API prefix: `/api/v1`. Schema is managed by Alembic ([ADR-0001](docs/adr/0001-adopt-alembic-for-migrations.md)); migrations are applied before the server starts.
 
 ## Documentation
 
@@ -151,7 +151,7 @@ The project is built slice by slice with the Bottega workflow (`forge` profile):
 
 ## Roadmap
 
-Planned work includes CI and linters, a frontend test harness, Alembic migrations, weekly default attendance, multi-user households, guest attendance, automatic weekly menu suggestions and recipe import from a URL. See `docs/DELIVERY_PLAN.md`.
+Planned work includes CI and linters, a frontend test harness, weekly default attendance, multi-user households, guest attendance, automatic weekly menu suggestions and recipe import from a URL. See `docs/DELIVERY_PLAN.md`.
 
 ## License
 
