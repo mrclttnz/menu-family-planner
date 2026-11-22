@@ -210,7 +210,7 @@ Epics only; do not slice. The responsive SPA from S15 is the current mobile answ
 | QF-3 frontend lint and typecheck script | S26 | |
 | QF-4 frontend test harness | S27 | |
 | DOC-1 Alembic vs auto-migrations | S29 (decision), S34 (conditional implementation) | |
-| DOC-2 duplicate psycopg drivers | S29 | |
+| DOC-2 duplicate psycopg drivers | S29 | Done: `psycopg2-binary` removed, no `psycopg2` imports |
 | DOC-3 gitignored prod compose documented | S29 | |
 | TG-1 config/JWT tests | S30 | |
 | TG-2 migrations tests | S30 | Destructive dedupe path is untested |
