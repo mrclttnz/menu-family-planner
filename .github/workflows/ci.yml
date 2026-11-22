@@ -10,12 +10,13 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   backend:
     name: Backend (ruff + pytest)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: backend
@@ -33,6 +34,7 @@ jobs:
   frontend:
     name: Frontend (lint + typecheck + build)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: frontend
@@ -51,18 +53,16 @@ jobs:
   security:
     name: Security (audit + scanner)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.14"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
       - name: Bottega security scanner (secrets + static anti-patterns)
         run: bash scripts/security-scan.sh . forge
       - name: pip-audit
-        run: pip install pip-audit && pip-audit -r backend/requirements.txt
+        run: pip install pip-audit==2.10.1 && pip-audit -r backend/requirements.txt
       - name: npm audit (high+)
         working-directory: frontend
         # Report-only until S28 fixes the known vite/esbuild advisories; then remove continue-on-error.
