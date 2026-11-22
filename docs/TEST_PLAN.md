@@ -2,7 +2,7 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Verified — All 35 Automated Tests Passing  
+> **Status**: Verified — 219 backend tests passing (S34) + 7 frontend tests; per-slice evidence in `docs/PROJECT_STATE.md`  
 > **Author**: Bottega QA Engineer (`qa-engineer`)
 
 ---

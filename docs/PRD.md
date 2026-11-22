@@ -2,7 +2,7 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Updated Draft for User Sign-Off (Gate 1)  
+> **Status**: Approved (Gate 1); see `docs/PROJECT_STATE.md`  
 > **Author**: Bottega Product Strategist (`product-strategist`)
 
 ---

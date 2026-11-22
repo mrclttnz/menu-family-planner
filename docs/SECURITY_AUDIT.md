@@ -149,3 +149,22 @@ Positives: spoofed XFF/CF headers from untrusted peers ignored (verified); malfo
 ## 7. Slice S25 Addendum (2026-11-22): Hardening batch (#25, SEC-F01/F03/F04)
 
 `security-engineer`: **PASS_WITH_WARNINGS** (no CRITICAL/HIGH). Warning W1 (SECRET_KEY production check was case-sensitive while HSTS was not) fixed in the same slice with a regression test; W2 (validator rejects only the default key, no strength check) documented in SEC-F01; W4 (A04/A05 rows stale) fixed. `code-reviewer`: **APPROVE_WITH_NITS** (nits applied). Tests: full backend suite green.
+
+---
+
+## 8. Slice S34 Addendum (2026-11-22): Alembic migrations and legacy-DB bootstrap (#32)
+
+`security-engineer`: **PASS_WITH_WARNINGS** (no CRITICAL/HIGH); `code-reviewer`: **APPROVE_WITH_NITS**.
+
+Verified: no DB URL or credentials in `alembic.ini`, logs or error messages (`env.py` builds the engine from `settings.DATABASE_URL` directly); fail-closed startup (`set -eu` entrypoint, `assert_schema_current` in the lifespan, a legacy DB that differs from the models is not stamped); non-root container with `exec` into uvicorn and no shell injection via `PORT`.
+
+| ID | Severity | Finding | Status |
+| :--- | :--- | :--- | :--- |
+| S34-1 | MEDIUM | The legacy fix-up that merges/deletes duplicate dishes ran automatically at the first boot | **Remediated**: refuses to run unless `ALLOW_LEGACY_DEDUP=true` is set (test added); runbook requires a backup immediately before |
+| S34-2 | LOW | Runbook suggested `alembic downgrade -1`, which at baseline drops every table | **Remediated**: runbook forbids downgrading past `0001` on real data |
+| S34-3 | LOW | Bootstrap engine has no SQLite `foreign_keys` pragma: dedupe leaves orphan `dish_tags` (dev only) | Open: issue #64 |
+| S34-4 | LOW | `alembic>=1.13.0` unpinned, no lockfile; test dependencies in the production requirements | Open: issue #65 |
+| S34-5 | LOW | Postgres path verified by hand, not in CI | Open: issue #60 |
+
+Release prerequisite `RP-02` (backup, then first start of the Alembic-enabled image on the QNAP) was completed and verified by the user on 2026-11-22.
+

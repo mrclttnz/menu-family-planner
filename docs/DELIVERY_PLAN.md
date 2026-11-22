@@ -1,7 +1,7 @@
 # Delivery Plan (`DELIVERY_PLAN.md`)
 
 > Maintained by the Delivery Planner. Profile: `forge`. Origin: brownfield. Slices S1-S23 are DONE (see `docs/PROJECT_STATE.md` section 4) and are not re-planned here. This plan covers only S24 onwards.
-> Status: PROPOSED, awaiting user approval. `docs/PROJECT_STATE.md` is intentionally not edited by this plan.
+> Status: APPROVED (Gate B, 2026-11-21). The live status of each slice is tracked in `docs/PROJECT_STATE.md`; the Status column below is kept in sync at each slice close.
 
 ## 1. Planning Notes and Assumptions
 
@@ -21,16 +21,16 @@ Order is the recommended execution order. "Sec" = security-sensitive.
 | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- | :-- |
 | 0 | `S23a` | Test isolation from the real database by default (prerequisite of S24) | #34 | test infra | none | S | No | DONE |
 | 1 | `S24` | Auth endpoint rate limiting | #24 | SEC-F02 | S23a | M | Yes | DONE |
-| 2 | `S25` | Security hardening batch and audit report refresh | N/A | SEC-F01 (close), SEC-F03, SEC-F04 | none (S24 recommended first, same files) | S | Yes | READY |
+| 2 | `S25` | Security hardening batch and audit report refresh | N/A | SEC-F01 (close), SEC-F03, SEC-F04 | none (S24 recommended first, same files) | S | Yes | DONE |
 | 3 | `S26` | Quality foundation I: CI, linters, typecheck | N/A | QF-1, QF-2, QF-3 | none | M | Partly (supply chain scan) | DONE |
 | 4 | `S27` | Quality foundation II: frontend test harness | N/A | QF-4 | S26 | S | No | DONE |
-| 5 | `S28` | Frontend toolchain upgrade (vite/esbuild advisories) | N/A | NPM-AUDIT | S26, S27 | S | Yes (dev server only) | READY |
-| 6 | `S29` | Decision and docs: migrations strategy, deps, prod compose | N/A | DOC-1, DOC-2, DOC-3 | none | S | No | READY (Alembic decided 2026-11-21) |
-| 7 | `S30` | Backend characterization tests (config, headers, migrations, import/export, auth edges) | N/A | TG-1, TG-2, TG-3 | S24, S25 (so new behavior is in baseline) | M | Yes | READY |
+| 5 | `S28` | Frontend toolchain upgrade (vite/esbuild advisories) | N/A | NPM-AUDIT | S26, S27 | S | Yes (dev server only) | DONE |
+| 6 | `S29` | Decision and docs: migrations strategy, deps, prod compose | N/A | DOC-1, DOC-2, DOC-3 | none | S | No | DONE |
+| 7 | `S30` | Backend characterization tests (config, headers, migrations, import/export, auth edges) | N/A | TG-1, TG-2, TG-3 | S24, S25 (so new behavior is in baseline) | M | Yes | DONE |
 | 8 | `S31` | Frontend characterization tests (print helpers, theme, i18n, utils) | N/A | TG-4, TG-5 | S27 | M | No | READY |
 | 9 | `S32` | Print layout tech debt | #23 | GH#23 | S31 | M | No | READY after S31 |
 | 10 | `S33` | Weekly default attendance | #11 | GH#11 (AC derived from issue text, confirm before start) | S29, S30, S34 | M | No | READY |
-| 11 | `S34` | Migrations tooling implementation (conditional) | N/A | DOC-1 follow-up | S29, S30 | M | Yes (schema) | READY after S29/S30 |
+| 11 | `S34` | Migrations tooling implementation (Alembic) | N/A | DOC-1 follow-up | S29, S30 | M | Yes (schema) | DONE |
 | 12 | `S35` | User management I: identity model split and auth refactor | #5 | GH#5 | S24, S34, S30 | M | Yes | BLOCKED: questions to ask just before coding |
 | 13 | `S36` | User management II: manage users in a household (UI and API) | #5 | GH#5 AC | S35 | M | Yes | BLOCKED: questions before coding |
 | - | `S37` | Guest attendance in planned meals | #3 | not defined | - | - | - | BLOCKED: needs spec |

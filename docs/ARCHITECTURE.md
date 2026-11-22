@@ -2,7 +2,7 @@
 ## Project: Menu Design
 
 > **Bottega Profile**: `forge` (MVP / Standard Application / Moderate-Risk)  
-> **Status**: Draft for User Sign-Off (Gate 2)  
+> **Status**: Approved (Gate 2); updated for Alembic in S34  
 > **Author**: Bottega System Architect (`system-architect`) in collaboration with DevSecOps (`security-engineer`)
 
 ---
