@@ -23,7 +23,7 @@ Order is the recommended execution order. "Sec" = security-sensitive.
 | 1 | `S24` | Auth endpoint rate limiting | #24 | SEC-F02 | S23a | M | Yes | DONE |
 | 2 | `S25` | Security hardening batch and audit report refresh | N/A | SEC-F01 (close), SEC-F03, SEC-F04 | none (S24 recommended first, same files) | S | Yes | READY |
 | 3 | `S26` | Quality foundation I: CI, linters, typecheck | N/A | QF-1, QF-2, QF-3 | none | M | Partly (supply chain scan) | DONE |
-| 4 | `S27` | Quality foundation II: frontend test harness | N/A | QF-4 | S26 | S | No | READY |
+| 4 | `S27` | Quality foundation II: frontend test harness | N/A | QF-4 | S26 | S | No | DONE |
 | 5 | `S28` | Frontend toolchain upgrade (vite/esbuild advisories) | N/A | NPM-AUDIT | S26, S27 | S | Yes (dev server only) | READY |
 | 6 | `S29` | Decision and docs: migrations strategy, deps, prod compose | N/A | DOC-1, DOC-2, DOC-3 | none | S | No | READY (Alembic decided 2026-11-21) |
 | 7 | `S30` | Backend characterization tests (config, headers, migrations, import/export, auth edges) | N/A | TG-1, TG-2, TG-3 | S24, S25 (so new behavior is in baseline) | M | Yes | READY |
