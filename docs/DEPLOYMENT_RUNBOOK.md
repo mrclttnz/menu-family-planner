@@ -7,130 +7,130 @@
 
 ---
 
-## 1. Architettura della Soluzione
+## 1. Solution Architecture
 
-- **Backend & Frontend**: Container unificato `menu-design-app` (FastAPI serve sia le API `/api/v1` sia il bundle statico React compilato).
-- **Database**: PostgreSQL 16 Alpine gestito in locale con volume persistente `postgres_data`.
-  - **Accesso LAN**: Porta `5432` esposta sulla macchina server per consentire connessioni dirette dalla rete domestica (es. DBeaver, DataGrip, pgAdmin).
-  - **Sicurezza**: La porta `5432` non viene mai esposta su Internet dal router.
-- **Accesso Remoto Sicuro**: Cloudflare Tunnel (opzionale/on-demand) per consentire l'accesso sicuro via HTTPS da smartphone all'esterno, senza aprire porte sul firewall o router domestico.
+- **Backend & Frontend**: Single `menu-design-app` container (FastAPI serves both the `/api/v1` APIs and the compiled static React bundle).
+- **Database**: PostgreSQL 16 Alpine run locally with a persistent `postgres_data` volume.
+  - **LAN access**: Port `5432` is exposed on the server machine to allow direct connections from the home network (e.g. DBeaver, DataGrip, pgAdmin).
+  - **Security**: Port `5432` is never exposed to the Internet by the router.
+- **Secure remote access**: Cloudflare Tunnel (optional/on-demand) to allow secure HTTPS access from a smartphone outside the home, without opening ports on the firewall or home router.
 
 ---
 
-## 2. Configurazione Rapida (.env)
+## 2. Quick Configuration (.env)
 
-Crea il tuo file `.env` a partire da `.env.example`:
+Create your `.env` file from `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Genera una chiave segreta sicura e impostala nel file `.env`:
+Generate a secure secret key and set it in the `.env` file:
 ```bash
-# Genera SECRET_KEY a 32 byte
+# Generate a 32-byte SECRET_KEY
 openssl rand -hex 32
 ```
 
-Nel file `.env` imposta anche una password robusta per `POSTGRES_PASSWORD`:
+In the `.env` file also set a strong password for `POSTGRES_PASSWORD`:
 ```env
 ENVIRONMENT=production
-SECRET_KEY=<chiave_generata_con_openssl>
+SECRET_KEY=<key_generated_with_openssl>
 POSTGRES_DB=menu_design
 POSTGRES_USER=menu_user
-POSTGRES_PASSWORD=<tua_password_sicura>
-CORS_ORIGINS=http://localhost:8000,http://<IP_LOCALE_SERVER>:8000,https://menu.tuodominio.it
-TUNNEL_TOKEN=<token_cloudflare_opzionale>
+POSTGRES_PASSWORD=<your_secure_password>
+CORS_ORIGINS=http://localhost:8000,http://<SERVER_LOCAL_IP>:8000,https://menu.yourdomain.com
+TUNNEL_TOKEN=<optional_cloudflare_token>
 AUTH_RATE_LIMIT_PER_MINUTE=10
-TRUSTED_PROXY_IPS=<IP_container_cloudflared>/32
+TRUSTED_PROXY_IPS=<cloudflared_container_IP>/32
 ```
 
-### Rate limiting di login/registrazione e IP del client (SEC-F02)
-`POST /api/v1/auth/login` e `/register` sono limitati a `AUTH_RATE_LIMIT_PER_MINUTE` richieste al minuto per IP e per endpoint (risposta `429` con header `Retry-After`). Lo stato è in memoria nel processo: l'immagine usa un solo worker uvicorn; con più worker/repliche il limite andrebbe spostato su uno store condiviso.
+### Login/registration rate limiting and client IP (SEC-F02)
+`POST /api/v1/auth/login` and `/register` are limited to `AUTH_RATE_LIMIT_PER_MINUTE` requests per minute per IP and per endpoint (`429` response with a `Retry-After` header). The state is kept in process memory: the image uses a single uvicorn worker; with multiple workers/replicas the limit would have to move to a shared store.
 
-- **Accesso diretto in LAN (porta 8000)**: lascia `TRUSTED_PROXY_IPS` vuoto o limitato al proxy; l'IP usato è quello della connessione.
-- **Dietro Cloudflare Tunnel**: `cloudflared` raggiunge l'app dalla rete Docker, quindi senza configurazione tutti gli utenti condividono lo stesso IP (un attaccante bloccherebbe tutti). Imposta `TRUSTED_PROXY_IPS` sul **solo IP del container `cloudflared` come `/32`** (es. `172.18.0.3/32`; `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <container_cloudflared>`, meglio se fissato con `ipv4_address` nel compose così non cambia al riavvio). **Non fidarti dell'intera subnet**: con NAT/userland proxy di Docker i client LAN sulla porta 8000 possono apparire con l'IP del gateway della bridge, dentro la subnet, e potrebbero falsificare `CF-Connecting-IP` aggirando il limite. Solo i peer fidati fanno leggere `CF-Connecting-IP` e `X-Forwarded-For`.
-- Se usi un file compose di produzione separato (`docker-compose.prod.yml`, non versionato), deve passare all'app anche `TRUSTED_PROXY_IPS` e `AUTH_RATE_LIMIT_PER_MINUTE`, come `docker-compose.yml`.
-- Sono conteggiati tutti i tentativi (anche login riusciti e richieste con body non valido). Gli indirizzi IPv6 sono raggruppati per /64; gli IPv4-mapped sono normalizzati a IPv4.
-- **Se il tunnel è l'unico ingresso**: non pubblicare la porta 8000 sull'host. In `docker-compose.yml` rimuovi `"8000:8000"` dalla sezione `ports` del servizio `app` (o usa `expose: ["8000"]`): `cloudflared` raggiunge comunque l'app sulla rete Docker interna e nessun client LAN può più aggirare il tunnel o apparire con l'IP del gateway. Se invece ti serve l'accesso LAN diretto, lascia la porta pubblicata e mantieni `TRUSTED_PROXY_IPS` ristretto al solo `/32` di `cloudflared`.
-- Facoltativo: aggiungere una regola di rate limiting WAF su Cloudflare per `/api/v1/auth/*` come difesa a monte (non copre l'accesso LAN).
+- **Direct LAN access (port 8000)**: leave `TRUSTED_PROXY_IPS` empty or restricted to the proxy; the IP used is the connection's peer address.
+- **Behind Cloudflare Tunnel**: `cloudflared` reaches the app over the Docker network, so without configuration all users share the same IP (an attacker would lock everyone out). Set `TRUSTED_PROXY_IPS` to **the IP of the `cloudflared` container only, as a `/32`** (e.g. `172.18.0.3/32`; `docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' <cloudflared_container>`, ideally pinned with `ipv4_address` in the compose file so it does not change on restart). **Do not trust the whole subnet**: with Docker's NAT/userland proxy, LAN clients on port 8000 can appear with the bridge gateway IP, which is inside the subnet, and could spoof `CF-Connecting-IP` to bypass the limit. Only trusted peers get their `CF-Connecting-IP` and `X-Forwarded-For` headers honored.
+- If you use a separate production compose file (`docker-compose.prod.yml`, not versioned; the versioned template is `docker-compose.prod.yml.example`, which already leaves port 8000 unpublished and pins the tunnel IP), it must also pass `TRUSTED_PROXY_IPS` and `AUTH_RATE_LIMIT_PER_MINUTE` to the app, like `docker-compose.yml`.
+- All attempts are counted (including successful logins and requests with an invalid body). IPv6 addresses are grouped per /64; IPv4-mapped addresses are normalized to IPv4.
+- **If the tunnel is the only entry point**: do not publish port 8000 on the host. In `docker-compose.yml` remove `"8000:8000"` from the `ports` section of the `app` service (or use `expose: ["8000"]`; `docker-compose.prod.yml.example` already does this): `cloudflared` still reaches the app over the internal Docker network, and no LAN client can bypass the tunnel or appear with the gateway IP. If you do need direct LAN access, leave the port published and keep `TRUSTED_PROXY_IPS` restricted to the `/32` of `cloudflared` only.
+- Optional: add a WAF rate limiting rule on Cloudflare for `/api/v1/auth/*` as an upstream defense (it does not cover LAN access).
 
 ---
 
-## 3. Avvio dell'Applicazione con Docker Compose
+## 3. Starting the Application with Docker Compose
 
-### Solo App + Database Locale (Accesso da rete locale)
+### App + Local Database Only (local network access)
 ```bash
-# Avvia Postgres e l'applicazione in background
+# Start Postgres and the application in the background
 docker compose up -d --build
 
-# Visualizza lo stato dei container e dell'healthcheck
+# Show container and healthcheck status
 docker compose ps
 
-# Visualizza i log in tempo reale
+# Follow the logs in real time
 docker compose logs -f app
 ```
 
-L'applicazione sarà accessibile all'indirizzo:
-- Dal server stesso: `http://localhost:8000`
-- Da qualsiasi dispositivo connesso alla Wi-Fi di casa: `http://<IP_SERVER_LAN>:8000` (es. `http://192.168.1.50:8000`)
+The application will be reachable at:
+- From the server itself: `http://localhost:8000`
+- From any device connected to the home Wi-Fi: `http://<SERVER_LAN_IP>:8000` (e.g. `http://192.168.1.50:8000`)
 
-### Con Cloudflare Tunnel (Accesso Remoto sicuro da smartphone/internet)
-Quando hai creato il tunnel sulla dashboard Cloudflare Zero Trust e inserito `TUNNEL_TOKEN` nel file `.env`:
+### With Cloudflare Tunnel (secure remote access from smartphone/internet)
+Once you have created the tunnel on the Cloudflare Zero Trust dashboard and set `TUNNEL_TOKEN` in the `.env` file:
 ```bash
-# Avvia App, Postgres e Cloudflare Tunnel
+# Start App, Postgres and Cloudflare Tunnel
 docker compose --profile tunnel up -d
 ```
-L'app sarà immediatamente raggiungibile al tuo dominio pubblico (es. `https://menu.tuodominio.it`) con certificato SSL valido.
+The app will be immediately reachable at your public domain (e.g. `https://menu.yourdomain.com`) with a valid SSL certificate.
 
 ---
 
-## 4. Accesso a PostgreSQL dalla Rete Domestica (LAN)
+## 4. Accessing PostgreSQL from the Home Network (LAN)
 
-Puoi connetterti al database direttamente dal tuo PC o laptop (es. tramite DBeaver, pgAdmin, DataGrip o CLI):
+You can connect to the database directly from your PC or laptop (e.g. with DBeaver, pgAdmin, DataGrip or the CLI):
 
-- **Host / Indirizzo**: IP locale del server (es. `192.168.1.50` oppure `localhost` se sei sulla stessa macchina)
-- **Porta**: `5432`
-- **Database**: `menu_design` (o il valore di `POSTGRES_DB`)
-- **Username**: `menu_user` (o il valore di `POSTGRES_USER`)
-- **Password**: quella configurata in `POSTGRES_PASSWORD`
+- **Host / Address**: local IP of the server (e.g. `192.168.1.50`, or `localhost` if you are on the same machine)
+- **Port**: `5432`
+- **Database**: `menu_design` (or the value of `POSTGRES_DB`)
+- **Username**: `menu_user` (or the value of `POSTGRES_USER`)
+- **Password**: the one configured in `POSTGRES_PASSWORD`
 
-### Connessione rapida da terminale (psql):
+### Quick connection from a terminal (psql):
 ```bash
-psql -h <IP_SERVER_LAN> -p 5432 -U menu_user -d menu_design
+psql -h <SERVER_LAN_IP> -p 5432 -U menu_user -d menu_design
 ```
 
-### Accesso diretto tramite il container:
+### Direct access through the container:
 ```bash
 docker exec -it menu-design-postgres psql -U menu_user -d menu_design
 ```
 
 ---
 
-## 5. Manutenzione e Backup di PostgreSQL
+## 5. PostgreSQL Maintenance and Backup
 
-### Eseguire un backup manuale istantaneo
+### Run an immediate manual backup
 ```bash
-# Salva un dump compresso con timestamp
+# Save a compressed, timestamped dump
 docker exec -t menu-design-postgres pg_dump -U menu_user menu_design | gzip > backup_menu_design_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
-### Ripristinare un backup
+### Restore a backup
 ```bash
 gunzip < backup_menu_design_YYYYMMDD_HHMMSS.sql.gz | docker exec -i menu-design-postgres psql -U menu_user -d menu_design
 ```
 
-### Backup automatico giornaliero (Cron job sul server)
-Puoi aggiungere un cron job con `crontab -e`:
+### Automatic daily backup (cron job on the server)
+You can add a cron job with `crontab -e`:
 ```bash
 0 3 * * * docker exec -t menu-design-postgres pg_dump -U menu_user menu_design | gzip > /home/marco/backups/menu_db_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ---
 
-## 6. Health Checks & Monitoraggio
+## 6. Health Checks & Monitoring
 
-- **Healthcheck App**: `GET /health` (restituisce `{"status": "ok", "app": "Menu Design API", "version": "1.0.0"}`)
-- **Verifica salute Postgres**:
+- **App healthcheck**: `GET /health` (returns `{"status": "ok", "app": "Menu Design API", "version": "1.0.0"}`)
+- **Postgres health check**:
   ```bash
   docker inspect --format='{{json .State.Health.Status}}' menu-design-postgres
   # Output: "healthy"
