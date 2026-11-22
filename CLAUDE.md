@@ -13,7 +13,7 @@ Family meal-planning web app (dish catalog, per-member preferences, exception-ba
 | :--- | :--- |
 | Install dependencies | `TBD` (not run during onboarding; `backend/.venv` and `frontend/node_modules` already exist. Expected: `pip install -r backend/requirements-dev.txt` / `cd frontend && npm ci`; CI uses the same) |
 | Run locally | `./run_dev.sh` (unverified; serves API + built SPA on :8000; DB is whatever `DATABASE_URL` in `.env` points to) |
-| Full test suite | `cd backend && .venv/bin/python -m pytest -q` (70 pass; isolated from the real DB by `tests/conftest.py`) |
+| Full test suite | `cd backend && .venv/bin/python -m pytest -q` (210 pass; isolated from the real DB by `tests/conftest.py`) |
 | Single test | `cd backend && .venv/bin/python -m pytest tests/test_auth.py::<name>` |
 | Lint | `cd backend && .venv/bin/ruff check .`; `cd frontend && npm run lint` (ESLint, baseline of 20 warnings via `--max-warnings`; no formatter enforced) |
 | Frontend tests | `cd frontend && npm test` (Vitest 5 + React Testing Library + jsdom; needs Node >= 24.15 locally; `npm run test:watch` for watch mode) |
