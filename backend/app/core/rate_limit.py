@@ -8,7 +8,7 @@ import math
 import threading
 import time
 from collections import OrderedDict, deque
-from typing import Deque, Mapping, Optional, List
+from typing import Deque, List, Mapping, Optional
 
 from fastapi import HTTPException, Request, status
 

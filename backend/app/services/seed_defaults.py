@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
-from app.models.taxonomy import DishStatusLookup, DishStatus, MealType, CourseType, SourceType
+
+from app.models.taxonomy import CourseType, DishStatus, DishStatusLookup, MealType, SourceType
 
 
 def seed_system_lookups(db: Session) -> None:

@@ -1,17 +1,17 @@
+import csv
 import io
 import json
-import csv
-from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from typing import Any, Dict, List, Optional, Tuple
 
 import openpyxl
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from sqlalchemy import or_
+from sqlalchemy.orm import Session
 
-from app.models.dish import Dish, DishCourse, Tag, DishTag
-from app.models.taxonomy import DishStatus, CourseType, SourceType
+from app.models.dish import Dish, DishCourse, DishTag, Tag
+from app.models.taxonomy import CourseType, DishStatus, SourceType
 from app.schemas.dish import DishImportResult, DishImportRowError
 
 # Security: formula injection triggers

@@ -1,6 +1,8 @@
 from typing import Generator
+
 from sqlalchemy import create_engine, event
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import Session, declarative_base, sessionmaker
+
 from app.core.config import settings
 
 connect_args = {}

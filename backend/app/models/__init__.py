@@ -1,14 +1,14 @@
+from app.models.dish import Dish, DishCourse, DishMemberPreference, DishTag, Tag
 from app.models.household import Household, Member
-from app.models.taxonomy import DishStatusLookup, DishStatus, MealType, CourseType, SourceType
-from app.models.dish import Dish, DishCourse, DishMemberPreference, Tag, DishTag
 from app.models.meal_plan import (
+    Attendance,
     MealSlot,
     MealSlotDish,
     MealSlotDishMember,
     MealSlotDishNote,
     MealSlotDishRating,
-    Attendance,
 )
+from app.models.taxonomy import CourseType, DishStatus, DishStatusLookup, MealType, SourceType
 
 __all__ = [
     "Household",

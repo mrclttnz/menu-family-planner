@@ -1,0 +1,13 @@
+# Minimal rule set (S26): pyflakes + pycodestyle errors + import sorting.
+target-version = "py314"
+line-length = 120
+extend-exclude = [".venv"]
+
+[lint]
+select = ["E", "F", "I"]
+# Baseline: 42 pre-existing long lines are not enforced (formatting only, no behavior).
+ignore = ["E501"]
+
+[lint.per-file-ignores]
+# The env override must run before any `app.*` import (see CLAUDE.md).
+"tests/conftest.py" = ["E402"]

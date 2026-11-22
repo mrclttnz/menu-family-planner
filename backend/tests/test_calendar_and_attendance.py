@@ -385,7 +385,7 @@ def test_meal_slot_notes_p010(client, auth_headers):
 def test_update_slot_dish_assigned_members_issue_9(client, auth_headers):
     """Test modifying assigned diners for a scheduled dish in a meal slot (Issue #9)."""
     # 1. Setup members
-    m_marco = client.post("/api/v1/members", headers=auth_headers, json={"name": "Marco"}).json()
+    client.post("/api/v1/members", headers=auth_headers, json={"name": "Marco"}).json()
     m_sara = client.post("/api/v1/members", headers=auth_headers, json={"name": "Sara"}).json()
     m_leo = client.post("/api/v1/members", headers=auth_headers, json={"name": "Leo", "is_child": True}).json()
 
