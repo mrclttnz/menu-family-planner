@@ -162,3 +162,35 @@ def test_assert_schema_current_rejects_empty_and_accepts_head(make_engine):
         assert_schema_current(engine)
     upgrade_database(engine)
     assert_schema_current(engine)
+
+
+def test_legacy_database_with_duplicate_dishes_requires_explicit_consent(make_engine, monkeypatch):
+    from sqlalchemy.orm import sessionmaker
+
+    from app.core.config import settings
+    from app.services.seed_defaults import seed_household_statuses, seed_system_lookups
+
+    legacy = make_engine()
+    Base.metadata.create_all(bind=legacy)
+    _exec(legacy, "INSERT INTO households (name, email, password_hash, created_at, updated_at) "
+                  "VALUES ('H', 'h@example.com', 'x', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)")
+    session = sessionmaker(bind=legacy)()
+    seed_system_lookups(session)
+    seed_household_statuses(session, 1)
+    session.close()
+    _exec(legacy, f"DROP INDEX {FUNCTIONAL_INDEX}")
+    for title in ("Lasagna", " lasagna "):
+        _exec(legacy, "INSERT INTO dishes (household_id, status_id, title, created_at, updated_at) "
+                      "VALUES (1, (SELECT MIN(id) FROM dish_statuses), :t, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)", t=title)
+
+    monkeypatch.setattr(settings, "ALLOW_LEGACY_DEDUP", False)
+    with pytest.raises(DatabaseBootstrapError, match="ALLOW_LEGACY_DEDUP"):
+        upgrade_database(legacy)
+    with legacy.connect() as conn:
+        assert conn.execute(text("SELECT COUNT(*) FROM dishes")).scalar() == 2  # untouched
+    assert "alembic_version" not in inspect(legacy).get_table_names()
+
+    monkeypatch.setattr(settings, "ALLOW_LEGACY_DEDUP", True)
+    upgrade_database(legacy)
+    with legacy.connect() as conn:
+        assert conn.execute(text("SELECT COUNT(*) FROM dishes")).scalar() == 1

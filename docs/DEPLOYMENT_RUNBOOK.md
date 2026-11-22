@@ -133,12 +133,15 @@ The container entrypoint runs `python -m app.core.db_bootstrap` (= `alembic upgr
 
 **First deploy of the Alembic-enabled image on an existing database (one-off):**
 1. **Back up first** (section 5): the pre-Alembic fix-ups include a destructive dishes de-duplication (same title ignoring case/whitespace in a household is merged).
-2. Start the new image. The bootstrap detects a database with tables but no `alembic_version`, applies the legacy fix-ups, checks nothing is missing against the models, stamps baseline `0001` and upgrades to head. Look for `Pre-Alembic database detected` then `Database is at Alembic head` in `docker compose logs app`.
-3. If it logs `Legacy database does not match the models and was NOT stamped`, the DB is untouched by Alembic: restore the backup (or fix the listed gap) and re-run. Nullability/default drift is tolerated and only logged.
+2. If the database contains duplicate dishes (same title ignoring case/whitespace in a household) the bootstrap refuses to start and changes nothing until you set `ALLOW_LEGACY_DEDUP=true` in the app environment for that one start (it merges/deletes them; tags of a deleted duplicate are not merged). Remove the variable afterwards. Take the backup immediately before this start, not only the nightly dump, and check it restores. Note `restart: unless-stopped` re-runs the bootstrap on every restart (idempotent; a failing check makes the container loop, see the logs).
+3. Start the new image. The bootstrap detects a database with tables but no `alembic_version`, applies the legacy fix-ups, checks nothing is missing against the models, stamps baseline `0001` and upgrades to head. Look for `Pre-Alembic database detected` then `Database is at Alembic head` in `docker compose logs app`.
+4. If it logs `Legacy database does not match the models and was NOT stamped`, the DB is untouched by Alembic: restore the backup (or fix the listed gap) and re-run. Nullability/default drift is tolerated and only logged.
 
 **Later releases**: migrations apply automatically on start. Take a backup before releases that include a new revision.
 
-**Rollback**: redeploying the previous (pre-S34) image is safe on a stamped DB (it ignores `alembic_version`). To undo a specific revision: `docker compose exec app alembic downgrade -1` (from `/app/backend`), or restore the backup if data is affected.
+**Rollback**: redeploying the previous (pre-S34) image is safe on a stamped DB (it ignores `alembic_version`). Never run `alembic downgrade` past baseline `0001` on a real database: it drops every table. To undo a later revision use `alembic downgrade -1` (from `/app/backend`) only after a backup; otherwise restore the backup.
+
+**SQLite (dev)**: before the first `./run_dev.sh` on an existing database copy `app.db` together with its `-wal` and `-shm` files.
 
 **Status / manual commands** (run inside the app container, `cd /app/backend`): `alembic current`, `alembic history`, `alembic check`. Never run Alembic against a database you have not backed up.
 

@@ -248,9 +248,9 @@ When you release a new version of the code:
 ### Database migrations (Alembic)
 
 The image applies schema migrations automatically at start (`backend/docker-entrypoint.sh` -> `python -m app.core.db_bootstrap`); on failure the container exits instead of serving.
-- **Before the first deploy of the Alembic-enabled image (and before any release with a new revision) take a backup** (see "PostgreSQL Database Backup" below). The first start stamps the existing database as baseline `0001` after applying the legacy fix-ups, which include a destructive de-duplication of dishes with the same title.
+- **Before the first deploy of the Alembic-enabled image (and before any release with a new revision) take a backup** (see "PostgreSQL Database Backup" below). The first start stamps the existing database as baseline `0001` after applying the legacy fix-ups, which include a destructive de-duplication of dishes with the same title: if duplicates exist the container refuses to start until you set `ALLOW_LEGACY_DEDUP=true` for that one start (remove it afterwards).
 - Check `docker compose -f docker-compose.prod.yml logs app`: `Pre-Alembic database detected` (first time only) and `Database is at Alembic head`.
-- Rollback: redeploy the previous image tag (safe, it ignores `alembic_version`); restore the backup only if data was affected. Details: `docs/DEPLOYMENT_RUNBOOK.md` section 5b.
+- Rollback: redeploy the previous image tag (safe, it ignores `alembic_version`); never `alembic downgrade` past `0001` on real data; restore the backup only if data was affected. Details: `docs/DEPLOYMENT_RUNBOOK.md` section 5b.
 
 ### Viewing the Logs
 ```bash

@@ -20,7 +20,7 @@ from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from sqlalchemy import create_engine, inspect, pool
+from sqlalchemy import create_engine, inspect, pool, text
 from sqlalchemy.engine import Connection, Engine
 
 import app.models  # noqa: F401  (registers every model on Base.metadata)
@@ -98,6 +98,15 @@ def _legacy_schema_problems(connection: Connection) -> list[str]:
     return fatal
 
 
+def _count_duplicate_dishes(connection: Connection) -> int:
+    if "dishes" not in inspect(connection).get_table_names():
+        return 0
+    return connection.execute(text(
+        "SELECT COALESCE(SUM(n - 1), 0) FROM ("
+        " SELECT COUNT(*) AS n FROM dishes GROUP BY household_id, LOWER(TRIM(title)) HAVING COUNT(*) > 1) d"
+    )).scalar_one()
+
+
 def upgrade_database(engine: Engine | None = None) -> None:
     """Bring `engine` (default: built from settings.DATABASE_URL) to head. Idempotent."""
     own_engine = engine is None
@@ -111,6 +120,14 @@ def upgrade_database(engine: Engine | None = None) -> None:
         with engine.connect() as probe:
             legacy = _is_legacy(probe)
         if legacy:
+            with engine.connect() as conn:
+                duplicates = _count_duplicate_dishes(conn)
+            if duplicates and not settings.ALLOW_LEGACY_DEDUP:
+                raise DatabaseBootstrapError(
+                    f"Pre-Alembic database has {duplicates} duplicate dish(es) that the legacy fix-up would "
+                    "merge and DELETE. Nothing was changed. Take a backup, then set ALLOW_LEGACY_DEDUP=true "
+                    "for this one start (docs/DEPLOYMENT_RUNBOOK.md, section 5b)."
+                )
             logger.warning("Pre-Alembic database detected: applying legacy fix-ups, then stamping %s", BASELINE_REVISION)
             # Same order as the pre-S34 startup: missing tables first (create_all never alters existing
             # ones), then the idempotent column/index fix-ups.
