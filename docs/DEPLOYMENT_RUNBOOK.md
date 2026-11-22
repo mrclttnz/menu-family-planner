@@ -111,18 +111,24 @@ docker exec -it menu-design-postgres psql -U menu_user -d menu_design
 ### Run an immediate manual backup
 ```bash
 # Save a compressed, timestamped dump
-docker exec -t menu-design-postgres pg_dump -U menu_user menu_design | gzip > backup_menu_design_$(date +%Y%m%d_%H%M%S).sql.gz
+docker exec menu-design-postgres pg_dump -U menu_user menu_design | gzip > backup_menu_design_$(date +%Y%m%d_%H%M%S).sql.gz
 ```
 
 ### Restore a backup
+The dump is plain SQL: restoring it over existing tables fails with "already exists" errors, so recreate the database first, with the app stopped.
 ```bash
-gunzip < backup_menu_design_YYYYMMDD_HHMMSS.sql.gz | docker exec -i menu-design-postgres psql -U menu_user -d menu_design
+docker stop menu-design-app
+docker exec menu-design-postgres psql -U menu_user -d postgres -c "DROP DATABASE menu_design WITH (FORCE);"
+docker exec menu-design-postgres psql -U menu_user -d postgres -c "CREATE DATABASE menu_design OWNER menu_user;"
+gunzip < backup_menu_design_YYYYMMDD_HHMMSS.sql.gz | docker exec -i menu-design-postgres psql -U menu_user -d menu_design -v ON_ERROR_STOP=1
+docker start menu-design-app
 ```
+Never use `-t` on these commands: no TTY must be allocated when stdin/stdout are redirected or in cron (`-i` is enough for stdin).
 
 ### Automatic daily backup (cron job on the server)
 You can add a cron job with `crontab -e`:
 ```bash
-0 3 * * * docker exec -t menu-design-postgres pg_dump -U menu_user menu_design | gzip > /home/marco/backups/menu_db_$(date +\%Y\%m\%d).sql.gz
+0 3 * * * docker exec menu-design-postgres pg_dump -U menu_user menu_design | gzip > /home/marco/backups/menu_db_$(date +\%Y\%m\%d).sql.gz
 ```
 
 ---
