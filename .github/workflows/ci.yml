@@ -66,6 +66,4 @@ jobs:
         run: pip install pip-audit==2.10.1 && pip-audit -r backend/requirements.txt
       - name: npm audit (high+)
         working-directory: frontend
-        # Report-only until S28 fixes the known vite/esbuild advisories; then remove continue-on-error.
-        continue-on-error: true
         run: npm audit --audit-level=high
