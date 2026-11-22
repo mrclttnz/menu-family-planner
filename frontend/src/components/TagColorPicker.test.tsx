@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { TagColorPicker } from './TagColorPicker'
 import i18n from '../i18n'
 import en from '../locales/en.json'
+import itLocale from '../locales/it.json'
 
 describe('TagColorPicker', () => {
   it('renders nothing when closed', () => {
@@ -21,7 +22,7 @@ describe('TagColorPicker', () => {
 
     await i18n.changeLanguage('it')
     rerender(<TagColorPicker isOpen onClose={() => {}} onSelectColor={() => {}} />)
-    expect(screen.getByRole('heading')).not.toHaveTextContent(en.tags.select_color)
+    expect(screen.getByRole('heading')).toHaveTextContent(itLocale.tags.select_color)
   })
 
   it('shows the localized error for an invalid HEX and does not apply it', async () => {

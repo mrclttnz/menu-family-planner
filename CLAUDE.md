@@ -16,7 +16,7 @@ Family meal-planning web app (dish catalog, per-member preferences, exception-ba
 | Full test suite | `cd backend && .venv/bin/python -m pytest -q` (70 pass; isolated from the real DB by `tests/conftest.py`) |
 | Single test | `cd backend && .venv/bin/python -m pytest tests/test_auth.py::<name>` |
 | Lint | `cd backend && .venv/bin/ruff check .`; `cd frontend && npm run lint` (ESLint, baseline of 20 warnings via `--max-warnings`; no formatter enforced) |
-| Frontend tests | `cd frontend && npm test` (Vitest 3 + React Testing Library + jsdom; `npm run test:watch` for watch mode) |
+| Frontend tests | `cd frontend && npm test` (Vitest 3 + React Testing Library + jsdom; needs Node >= 24.15 locally; `npm run test:watch` for watch mode) |
 | Typecheck | `cd frontend && npm run typecheck` |
 | Build | `cd frontend && npm run build` (= `tsc && vite build`; verified with `--outDir` elsewhere) |
 | DB migrations | `TBD` (runtime auto-migrations in `backend/app/core/migrations.py`) |
