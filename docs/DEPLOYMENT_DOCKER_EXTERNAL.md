@@ -267,14 +267,37 @@ docker compose -f docker-compose.prod.yml logs -f tunnel
 ### PostgreSQL Database Backup
 To take a safe dump of the database on the QNAP:
 ```bash
-docker compose -f docker-compose.prod.yml exec -t postgres pg_dump -U menu_user menu_design > /share/Container/menu-design/backup_$(date +%Y%m%d_%H%M%S).sql
+docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U menu_user menu_design > /share/Container/menu-design/backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
 For a scheduled backup, do it as the admin user and add a line like this to its crontab:
 ```bash
-0 3 * * * cd /share/CACHEDEV1_DATA/Container/menu-design && /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker compose -f docker-compose.prod.yml exec -t postgres pg_dump -U menu_user menu_design > /share/Container/menu-design/db_backup/backup_$(date +%Y%m%d_%H%M%S).sql
+0 3 * * * cd /share/CACHEDEV1_DATA/Container/menu-design && /share/CACHEDEV1_DATA/.qpkg/container-station/bin/docker compose -f docker-compose.prod.yml exec -T postgres pg_dump -U menu_user menu_design > /share/Container/menu-design/db_backup/backup_$(date +%Y%m%d_%H%M%S).sql
 ```
 
+Use `-T` (no pseudo-TTY) whenever the output is redirected to a file or the command runs from cron: with `-t` cron fails ("the input device is not a TTY") and carriage returns can corrupt the dump.
+
+### Restore a PostgreSQL Backup
+The dump is a plain SQL file, so restoring it over a database that already has tables would fail with "already exists" errors. Restore into a freshly recreated database, with the app stopped:
+```bash
+cd /share/Container/menu-design
+BACKUP=/share/Container/menu-design/backup_YYYYMMDD_HHMMSS.sql   # the file to restore
+
+# 1. Stop the app (keep postgres running) so nothing writes during the restore
+docker compose -f docker-compose.prod.yml stop app
+
+# 2. Recreate the empty database
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U menu_user -d postgres -c "DROP DATABASE menu_design WITH (FORCE);"
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U menu_user -d postgres -c "CREATE DATABASE menu_design OWNER menu_user;"
+
+# 3. Load the dump (-T is required: the file is fed through stdin)
+docker compose -f docker-compose.prod.yml exec -T postgres psql -U menu_user -d menu_design -v ON_ERROR_STOP=1 < "$BACKUP"
+
+# 4. Start the app again (the entrypoint checks the Alembic version) and verify
+docker compose -f docker-compose.prod.yml --env-file .env.production up -d app
+docker compose -f docker-compose.prod.yml logs --tail 20 app
+```
+A dump taken after S34 contains `alembic_version`, so the restored database is already stamped. A dump from before the first Alembic start has no `alembic_version`: the app will stamp it again at the next start (see "Database migrations (Alembic)" above). For a gzip dump use `gunzip < file.sql.gz | docker compose ... exec -T postgres psql ...`.
 
 ### Restarting or Stopping the Stack
 ```bash
