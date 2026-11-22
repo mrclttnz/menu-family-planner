@@ -8,12 +8,12 @@
 
 - **Target System**: Menu Design (Full-Stack Web App)
 - **Target Repository**: `/home/marco/work/menu-design-2`
-- **Audit Date**: 2026-10-25
+- **Audit Date**: 2026-10-25 (refreshed 2026-11-22, S24 and S25 addenda)
 - **Active Bottega Profile**: `forge`
 - **Overall Security Gate Verdict**: **`PASS_WITH_WARNINGS`**
 - **Critical / High Blockers**: **0** (No `CRITICAL` or `HIGH` vulnerabilities detected)
-- **Medium Findings**: 2 (Actionable hardening recommendations)
-- **Low / Informational Findings**: 2 (Defense-in-depth improvements)
+- **Medium Findings**: 0 open (SEC-F01, SEC-F02 remediated)
+- **Low / Informational Findings**: 0 open from the original audit (SEC-F03, SEC-F04 remediated in S25); residual LOW items in issue #35; npm advisory in S28
 
 ---
 
@@ -24,9 +24,9 @@
 | **A01: Broken Access Control** | CWE-284, CWE-639 (IDOR) | **PASS** | **Multi-Tenant Isolation Enforced**: All database queries across `members.py`, `dishes.py`, `taxonomies.py`, `calendar.py`, and `attendance.py` strictly enforce `household_id == current_household.id`. Cross-tenant tampering is prevented (e.g. preference setting validates both dish and member ownership). Verified by automated test suites `test_tenant_isolation_members` and `test_dish_tenant_isolation`. |
 | **A02: Cryptographic Failures** | CWE-327, CWE-798 | **PASS_WITH_WARNINGS** | Passwords hashed using standard `bcrypt` with work factor 12 (`gensalt(rounds=12)`). JWT tokens are signed with HS256 and verified with pinned algorithms (`algorithms=[settings.ALGORITHM]`). `.env` is properly excluded in `.gitignore`. **Warning**: Fallback default secret key in `config.py` should fail-closed if `ENVIRONMENT == 'production'`. |
 | **A03: Injection** | CWE-89 (SQLi), CWE-78 (OS Command), CWE-79 (XSS) | **PASS** | **100% Parameterized ORM Queries**: Zero raw SQL concatenation or unparameterized `text()` queries. Zero system command execution (`exec`, `spawn`, `subprocess`). Client-side XSS mitigated via React JSX automatic escaping, strict `validate_url` validator blocking `javascript:` URIs, and CSP header configured. |
-| **A04: Insecure Design** | CWE-307, CWE-915 (Mass Assignment) | **PASS_WITH_WARNINGS** | All Pydantic input models enforce `model_config = ConfigDict(extra="forbid")` preventing mass-assignment / parameter tampering. String lengths and values are strictly bounded. Database enforces `CheckConstraint` on preferences. **Warning**: Missing rate limiting on auth endpoints (`/login`, `/register`) allows brute-force and DoS via bcrypt. |
-| **A05: Security Misconfiguration** | CWE-16, CWE-1004 | **PASS** | Security headers middleware injects `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy: default-src 'self'`. CORS origins are restricted to configured hosts (`settings.cors_origin_list`). |
-| **A06: Vulnerable Dependencies** | CWE-1104 | **PASS** | Dependencies are modern and actively maintained (`fastapi 0.115`, `pydantic 2.9`, `bcrypt 4.2`, `pyjwt 2.9`, `sqlalchemy 2.0.35`, `react 18.3.1`). No outdated vulnerable libraries detected. |
+| **A04: Insecure Design** | CWE-307, CWE-915 (Mass Assignment) | **PASS_WITH_WARNINGS** | All Pydantic input models enforce `model_config = ConfigDict(extra="forbid")` preventing mass-assignment / parameter tampering. String lengths and values are strictly bounded. Database enforces `CheckConstraint` on preferences. **Update**: auth rate limiting added in S24 (SEC-F02 remediated); residual items in issue #35. |
+| **A05: Security Misconfiguration** | CWE-16, CWE-1004 | **PASS** | Security headers middleware injects `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, and `Content-Security-Policy: default-src 'self'`. CORS origins are restricted to configured hosts (`settings.cors_origin_list`), with explicit method/header lists (S25). HSTS is sent in production (S25). |
+| **A06: Vulnerable Dependencies** | CWE-1104 | **PASS_WITH_WARNINGS** | **Update 2026-11-22**: `pip-audit` clean; `npm audit` reports 1 high + 1 moderate (`esbuild <= 0.24.2`, `vite <= 6.4.3`, dev server only; production serves the built `dist`), tracked in S28 (#28). Original note: dependencies are modern and actively maintained (`fastapi 0.115`, `pydantic 2.9`, `bcrypt 4.2`, `pyjwt 2.9`, `sqlalchemy 2.0.35`, `react 18.3.1`). No outdated vulnerable libraries detected. |
 | **A07: Identification & Authentication Failures** | CWE-287, CWE-384 | **PASS** | Secure JWT Bearer authentication implemented with expiration timestamps (`exp`), issuance timestamps (`iat`), and subject (`sub`). Tokens returned only in response body and transmitted via standard `Authorization: Bearer <token>` header. Constant-time password verification via `bcrypt.checkpw`. |
 | **A08: Software & Data Integrity Failures** | CWE-502, CWE-353 | **PASS** | No unsafe deserialization (`pickle`, `yaml.load`, `eval`). Static files served strictly from built `dist` folder without path traversal vectors. |
 | **A09: Security Logging & Monitoring Failures** | CWE-532 | **PASS** | Passwords and JWT secrets are never logged or leaked in error responses. `HouseholdResponse` schema strictly drops `password_hash`. |
@@ -52,7 +52,7 @@
       # info.data.get("ENVIRONMENT") == "production"
       return v
   ```
-- **Status**: `OPEN` (Documented / Recommended for Phase 7 Deployment)
+- **Status**: `REMEDIATED`. `Settings` validator in `backend/app/core/config.py` enforces length >= 32 and rejects the default dev key when `ENVIRONMENT` is `production` (case-insensitive since S25; fails at startup). It does not check key strength beyond length >= 32. Regression test in `test_security_headers_cors.py`; broader config tests planned in S30 (TG-1).
 
 ---
 
@@ -72,7 +72,7 @@
 - **Risk**: While `allow_origins` is properly restricted via `settings.cors_origin_list`, `allow_methods=["*"]` and `allow_headers=["*"]` allow arbitrary custom headers and methods beyond those required by the REST API.
 - **Remediation**:
   Explicitly specify `allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"]` and `allow_headers=["Authorization", "Content-Type", "Accept"]`.
-- **Status**: `OPEN` (Low Risk)
+- **Status**: `REMEDIATED` in S25 (#25): `allow_methods=[GET, POST, PUT, PATCH, DELETE, OPTIONS]`, `allow_headers=[Authorization, Content-Type, Accept]` (PATCH added to the suggested list because the API and SPA use it). Tests: `backend/tests/test_security_headers_cors.py`.
 
 ---
 
@@ -82,7 +82,7 @@
 - **Risk**: Browsers are not instructed to strictly force HTTPS connections from the application layer.
 - **Remediation**:
   Include `Strict-Transport-Security: max-age=31536000; includeSubDomains` in production or ensure TLS termination proxy (Nginx/Traefik) injects it.
-- **Status**: `OPEN` (Low Risk)
+- **Status**: `REMEDIATED` in S25 (#25): `Strict-Transport-Security: max-age=31536000; includeSubDomains` set by the security headers middleware when `ENVIRONMENT == production`, absent otherwise. Tests in `test_security_headers_cors.py`.
 
 ---
 
@@ -112,7 +112,7 @@ Every single resource operation is strictly scoped:
 
 - **Gate Status**: **`APPROVED (PASS_WITH_WARNINGS)`**
 - **Condition for Production Release (Phase 7)**:
-  Ensure `SECRET_KEY` is overridden in production environment (`.env` or Docker secrets) and rate-limiting is configured at ingress.
+  Ensure `SECRET_KEY` is overridden in production (enforced at startup), `ENVIRONMENT=production` is set (enables HSTS), and `TRUSTED_PROXY_IPS` is set for rate limiting (see Release Prerequisites RP-01).
 
 ---
 
@@ -143,3 +143,9 @@ Positives: spoofed XFF/CF headers from untrusted peers ignored (verified); malfo
 **Re-verification gate result: PASS_WITH_WARNINGS** (no CRITICAL/HIGH; code fixes for findings 1 and 2 accepted; finding 3 stays open as a one-line doc fix, to be closed without a new audit by editing the runbook placeholder).
 
 **Closure of finding 3 (2026-11-21):** the runbook `.env` template placeholder was changed to `TRUSTED_PROXY_IPS=<IP_container_cloudflared>/32` (commit following `4583119`), the one-line doc fix the re-verification required. As agreed in the re-verification, this was closed by editing the runbook without a further audit; the edit itself was not independently re-read by `security-engineer`. All three MEDIUM findings are now fixed. Optional hardening done: the runbook now states that port 8000 should not be published when the tunnel is the only entry point. Gate result: **PASS_WITH_WARNINGS** (LOW items tracked in issue #35).
+
+---
+
+## 7. Slice S25 Addendum (2026-11-22): Hardening batch (#25, SEC-F01/F03/F04)
+
+`security-engineer`: **PASS_WITH_WARNINGS** (no CRITICAL/HIGH). Warning W1 (SECRET_KEY production check was case-sensitive while HSTS was not) fixed in the same slice with a regression test; W2 (validator rejects only the default key, no strength check) documented in SEC-F01; W4 (A04/A05 rows stale) fixed. `code-reviewer`: **APPROVE_WITH_NITS** (nits applied). Tests: full backend suite green.
