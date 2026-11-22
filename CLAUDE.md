@@ -16,17 +16,19 @@ Family meal-planning web app (dish catalog, per-member preferences, exception-ba
 | Full test suite | `cd backend && .venv/bin/python -m pytest -q` (70 pass; isolated from the real DB by `tests/conftest.py`) |
 | Single test | `cd backend && .venv/bin/python -m pytest tests/test_auth.py::<name>` |
 | Lint | `cd backend && .venv/bin/ruff check .`; `cd frontend && npm run lint` (ESLint, baseline of 20 warnings via `--max-warnings`; no formatter enforced) |
+| Frontend tests | `cd frontend && npm test` (Vitest 3 + React Testing Library + jsdom; needs Node >= 24.15 locally; `npm run test:watch` for watch mode) |
 | Typecheck | `cd frontend && npm run typecheck` |
 | Build | `cd frontend && npm run build` (= `tsc && vite build`; verified with `--outDir` elsewhere) |
 | DB migrations | `TBD` (runtime auto-migrations in `backend/app/core/migrations.py`) |
 | Security scan | `bash scripts/security-scan.sh . forge` (vendored copy of the Bottega plugin scanner; refresh manually from the plugin when it changes) |
-| CI | `.github/workflows/ci.yml`: backend (ruff+pytest), frontend (lint+typecheck+build), security (scanner, pip-audit, npm audit report-only until S28) |
+| CI | `.github/workflows/ci.yml`: backend (ruff+pytest), frontend (lint+typecheck+test+build), security (scanner, pip-audit, npm audit report-only until S28) |
 | Dependency audit | `cd backend && pip-audit -r requirements.txt`; `cd frontend && npm audit` |
 
 ## Conventions
 - Layout: `backend/app/{routers,schemas,models,services,core,api}`, `frontend/src/components`; details in `docs/ARCHITECTURE.md`. API prefix `/api/v1`.
 - Tests are isolated by default: `tests/conftest.py` forces `DATABASE_URL` to a throwaway SQLite before importing `app.*` (the app lifespan runs `create_all` + seeding on that engine) and asserts it. Keep that block above any `app` import.
 - Every query is scoped by household (anti-IDOR); Pydantic schemas use `extra="forbid"`.
+- Frontend tests: colocated `*.test.ts(x)` next to the source file; explicit `vitest` imports (no globals); `src/test/setup.ts` forces English and cleans up per test. Vitest stays on 3.x (supports vite 5–7) and `@testing-library/jest-dom` on 6.x (8.x needs Vitest 5) so S28 can bump vite without touching the harness.
 - UI strings go through i18n (`frontend/src/locales/{it,en}.json`), no hardcoded text.
 - Commits: Conventional Commits (`feat(scope): ...`), referencing the GitHub Issue `#ID`.
 
