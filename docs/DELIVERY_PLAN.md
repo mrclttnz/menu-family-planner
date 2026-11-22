@@ -103,7 +103,7 @@ Parallelism: S24, S26, S29 can run in parallel (different files). S25 touches `b
   - Recommendation: B before S35 (identity model change is a real schema migration); A is acceptable if S35/S36 are deferred.
 - **Other fixes in this slice**:
   - Requirements: keep only one Postgres driver (compose uses `postgresql+psycopg://`, so `psycopg[binary]`; verify nothing imports `psycopg2`, then drop `psycopg2-binary`).
-  - `docker-compose.prod.yml` is gitignored but documented: either commit a sanitized `docker-compose.prod.example.yml` (no secrets, env-driven) or remove the references from `docs/DEPLOYMENT_RUNBOOK.md` / `docs/DEPLOYMENT_DOCKER_EXTERNAL.md`.
+  - **[DONE 2026-11-22]** `docker-compose.prod.yml` is gitignored but documented: resolved by adding a sanitized, env-driven `docker-compose.prod.yml.example` (not matched by the `*prod*.yml` ignore pattern) and referencing it from `docs/DEPLOYMENT_RUNBOOK.md` / `docs/DEPLOYMENT_DOCKER_EXTERNAL.md`.
   - Fix stale facts in `PRD`/`ARCHITECTURE`/`DB_SCHEMA` noticed during the edit (for example the SQLite/Postgres statement in the Gate 2 log; the DB design is now Postgres 16 in compose).
 - **Definition of Done**: ADR recorded (Alembic); docs describe the planned Alembic flow and flag it as pending S34; docs match code; Docker build and `pytest` unaffected; no secrets committed.
 - **Characterization tests needed**: none (docs and requirements); run the full suite after the driver change.

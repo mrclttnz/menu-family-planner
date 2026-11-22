@@ -1,0 +1,140 @@
+# ==============================================================================
+# MENU DESIGN - Production Docker Compose for QNAP NAS & Cloudflare Tunnel
+#
+# Template (docker-compose.prod.yml.example). The real docker-compose.prod.yml is
+# gitignored (*prod*.yml) so local changes never get committed.
+#
+# Usage:
+#   1. Copy the templates and configure values:
+#      cp docker-compose.prod.yml.example docker-compose.prod.yml
+#      cp .env.production.example .env.production
+#   2. Run stack with:
+#      docker compose -f docker-compose.prod.yml --env-file .env.production up -d
+#
+# Rate limiting behind the tunnel: TRUSTED_PROXY_IPS (in .env.production) must be
+# the cloudflared container IP as /32, i.e. the ipv4_address pinned below
+# (e.g. 172.29.20.3/32). Never trust the whole subnet.
+# ==============================================================================
+
+services:
+  # --- 1. PostgreSQL Database (Persistente su QNAP e accessibile in LAN) ---
+  postgres:
+    image: postgres:16-alpine
+    container_name: menu-design-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-menu_design}
+      POSTGRES_USER: ${POSTGRES_USER:-menu_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Database password required in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      # Accessibile solo dai client nella LAN interna (es. DBeaver, pgAdmin).
+      # Il router NON espone questa porta verso l'esterno; Cloudflare Tunnel espone unicamente l'app web.
+      - "${POSTGRES_PORT_MAPPING:-5432:5432}"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-menu_user} -d ${POSTGRES_DB:-menu_design}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - db_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 1024M
+        reservations:
+          cpus: "0.20"
+          memory: 128M
+
+  # --- 2. Menu Design Application (FastAPI + React SPA) ---
+  app:
+    image: ${APP_IMAGE:?APP_IMAGE must be configured in .env.production (e.g. user/menu-design-app:latest)}
+    container_name: menu-design-app
+    restart: unless-stopped
+    # Porta 8000 NON pubblicata sull'host: l'app e' raggiungibile solo dalla rete Docker
+    # (il tunnel Cloudflare la raggiunge su tunnel_net). Nessun accesso LAN diretto.
+    expose:
+      - "8000"
+    environment:
+      - ENVIRONMENT=production
+      - SECRET_KEY=${SECRET_KEY:?SECRET_KEY must be configured in .env.production}
+      - DATABASE_URL=postgresql+psycopg://${POSTGRES_USER:-menu_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-menu_design}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:8000}
+      - TRUSTED_PROXY_IPS=${TRUSTED_PROXY_IPS:-}
+      - AUTH_RATE_LIMIT_PER_MINUTE=${AUTH_RATE_LIMIT_PER_MINUTE:-10}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    networks:
+      - db_net
+      - tunnel_net
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "1.50"
+          memory: 512M
+        reservations:
+          cpus: "0.20"
+          memory: 128M
+
+  # --- 3. Cloudflare Tunnel (Connessione sicura outbound verso Cloudflare Edge) ---
+  tunnel:
+    image: cloudflare/cloudflared:2026.10.7
+    container_name: menu-design-tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN:?TUNNEL_TOKEN must be configured in .env.production}
+    environment:
+      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      tunnel_net:
+        # Fixed IP so TRUSTED_PROXY_IPS (<this IP>/32) stays valid across restarts.
+        ipv4_address: 172.29.20.3
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 256M
+
+networks:
+  db_net:
+    driver: bridge
+  tunnel_net:
+    driver: bridge
+    ipam:
+      # Pick a subnet that does not clash with other networks on the NAS. If the
+      # network already exists, this must match it exactly
+      # (docker network inspect <project>_tunnel_net).
+      config:
+        - subnet: 172.29.20.0/22
+          gateway: 172.29.20.1
+
+volumes:
+  postgres_data:
+    name: menu_design_postgres_data
