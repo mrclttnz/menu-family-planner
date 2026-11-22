@@ -25,4 +25,6 @@ fi
 echo "Starting unified server at http://localhost:8000"
 echo "API docs available at http://localhost:8000/docs"
 cd backend
+echo "Migrating database to Alembic head..."
+python -m app.core.db_bootstrap
 exec python -m uvicorn app.main:app --host 0.0.0.0 --port 8000

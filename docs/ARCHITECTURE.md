@@ -13,7 +13,7 @@
 Menu Design is architected as a **Decoupled 2-Tier Modular Web Application**:
 - **Backend**: Python 3.14 + **FastAPI** providing a high-performance, strictly typed REST API with automatic OpenAPI documentation and Pydantic validation.
 - **Frontend**: **React** (TypeScript + Vite + Tailwind CSS) providing a responsive, mobile-first single-page application (SPA) optimized for kitchen counter devices, smartphones, and desktop planning.
-- **Database**: Relational storage using **SQLAlchemy 2.0** ORM (schema managed at startup by `create_all` + `app/core/migrations.py`; **Alembic** adopted per ADR-0001, implementation pending in S34), running **SQLite 3 (WAL mode)** during local development and smoothly swapping to **PostgreSQL** in production via environment configuration.
+- **Database**: Relational storage using **SQLAlchemy 2.0** ORM (schema managed by **Alembic** migrations, ADR-0001 / S34, applied before the server starts), running **SQLite 3 (WAL mode)** during local development and smoothly swapping to **PostgreSQL** in production via environment configuration.
 
 ```mermaid
 flowchart TD
@@ -47,7 +47,7 @@ flowchart TD
 1. **Zero-Trust Multi-Tenant Isolation**: Every resource belongs to a `household_id`. The data access layer strictly enforces `household_id` filtering on all operations to eliminate Insecure Direct Object References (IDOR).
 2. **Configurability First**: Course types (`Primo`, `Secondo`, etc.), dish statuses (`Da provare`, `OK`, etc.), and recipe sources are managed through lookup entities rather than hardcoded enums.
 3. **Optimistic & Resilient UX**: Fast, tactile attendance toggles and meal assignments with clear visual feedback and immediate warning cues when dish dislikes conflict with attendance.
-4. **Environment Agnostic Data Layer**: Queries use clean SQLAlchemy abstractions that run on SQLite and PostgreSQL. Runtime DDL in `migrations.py` has Postgres-only branches; Alembic (ADR-0001, S34) will replace it.
+4. **Environment Agnostic Data Layer**: Queries use clean SQLAlchemy abstractions that run on SQLite and PostgreSQL. Schema changes go through Alembic revisions (ADR-0001, S34); the legacy runtime DDL in `migrations.py` is kept only as a one-way bridge for pre-Alembic databases.
 
 ---
 
@@ -59,7 +59,7 @@ flowchart TD
 | **Frontend Framework** | **React + TypeScript + Vite** | Vue, HTMX, Next.js | Rich interactive ecosystem for drag/drop calendars, instant mobile UI interactions, and strong type sharing with backend contracts. |
 | **Styling & Icons** | **Tailwind CSS + Lucide React** | CSS Modules, MUI | Utility-first responsive design tailored for mobile kitchen view; consistent, lightweight modern iconography. |
 | **Internationalization (i18n)** | **i18next + react-i18next** | react-intl, LinguiJS | Lightweight, zero backend overhead, instant client-side switching (IT/EN), dynamic locale-aware date formatting via Intl API, persistent via localStorage. |
-| **Database & ORM** | **SQLAlchemy 2.0 (+ Alembic, adopted: ADR-0001, pending S34)** | Prisma, Tortoise ORM, Raw SQL | Industry-standard Python ORM. Bridges SQLite (development/tests) and PostgreSQL (production). Migrations are runtime auto-migration today; Alembic to replace it. |
+| **Database & ORM** | **SQLAlchemy 2.0 + Alembic (ADR-0001, S34)** | Prisma, Tortoise ORM, Raw SQL | Industry-standard Python ORM. Bridges SQLite (development/tests) and PostgreSQL (production). Versioned Alembic migrations run at deploy/start time by the entrypoint. |
 | **Database Engines** | **SQLite (Dev) / PostgreSQL (Prod)** | MongoDB, DynamoDB | Relational integrity is mandatory for many-to-many relationships (dishes <-> courses, members <-> dish preferences, calendar slots). |
 | **Auth & Security** | **JWT (Bearer / Secure Cookie) + Bcrypt** | Session cookies, NextAuth | Stateless, secure, easily portable between mobile browsers and future native clients; resistant to CSRF when combined with Bearer/SameSite controls. |
 | **Testing** | **Pytest + HTTPX** (Backend); frontend harness planned in S27 (none today) | Jest, Unittest | Extremely fast test runners with fixture support for automated CI test execution. |
@@ -106,7 +106,8 @@ menu-design-2/
 │   │   │   ├── config.py         # Validated Pydantic BaseSettings (DATABASE_URL, SECRET_KEY)
 │   │   │   ├── security.py       # Password hashing (bcrypt) and JWT encode/decode
 │   │   │   ├── database.py       # SQLAlchemy engine, session maker, base model
-│   │   │   └── migrations.py     # Idempotent runtime auto-migrations (to be replaced by Alembic, ADR-0001 / S34)
+│   │   │   ├── db_bootstrap.py   # `python -m app.core.db_bootstrap`: alembic upgrade head (+ stamp of legacy DBs)
+│   │   │   └── migrations.py     # Legacy idempotent fix-ups, used only by the bootstrap for pre-Alembic DBs
 │   │   ├── models/               # SQLAlchemy ORM Models
 │   │   │   ├── household.py      # Household & Member models
 │   │   │   ├── taxonomy.py       # CourseType, DishStatus, SourceType
@@ -133,7 +134,8 @@ menu-design-2/
 │   │   │   ├── seed_defaults.py  # Seeds default taxonomies on household creation
 │   │   │   └── dishes_import_export.py # Excel, CSV & JSON import/export with formula injection defense
 │   │   └── main.py               # FastAPI factory, CORS, exception handlers
-│   ├── alembic/                  # (planned, S34: Alembic DB migrations; not present yet)
+│   ├── alembic.ini, alembic/     # Alembic config, env.py and versions/ (baseline 0001)
+│   ├── docker-entrypoint.sh      # Container entrypoint: bootstrap/migrate, then uvicorn
 │   ├── tests/                    # Pytest test suite
 │   ├── requirements.txt          # Python dependencies
 │   └── Dockerfile                # Production non-root container

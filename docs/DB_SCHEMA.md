@@ -13,7 +13,7 @@
   - **Development**: SQLite 3 (WAL mode enabled, foreign keys enforced via PRAGMA `foreign_keys = ON`).
   - **Production**: PostgreSQL 16 (docker compose) via standard connection string (`DATABASE_URL`).
 - **ORM**: **SQLAlchemy 2.0** declarative models.
-- **Migrations**: **today** the schema is created at startup via `create_all` plus idempotent hand-written DDL in `backend/app/core/migrations.py`. **Decided** (ADR-0001, `docs/adr/0001-adopt-alembic-for-migrations.md`): move to **Alembic**; implementation is pending in slice S34, so no `backend/alembic/` exists yet.
+- **Migrations**: **Alembic** (ADR-0001, implemented in S34): revisions in `backend/alembic/versions/` (baseline `0001` = the schema below), applied by `python -m app.core.db_bootstrap` before the server starts (container entrypoint, `run_dev.sh`). The app does not create or alter schema at startup anymore.
 - **Tenant Isolation**: Strict column-level scoping (`household_id`) enforced across all application queries and foreign keys.
 
 ---

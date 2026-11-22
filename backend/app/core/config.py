@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Comma-separated IPs/CIDRs of reverse proxies whose CF-Connecting-IP / X-Forwarded-For
     # headers are trusted (e.g. the docker network of cloudflared). Empty = never trust them.
     TRUSTED_PROXY_IPS: str = ""
+    # One-off consent for the first boot of a pre-Alembic database that contains duplicate dishes
+    # (same title ignoring case/whitespace in a household): the legacy fix-up MERGES/DELETES them.
+    ALLOW_LEGACY_DEDUP: bool = False
 
     model_config = SettingsConfigDict(
         env_file=os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), ".env"),

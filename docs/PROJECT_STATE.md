@@ -28,7 +28,7 @@
 - **Database Design**: `docs/DB_SCHEMA.md` — `[Approved - Gate 3]`
 - **Test Plan**: `docs/TEST_PLAN.md` — `[Approved - Gate 5 (40/40 backend tests passing, re-verified 2026-11-21; no frontend tests)]`
 - **Security Audit Report**: `docs/SECURITY_AUDIT.md` — `[Approved - Gate 6 (PASS_WITH_WARNINGS); dated 2026-10-25, stale: predates S8-S23, SEC-F01 already fixed in code]`
-- **ADR-0001 (Alembic adoption)**: `docs/adr/0001-adopt-alembic-for-migrations.md` — `[Accepted; implementation pending S34]`
+- **ADR-0001 (Alembic adoption)**: `docs/adr/0001-adopt-alembic-for-migrations.md` — `[Accepted; implemented in S34]`
 - **Deployment Runbook**: `docs/DEPLOYMENT_RUNBOOK.md` — `[Approved - Gate 7 (Ready)]`
 - **External Docker Runbook (QNAP & Docker Hub)**: `docs/DEPLOYMENT_DOCKER_EXTERNAL.md` — `[Production Ready]`
 - **Delivery Plan**: `docs/DELIVERY_PLAN.md` — `[Approved - Gate B]`
@@ -76,7 +76,7 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S31` | `#31` | Frontend characterization tests (print, theme, i18n, utils) | TG-4, TG-5 | S27 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S32` | `#23` | Print layout tech debt | GH#23 AC | S31 | `M` | no | `READY after S31` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S33` | `#11` | Weekly default attendance | GH#11 (AC derived, confirm at start) | S29, S30, S34 | `M` | no | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
-| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `READY` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
+| `S34` | `#32` | Migrations tooling implementation (Alembic) | DOC-1 | S29, S30 | `M` | yes | `DONE` | `N/A` | `DONE` | `DONE` | `PASS (219/219; Postgres 16 fresh vs legacy schema identical, Docker image e2e OK)` | `APPROVE_WITH_NITS + PASS_WITH_WARNINGS (MEDIUM dedupe-consent and rollback-doc fixed, nits fixed; LOW backlog: SQLite FK pragma in bootstrap, dependency pinning, Postgres CI job; RP-02 OPEN)` |
 | `S35` | `#5` | User management I: identity model split + auth refactor | GH#5 AC | S24, S34, S30 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S36` | `#5` | User management II: manage users in a household | GH#5 AC | S35 | `M` | yes | `BLOCKED: questions asked before coding` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S37` | `#3` | Guest attendance in planned meals | — | — | `—` | — | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
@@ -89,6 +89,7 @@ Actions that must be done in an environment before (or during) the next release.
 
 | ID | Action before release | Environment | Introduced by | Status |
 | :--- | :--- | :--- | :--- | :--- |
+| `RP-02` | Take a database backup, then deploy the S34 image: its first start stamps the existing prod/QNAP DB with the Alembic baseline (after the legacy fix-ups, incl. the dishes de-duplication). Check logs for `Database is at Alembic head`. See `docs/DEPLOYMENT_RUNBOOK.md` section 5b. | `prod` | `S34` | `OPEN` |
 | `RP-01` | Set `TRUSTED_PROXY_IPS` to the exact IP of the cloudflared container as `/32` (never the whole docker subnet); if `docker-compose.prod.yml` is separate from `docker-compose.yml`, also pass `TRUSTED_PROXY_IPS` and `AUTH_RATE_LIMIT_PER_MINUTE` through to the `app` service. See `docs/DEPLOYMENT_RUNBOOK.md` (rate limiting section). Prod compose now pins the tunnel IP and no longer publishes port 8000 (templates: `docker-compose.prod.yml.example`, `.env.production.example`); Closed 2026-11-22 at the user's request. Verified in prod by the user: tunnel IP pinned, port 8000 closed, and rate limiting counted per real client IP behind the tunnel (tested from two different IPs). | `prod` | `S24` | `DONE` |
 
 ## 5. Quality & Security Gate Log

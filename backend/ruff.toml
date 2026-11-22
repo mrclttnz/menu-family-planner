@@ -8,6 +8,10 @@ select = ["E", "F", "I"]
 # Baseline: 42 pre-existing long lines are not enforced (formatting only, no behavior).
 ignore = ["E501"]
 
+[lint.isort]
+# backend/alembic/ (migrations dir) must not make ruff treat the alembic library as first-party.
+known-third-party = ["alembic"]
+
 [lint.per-file-ignores]
 # The env override must run before any `app.*` import (see CLAUDE.md).
 "tests/conftest.py" = ["E402"]
