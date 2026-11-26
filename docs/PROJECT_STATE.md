@@ -83,7 +83,7 @@ S1–S23 were delivered before the per-slice gate columns existed: their Gate 4/
 | `S38` | `#4` | Automatic weekly menu suggestion | — | — | `—` | — | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S39` | `#6` | Recipe scraping from source URL | — | — | `—` | yes (SSRF) | `BLOCKED: needs spec` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
 | `S40` | `#14, #15` | Native Android / iOS apps | — | — | `—` | — | `OUT OF SCOPE (epic only)` | `N/A` | `TODO` | `TODO` | `TODO` | `TODO` |
-| `S42` | `#73` | Today's Table: day navigation (previous, next, date picker modal, today); frontend only | GH#73 (AC derived: prev/next day, calendar picker, back to today, days outside the loaded week load their own slots) | — | `S` | no | `IN REVIEW` | `N/A` | `DONE` | `DONE` | `PASS (10 frontend tests incl. 3 new, typecheck, lint baseline; manual browser check done by the user; docs synced)` | `TODO` |
+| `S42` | `#73` | Today's Table: day navigation (previous, next, date picker modal, today); frontend only | GH#73 (AC derived: prev/next day, calendar picker, back to today, days outside the loaded week load their own slots) | — | `S` | no | `IN REVIEW` | `N/A` | `DONE` | `DONE` | `PASS (10 frontend tests incl. 3 new, typecheck, lint baseline; manual browser check done by the user; docs synced)` | `APPROVE_WITH_NITS (docs blockers fixed; nits tracked as #75, #76)` |
 
 ## Release Prerequisites
 Actions that must be done in an environment before (or during) the next release. Whoever introduces one adds a row in the same task (e.g. a production variable with no safe default, an external setup step, a one-off data migration, a secret to rotate). Gate 7 can't pass while a row for the target environment is `OPEN`.
