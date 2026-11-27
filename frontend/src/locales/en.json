@@ -59,6 +59,14 @@
     "error_default": "An error occurred while signing in."
   },
   "today": {
+    "pick_date": "Pick a date",
+    "prev_day": "Previous day",
+    "next_day": "Next day",
+    "go_today": "Today",
+    "prev_month": "Previous month",
+    "next_month": "Next month",
+    "close": "Close",
+    "no_meals_day": "No meals planned for this day.",
     "banner_title": "Today's Table",
     "banner_subtitle": "Everyone present by default. Tap a name to mark an absence.",
     "no_meals": "No meals planned for today.",

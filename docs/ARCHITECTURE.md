@@ -360,6 +360,15 @@ To make "Oggi a Tavola" (`TodayView.tsx`) a complete, high-information kitchen d
     - **Recipe Source**: Book/magazine reference text or clickable external link (`source_url`).
     - **Family Preferences Summary**: Visual pill summary of household members' sentiment towards the dish (`favorite` 👍, `dislike` 👎, `neutral` 😐).
 
+
+### 7.5 Today View Day Navigation (Slice S42 / Issue #73)
+
+"Oggi a Tavola" (`TodayView.tsx`) can show any day, not only today:
+- **Navigation bar** (in this order): previous day, next day, date picker, "Today" (disabled while the selected day is today). The picker opens `DatePickerModal.tsx`, a modal month calendar (Monday-first, locale-aware labels, today highlighted).
+- **State**: `selectedDate` (`YYYY-MM-DD`) lives in `App.tsx` and is independent from the Meal Planner week range (`startDate`/`endDate`): navigating here never moves the calendar.
+- **Data loading**: if `selectedDate` is inside the loaded range, slots come from `calendarSlots`; otherwise `App.tsx` fetches `GET /api/v1/calendar?start_date=d&end_date=d` into `outsideDay` and refetches it whenever `calendarSlots` changes (every mutation handler refreshes it). Responses for a stale date are discarded. No backend or schema change.
+- The empty state reads "no meals for this day" when the selected day is not today.
+
 ## 11. Print Engine & Fridge Planner Architecture (`Issue #22`)
 
 The application incorporates a zero-dependency, native browser print engine designed for paper and PDF export:

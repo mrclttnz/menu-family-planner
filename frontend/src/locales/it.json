@@ -59,6 +59,14 @@
     "error_default": "Si è verificato un errore durante l'accesso."
   },
   "today": {
+    "pick_date": "Scegli una data",
+    "prev_day": "Giorno precedente",
+    "next_day": "Giorno successivo",
+    "go_today": "Oggi",
+    "prev_month": "Mese precedente",
+    "next_month": "Mese successivo",
+    "close": "Chiudi",
+    "no_meals_day": "Nessun pasto pianificato per questo giorno.",
     "banner_title": "Oggi a Tavola",
     "banner_subtitle": "Tutti presenti di default. Tocca un nome per segnare l'assenza.",
     "no_meals": "Nessun pasto pianificato per oggi.",

@@ -69,6 +69,27 @@ export function App() {
 
   const todayStr = formatDate(new Date())
 
+  // "Today's Table" day navigation (#73): independent from the calendar range.
+  const [selectedDate, setSelectedDate] = useState(todayStr)
+  const [outsideDay, setOutsideDay] = useState<{ date: string; slots: MealSlot[] } | null>(null)
+  const selectedInRange = selectedDate >= startDate && selectedDate <= endDate
+
+  // Day outside the loaded calendar range: fetch it separately. Re-runs whenever the
+  // calendar slots change, since every mutation handler refreshes them.
+  useEffect(() => {
+    if (!household || selectedInRange) return
+    let cancelled = false
+    api
+      .getCalendar(selectedDate, selectedDate)
+      .then((data) => {
+        if (!cancelled) setOutsideDay({ date: selectedDate, slots: data })
+      })
+      .catch((err) => console.error('Failed to load selected day:', err))
+    return () => {
+      cancelled = true
+    }
+  }, [household, selectedDate, selectedInRange, calendarSlots])
+
   // Initial load: verify auth
   useEffect(() => {
     const token = getToken()
@@ -411,8 +432,12 @@ export function App() {
     return <AuthModal onSuccess={(h) => setHousehold(h)} />
   }
 
-  // Today's slots
-  const todaySlots = calendarSlots.filter((s) => s.date === todayStr)
+  // Slots of the day shown in "Today's Table"
+  const selectedDaySlots = selectedInRange
+    ? calendarSlots.filter((s) => s.date === selectedDate)
+    : outsideDay?.date === selectedDate
+      ? outsideDay.slots
+      : []
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans print:min-h-0 print:h-full print:max-h-full print:overflow-hidden print:bg-white">
@@ -426,7 +451,10 @@ export function App() {
       <main className="flex-1 max-w-full xl:max-w-[1550px] w-full min-w-0 mx-auto px-2 sm:px-3 pt-1.5 pb-6 sm:pb-4 print:p-0 print:m-0 print:max-w-none print:w-full print:h-full print:overflow-hidden">
         {activeTab === 'today' && (
           <TodayView
-            slots={todaySlots}
+            slots={selectedDaySlots}
+            selectedDate={selectedDate}
+            todayStr={todayStr}
+            onSelectedDateChange={setSelectedDate}
             members={members}
             dishes={dishes}
             statuses={statuses}

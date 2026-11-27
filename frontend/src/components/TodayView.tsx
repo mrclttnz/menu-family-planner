@@ -8,6 +8,8 @@ import {
   getLocalizedStatusName,
   getLocalizedSourceName,
 } from '../taxonomyUtils'
+import { formatDate, parseDate } from '../dateUtils'
+import { DatePickerModal } from './DatePickerModal'
 import { DishModal } from './DishModal'
 import { EditSlotDishModal } from './EditSlotDishModal'
 import {
@@ -24,6 +26,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   Pencil,
+  ChevronLeft,
+  ChevronRight,
+  CalendarDays,
   FileText,
   Trash2,
   Book,
@@ -32,6 +37,9 @@ import {
 
 interface TodayViewProps {
   slots: MealSlot[]
+  selectedDate: string // YYYY-MM-DD
+  todayStr: string
+  onSelectedDateChange: (date: string) => void
   members: Member[]
   dishes?: Dish[]
   statuses?: DishStatus[]
@@ -53,6 +61,9 @@ interface TodayViewProps {
 
 export const TodayView: React.FC<TodayViewProps> = ({
   slots,
+  selectedDate,
+  todayStr,
+  onSelectedDateChange,
   members,
   dishes = [],
   statuses = [],
@@ -74,6 +85,7 @@ export const TodayView: React.FC<TodayViewProps> = ({
   const { t, i18n } = useTranslation()
   const [activeNoteDishId, setActiveNoteDishId] = useState<{ slotId: number; dishId: number } | null>(null)
   const [noteText, setNoteText] = useState('')
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   // Slot notes edit state
   const [editingSlotId, setEditingSlotId] = useState<number | null>(null)
@@ -141,7 +153,14 @@ export const TodayView: React.FC<TodayViewProps> = ({
     weekday: 'long',
     day: 'numeric',
     month: 'long',
-  }).format(new Date())
+  }).format(parseDate(selectedDate))
+  const isToday = selectedDate === todayStr
+
+  const shiftDay = (delta: number) => {
+    const d = parseDate(selectedDate)
+    d.setDate(d.getDate() + delta)
+    onSelectedDateChange(formatDate(d))
+  }
 
   const handleSaveNote = (slotId: number, dishId: number) => {
     if (!noteText.trim()) return
@@ -168,10 +187,58 @@ export const TodayView: React.FC<TodayViewProps> = ({
         </p>
       </div>
 
+      {/* Day navigation: previous, next, date picker, today */}
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => shiftDay(-1)}
+          aria-label={t('today.prev_day')}
+          className="flex items-center px-2 py-1 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+        >
+          <ChevronLeft className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => shiftDay(1)}
+          aria-label={t('today.next_day')}
+          className="flex items-center px-2 py-1 rounded border border-slate-200 bg-white text-slate-700 hover:bg-slate-50"
+        >
+          <ChevronRight className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setPickerOpen(true)}
+          aria-label={t('today.pick_date')}
+          className="flex items-center gap-1 px-2 py-1 rounded border border-slate-200 bg-white text-xs font-medium text-slate-700 hover:bg-slate-50"
+        >
+          <CalendarDays className="w-4 h-4" />
+          <span>{selectedDate}</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => onSelectedDateChange(todayStr)}
+          disabled={isToday}
+          className="px-2 py-1 rounded border border-brand-200 bg-white text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {t('today.go_today')}
+        </button>
+      </div>
+      {pickerOpen && (
+        <DatePickerModal
+          value={selectedDate}
+          todayStr={todayStr}
+          onSelect={(d) => {
+            onSelectedDateChange(d)
+            setPickerOpen(false)
+          }}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
+
       {/* Meals Grid */}
       {slots.length === 0 ? (
         <div className="bg-white rounded-lg p-5 text-center border border-slate-200">
-          <p className="text-slate-500 text-xs">{t('today.no_meals')}</p>
+          <p className="text-slate-500 text-xs">{isToday ? t('today.no_meals') : t('today.no_meals_day')}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
